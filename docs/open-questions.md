@@ -1,141 +1,75 @@
 # Open questions
 
-Everything needing a decision, with a recommendation for each. Ordered by how much later
-work depends on the answer.
+All foundation questions were decided in review on 2026-10-11. Nothing below blocks phase 1.
 
-The two blocking questions (test authorship, schema URL) were answered in review and have
-moved to the resolved table. Nothing below blocks phase 1.
-
----
-
-## Q1 — Are checkers optional in MVP 1?
-
-**The question.** [ADR-0012](adr/0012-required-and-optional-roles.md) sets the minimum
-checker count to zero, betting that objective oracles carry enough weight alone. The
-prototype always has a reviewer, and cross-family review is one of its best properties.
-
-**Recommendation: keep checkers optional in the core, required in the `many-roles` preset.**
-
-The reasoning: oracles are genuinely stronger than agent review for anything they cover, and
-a user with good tests gets most of the value without paying for a reviewer. But the
-prototype's experience suggests the reviewer catches what tests do not. Making it
-preset-level rather than core-level lets the default be generous without making the minimum
-configuration heavier.
-
-Revisit with dogfooding data in phase 6.
+What remains is one pending action, and a list of decisions that were taken on reasoning
+rather than evidence and should be re-examined once the product is actually used.
 
 ---
 
-## Q2 — Can a local model be the lead?
+## Pending action
 
-**The question.** The brief says the user chooses any provider as lead, including a local
-model. The lead is the only agent that converses with the user, summarises progress and
-decides escalations. That is a demanding role, and a 4B model doing it badly would be the
-user's entire impression of the product.
+### Verify Gemini CLI — blocked on environment
 
-**Recommendation: allow it, warn clearly, do not default to it.**
+Gemini CLI is not installed on the analysis machine, so **every Gemini capability in these
+documents is UNVERIFIED**: tool restriction, context isolation, schema-constrained output and
+session handling. The flags recorded come from official headless documentation, and a
+reported defect (google-gemini/gemini-cli#9009) had a documented `--output-format` rejected
+outright — so the documentation alone is not sufficient evidence.
 
-The wizard should state that the lead is the role most sensitive to model quality, and
-`doctor` should flag a lead whose model failed any conformance test. Prohibiting it would
-contradict the brief and block the all-local use case, which is legitimate. But the product
-should not let someone configure a poor experience silently.
+**Owner:** project owner, once back at the home environment. **Blocks:** the Gemini adapter
+in phase 2, which can be sketched but not specified until then.
 
----
-
-## Q3 — What happens when Gemini CLI cannot enforce restriction?
-
-**The question.** Gemini CLI's tool-restriction and context-isolation capabilities are
-**UNVERIFIED** — it is not installed on the analysis machine, and its documented
-`--output-format` has a reported defect. If it cannot be restricted, it cannot safely hold a
-lead or a read-only checker role.
-
-**Recommendation: verify in phase 2, then let the capability model decide.**
-
-[ADR-0036](adr/0036-runtime-enforced-tool-restriction.md) already specifies the behaviour: a
-provider that cannot prove restriction is refused for restricted roles, with a clear
-message. No special case is needed — this is the capability negotiation working. What is
-needed is a machine with Gemini CLI installed and authenticated to run the conformance suite
-against.
-
-**Who runs that verification, and on what machine?**
+No special handling is needed beyond that. The capability model already covers the outcome:
+a provider that cannot prove restriction is refused for restricted roles with a clear
+message ([ADR-0036](adr/0036-runtime-enforced-tool-restriction.md)), and the conformance
+suite ([ADR-0039](adr/0039-provider-conformance-suite.md)) is where the proof is produced.
 
 ---
 
-## Q4 — Confirm the retention defaults
-
-**The question.** [ADR-0022](adr/0022-run-retention-policy.md) recommends keeping the
-proposed **10 full runs** and adding a **500 MB** ceiling plus **3 always-kept** runs,
-because run size variance is large: a typical run is estimated at ~1.5 MB and a pathological
-one at ~30 MB.
-
-**Recommendation: accept 10 / 500 MB / 3.** Ten is defensible for typical runs (~15 MB), and
-the byte ceiling is what protects against the tail that a count alone ignores.
-
-These are **estimates, not measurements** — Corifeu does not exist to measure. Phase 6 must
-replace them with real numbers and supersede the ADR.
-
----
-
-## Q5 — Approve the seven proposed ADRs?
-
-[ADR-0035](adr/0035-file-ownership-by-glob-classes.md) through
-[ADR-0041](adr/0041-drop-the-mode-concept.md) are status **Proposed**. They are not merely
-suggestions — 0035, 0036 and 0037 are load-bearing for phase 4 and the architecture document
-already assumes them.
-
-**Recommendation: accept 0035, 0036, 0038, 0039, 0041 now.** They follow from the analysis
-and nothing downstream works without them.
-
-Two deserve a separate look:
-
-- **0037 (sandboxing)** — approve the *staging* as much as the decision: allowlist plus
-  argv-only in phase 4, platform sandboxes in phase 7. Full sandboxing before any public
-  release, partial before any doer runs a command.
-- **0040 (YAML parser)** — genuinely undecided, resolved by a phase 1 spike. Approve the
-  spike and the exclusion of `serde_yml`, not the parser.
-
----
-
-## Q6 — Does the README change now?
-
-**The question.** `README.md` still describes "orchestra" and instructs `./install.sh
-/path/to/your-repo`. The repository is now `baphomello/corifeu` and public. The brief says
-not to touch the README beyond what is strictly necessary, with a full rewrite in a later
-phase.
-
-**Recommendation: add three lines, no more.** A short note that the project is being rebuilt
-as Corifeu, a pointer to `docs/`, and a statement that the current `.orchestra/` contents are
-the prototype. A public repository whose README describes a different product is a small
-cost, but it is paid by every visitor until phase 8.
-
----
-
-## Q7 — Should Corifeu's own repository adopt Corifeu's conventions now?
-
-**The question.** The project has no `GLOSSARY.md`, and terms used throughout these
-documents — lead, doer, checker, board, contract, artefact, oracle, class — are load-bearing
-and not all obvious.
-
-**Recommendation: add a glossary in phase 1**, as `docs/glossary.md`. It costs very little
-and it is the document contributors will need first. It also exercises
-[ADR-0023](adr/0023-project-memory-in-versioned-files.md)'s own idea on the project itself.
-
----
-
-## Resolved during this session
-
-Recorded so they are not reopened by accident.
+## Decided in review
 
 | Question | Resolution |
 |---|---|
 | Repository name | `baphomello/corifeu`; local remote updated |
-| Rust or Go | **Rust**, buy the adapter-churn risk. Reasoning in [ADR-0004](adr/0004-rust-single-binary.md) |
-| Fixed `src/` and `tests/` paths | Replaced by ordered glob classes, [ADR-0035](adr/0035-file-ownership-by-glob-classes.md) |
-| Backups on install | None. The generated config is the restore point, [ADR-0038](adr/0038-config-as-uninstall-restore.md) |
-| Metering for subscriptions | Quota percentage, never fabricated currency, [ADR-0031](adr/0031-token-savings-metering.md) |
+| Rust or Go | **Rust**, buy the adapter-churn risk — [ADR-0004](adr/0004-rust-single-binary.md) |
+| Who writes the tests | **Any role the user assigns.** The `lead` role never writes; its model may, as a separate role. One role owning `source` and `test` is permitted and warned — [ADR-0042](adr/0042-test-authorship.md) |
+| Schema hosting | **GitHub Pages**, `baphomello.github.io/corifeu/schema/v1/config.json`. No domain until the product proves itself — [ADR-0028](adr/0028-yaml-config-with-json-schema.md) |
+| Is `corifeu` available | **Yes** — free on crates.io and npm, checked 2026-10-11. Reserved in phase 1 |
+| Checkers required? | **Optional in the core, required in the `many-roles` preset** — [ADR-0012](adr/0012-required-and-optional-roles.md) |
+| Local model as lead | **Allowed, warned, never the default** — [ADR-0043](adr/0043-any-provider-may-lead.md) |
+| Retention defaults | **10 full runs / 500 MB / 3 always kept** — [ADR-0022](adr/0022-run-retention-policy.md) |
+| Sandboxing | Accepted **with staging**: allowlist and argv-only in phase 4, platform sandboxes in phase 7 — [ADR-0037](adr/0037-sandboxed-command-execution.md) |
+| YAML parser | **Process accepted, crate pending.** `serde_yml` excluded permanently; parser chosen by a phase 1 spike — [ADR-0040](adr/0040-yaml-parser-selection.md) |
+| File ownership | Ordered glob classes, first match wins — [ADR-0035](adr/0035-file-ownership-by-glob-classes.md) |
+| `private` mode | Dropped; expressible as `privacy.allow_remote_providers` — [ADR-0041](adr/0041-drop-the-mode-concept.md) |
+| Install backups | None. The generated config is the restore point — [ADR-0038](adr/0038-config-as-uninstall-restore.md) |
+| Metering for subscriptions | Quota percentage, never fabricated currency — [ADR-0031](adr/0031-token-savings-metering.md) |
 | WSL-specific configuration | Removed from defaults, documented in [troubleshooting.md](troubleshooting.md) |
-| `private` mode | Dropped; expressible as `privacy.allow_remote_providers`, [ADR-0041](adr/0041-drop-the-mode-concept.md) |
+| README | Marked as under rebuild; full rewrite stays in phase 8 |
+| Glossary | Written in phase 0 — [glossary.md](glossary.md) |
 | Does `review.sh` discard its diff? | No. `codex exec` appends piped stdin as a `<stdin>` block |
-| **Who writes the tests?** | **Any role the user assigns. The `lead` role never writes; its model may, as a separate role. Same role owning `source` and `test` is permitted and warned.** [ADR-0042](adr/0042-test-authorship.md) |
-| **Where is the schema published?** | **GitHub Pages, `baphomello.github.io/corifeu/schema/v1/config.json`. No domain until the project proves itself.** [ADR-0028](adr/0028-yaml-config-with-json-schema.md) |
-| **Is `corifeu` available?** | **Yes — free on crates.io and npm (checked 2026-10-11). Reserve in phase 1.** |
+
+---
+
+## Decided on reasoning, to be re-examined with evidence
+
+These were settled so work can proceed, not because they are proven. Each is a judgement
+that real use can overturn cheaply — and the project owner has said explicitly that he will
+test them as the first end user and ask for adjustments. **Changing any of these later is
+expected, not a failure.**
+
+| Decision | Chosen because | What would overturn it |
+|---|---|---|
+| **3 rounds per pair** | The prototype's practical experience | Runs that routinely escalate at round 3 with work still converging |
+| **Retention 10 / 500 MB** | Estimated run sizes, not measured ones | Phase 6 measurements. [ADR-0022](adr/0022-run-retention-policy.md) must then be superseded with real numbers |
+| **Checkers optional** | A bet that oracles outweigh agent review | Dogfooding showing the reviewer catches what tests systematically miss |
+| **Sequential execution** | Determinism beats speed while the design is unsettled | Runs slow enough that the workflow becomes impractical |
+| **Context contract defaults** | Reasoned from the prototype's shapes | Doers producing locally correct, globally wrong work — the signal that a view is too narrow |
+| **`serde-saphyr`** | Avoids the `unsafe-libyaml` lineage | The phase 1 spike, on error-message quality |
+| **Warning, not error, for self-testing** | Refusing would be paternalistic | Users routinely shipping compromised oracles without noticing the warning |
+| **Five role categories** | They cover the observed cases | A real role that fits none of them |
+
+The honest framing: a foundation document set written before any code exists is a set of
+hypotheses with citations. The ADR format exists so that overturning one is a recorded
+decision with reasoning, rather than a silent drift.

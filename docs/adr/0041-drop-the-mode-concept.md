@@ -1,6 +1,6 @@
 # 0041 — Drop the open/private mode concept
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context

@@ -109,18 +109,15 @@ What this makes easy, what it makes hard, and what it obliges us to build.
 |---|---|---|
 | [0034](0034-break-existing-personal-setup.md) | The existing personal setup is not preserved | Accepted |
 
-### Proposed during foundation analysis
+### Raised by the foundation analysis, accepted in review
 | ADR | Title | Status |
 |---|---|---|
-| [0035](0035-file-ownership-by-glob-classes.md) | File ownership by glob classes, not path prefixes | Proposed |
-| [0036](0036-runtime-enforced-tool-restriction.md) | Tool restriction enforced by the runtime | Proposed |
-| [0037](0037-sandboxed-command-execution.md) | Command execution is sandboxed by default | Proposed |
-| [0038](0038-config-as-uninstall-restore.md) | The generated config file is the restore point | Proposed |
-| [0039](0039-provider-conformance-suite.md) | Every provider passes a conformance suite | Proposed |
-| [0040](0040-yaml-parser-selection.md) | YAML parser selection | Proposed |
-| [0041](0041-drop-the-mode-concept.md) | Drop the open/private mode concept | Proposed |
-
-### Decided in review
-| ADR | Title | Status |
-|---|---|---|
+| [0035](0035-file-ownership-by-glob-classes.md) | File ownership by glob classes, not path prefixes | Accepted |
+| [0036](0036-runtime-enforced-tool-restriction.md) | Tool restriction enforced by the runtime | Accepted |
+| [0037](0037-sandboxed-command-execution.md) | Command execution is sandboxed by default | Accepted |
+| [0038](0038-config-as-uninstall-restore.md) | The generated config file is the restore point | Accepted |
+| [0039](0039-provider-conformance-suite.md) | Every provider passes a conformance suite | Accepted |
+| [0040](0040-yaml-parser-selection.md) | YAML parser selection | Accepted (process); crate pending spike |
+| [0041](0041-drop-the-mode-concept.md) | Drop the open/private mode concept | Accepted |
 | [0042](0042-test-authorship.md) | Test authorship is configurable, self-testing warned | Accepted |
+| [0043](0043-any-provider-may-lead.md) | Any provider may lead, with a quality warning | Accepted |

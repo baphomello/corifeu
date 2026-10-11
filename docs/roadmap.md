@@ -57,8 +57,9 @@ Phases 2 and 3 are independent and may run in parallel. Phases 5 and 6 likewise.
 
 **Scope.** Understand the prototype, record every decision, design the target.
 
-**Deliverables.** `diagnosis.md`, `architecture.md`, 41 ADRs, `config.md`, `roadmap.md`,
-`risks.md`, `open-questions.md`, `troubleshooting.md`. Legacy inconsistencies cleaned.
+**Deliverables.** `diagnosis.md`, `architecture.md`, 43 ADRs, `config.md`, `roadmap.md`,
+`risks.md`, `open-questions.md`, `troubleshooting.md`, `glossary.md`. Legacy inconsistencies
+cleaned; README marked as under rebuild.
 
 **Acceptance.**
 - Every file in the repository has a keep / rewrite / delete call.
@@ -91,6 +92,7 @@ instinct behind the original phase 1 — never be far from a release — is righ
 - Release pipeline: tagged builds, **SHA-256 checksums, signed artefacts**.
 - `install.sh` and `install.ps1` — download, verify, place the binary. No wizard yet.
 - `NOTICE` (AGPL §7(b)), DCO check in CI, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
+- **Reserve `corifeu` on crates.io** — verified free on 2026-10-11, along with npm.
 
 **Acceptance.**
 - `corifeu --version` runs on all six matrix targets in CI.
@@ -129,9 +131,14 @@ has lead time — start it in this phase.
   naming the probable cause (for llama.cpp, a missing `--jinja`).
 - Scheduled CI job runs the suite against latest CLI versions.
 
-**Dependencies.** Phase 1. **Risks.** Gemini's capabilities may be insufficient for
-restricted roles — then it is documented as lead-only-unrestricted, not silently trusted.
-CI needs real credentials for cloud CLIs; see [risks.md](risks.md).
+**Dependencies.** Phase 1, **plus a machine with Gemini CLI installed and authenticated** —
+it is absent from the analysis environment, so every Gemini capability is currently
+UNVERIFIED. The project owner will provide this; until then Gemini's adapter cannot be
+specified, only sketched.
+
+**Risks.** Gemini's capabilities may be insufficient for restricted roles — then it is
+documented as lead-only-unrestricted, not silently trusted. CI needs real credentials for
+cloud CLIs; see [risks.md](risks.md).
 
 ---
 

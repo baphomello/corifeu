@@ -1,6 +1,6 @@
 # 0036 — Tool restriction enforced by the runtime
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context

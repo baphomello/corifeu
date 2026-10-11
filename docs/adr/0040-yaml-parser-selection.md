@@ -1,6 +1,6 @@
 # 0040 — YAML parser selection
 
-- **Status:** Proposed
+- **Status:** Accepted (process); parser pending the phase 1 spike
 - **Date:** 2026-10-11
 
 ## Context
@@ -22,8 +22,19 @@ dangerous.
 | `yaml-rust2` | Lower-level parser; successor to the unmaintained `yaml-rust` |
 
 ## Decision
-**Proposed, not decided.** Current recommendation: **`serde-saphyr`**, with `serde_norway` as
-the fallback if it proves immature.
+What is decided here is the **process and the exclusion**, not yet the crate.
+
+1. **`serde_yml` is excluded permanently**, enforced by `cargo-deny`. It carries
+   RUSTSEC-2025-0068 for unsoundness, is unmaintained, and its name makes it the crate most
+   likely to be chosen by mistake. `yaml-rust` is denied alongside it.
+2. **The parser is isolated behind one internal module**, so the choice can change later by
+   touching one file. Given the state of this ecosystem, that isolation is built
+   deliberately rather than hoped for.
+3. **The crate is chosen by a time-boxed spike in phase 1**, on the criteria below.
+
+Current recommendation, to be confirmed or overturned by the spike: **`serde-saphyr`**, with
+`serde_norway` as the fallback if it proves immature. A later ADR supersedes this one with
+the result.
 
 Reasoning for `serde-saphyr`: it avoids the `unsafe-libyaml` lineage entirely, which is where
 both maintained forks carry their risk. `serde_yaml_ng` depending on an unmaintained unsafe C

@@ -1,6 +1,6 @@
 # 0035 — File ownership by glob classes, not path prefixes
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context

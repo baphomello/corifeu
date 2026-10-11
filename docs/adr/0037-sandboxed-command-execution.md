@@ -1,6 +1,6 @@
 # 0037 — Command execution is sandboxed by default
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context
@@ -43,6 +43,11 @@ components:
 
 3. **No shell interpretation by default.** Commands are executed as argument vectors, not
    passed to `sh -c`. Shell metacharacters stop being an evasion surface entirely.
+
+Delivery is **staged**, and the staging is part of the decision: the allowlist and
+argv-only execution ship in **phase 4**, before any doer is permitted to run a command;
+the platform sandboxes ship in **phase 7**, before any public release. No doer runs a
+command without at least the first stage in place.
 
 Users may opt out explicitly (`execution.sandbox: none`) for environments already externally
 sandboxed, such as a disposable container — which is also how Codex frames its own

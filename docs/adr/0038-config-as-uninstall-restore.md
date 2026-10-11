@@ -1,6 +1,6 @@
 # 0038 — The generated config file is the restore point
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context

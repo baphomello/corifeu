@@ -1,6 +1,6 @@
 # 0039 — Every provider passes a conformance suite
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-11
 
 ## Context

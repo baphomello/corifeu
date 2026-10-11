@@ -133,6 +133,8 @@ file_classes:
     include: ["**/*.md", "docs/**"]
 
 ownership:
+  # UNRESOLVED: this grants the lead write capability, which ADR-0010 denies it.
+  # Who authors the tests is open question Q1 in open-questions.md.
   test: [lead, reviewer]        # the oracle belongs to whoever is judged by it
   source: [coder]
   config: [lead]

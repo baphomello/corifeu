@@ -3,79 +3,12 @@
 Everything needing a decision, with a recommendation for each. Ordered by how much later
 work depends on the answer.
 
-**Q1 and Q2 are blocking** — phase 4 and phase 1 respectively cannot be specified without
-them. The rest can be decided as their phase approaches.
+The two blocking questions (test authorship, schema URL) were answered in review and have
+moved to the resolved table. Nothing below blocks phase 1.
 
 ---
 
-## Q1 — Who writes the tests? **(blocking, phase 4)**
-
-**The question.** [ADR-0010](adr/0010-role-categories.md) states the lead writes no
-artefacts. The prototype has the orchestrator own `tests/`, because it authors the
-acceptance oracle it will judge by. [config.md](config.md) currently grants `lead` the
-`test` class, which **contradicts ADR-0010**. The contradiction is flagged in place.
-
-This matters more than it looks. If the doer writes both the implementation and the tests
-that judge it, the doer is marking its own homework, and the oracle stops being independent
-— which weakens [ADR-0019](adr/0019-tie-breaking-and-oracle-precedence.md), the rule the
-whole quality thesis rests on.
-
-**Options.**
-
-| | Approach | Cost |
-|---|---|---|
-| **A** | Lead writes tests. The prototype's model. | Lead gains write capability, weakening [ADR-0036](adr/0036-runtime-enforced-tool-restriction.md)'s clean rule |
-| **B** | A dedicated `qa` role writes tests; lead stays write-free | Forces a second required role; minimum config grows |
-| **C** | The `coder` writes both | Simplest; the doer marks its own homework |
-| **D** | A planner writes executable acceptance criteria; a doer implements | Cleanest separation, most machinery |
-
-**Recommendation: B**, with a nuance that makes it cheap. Introduce a role *capability*
-`writes: [test]` that a **checker** may hold — so checkers are not strictly read-only, and
-a `qa` checker authors the oracle while the lead stays write-free. The minimum required set
-is unchanged, because `qa` is only required in presets that want independent oracles; the
-`few-roles` preset falls back to **C** and says so plainly.
-
-This keeps ADR-0010 intact, keeps oracle independence where the user wants it, and makes the
-trade-off visible rather than hidden in a default.
-
-**If you prefer A**, ADR-0010 must be amended to give the lead a narrow write capability
-scoped to one file class, and ADR-0036 must record that the lead is a partial exception.
-That is defensible — it is what the prototype does and it works — but it should be written
-down, not left implicit.
-
----
-
-## Q2 — Where is the JSON Schema published? **(blocking, phase 1)**
-
-**The question.** [config.md](config.md) uses `https://corifeu.dev/schema/v1/config.json` as
-a placeholder. The brief says everything is served from GitHub Releases for now, with a
-custom domain only if the project succeeds. A schema URL is effectively permanent — editors
-and committed config files will reference it for years.
-
-**Recommendation: GitHub Pages**, at
-`https://baphomello.github.io/corifeu/schema/v1/config.json`.
-
-It is stable, free, needs no domain, and survives a later move behind a redirect. Committing
-to `corifeu.dev` before the domain exists risks either paying for it indefinitely or
-breaking every config file that references it.
-
-Decide before phase 1 writes the first schema reference.
-
----
-
-## Q3 — Is `corifeu` available as a package name?
-
-**The question.** Not checked. The binary name, the crates.io name and any future Homebrew
-formula could already be taken.
-
-**Recommendation.** Check crates.io, Homebrew and npm now, and **reserve the crates.io name
-in phase 1** even though the crate will be empty for months. A rename after release is far
-more expensive than an early placeholder. If `corifeu` is taken on crates.io, publish as
-`corifeu-cli` while keeping the binary named `corifeu`.
-
----
-
-## Q4 — Are checkers optional in MVP 1?
+## Q1 — Are checkers optional in MVP 1?
 
 **The question.** [ADR-0012](adr/0012-required-and-optional-roles.md) sets the minimum
 checker count to zero, betting that objective oracles carry enough weight alone. The
@@ -93,7 +26,7 @@ Revisit with dogfooding data in phase 6.
 
 ---
 
-## Q5 — Can a local model be the lead?
+## Q2 — Can a local model be the lead?
 
 **The question.** The brief says the user chooses any provider as lead, including a local
 model. The lead is the only agent that converses with the user, summarises progress and
@@ -109,7 +42,7 @@ should not let someone configure a poor experience silently.
 
 ---
 
-## Q6 — What happens when Gemini CLI cannot enforce restriction?
+## Q3 — What happens when Gemini CLI cannot enforce restriction?
 
 **The question.** Gemini CLI's tool-restriction and context-isolation capabilities are
 **UNVERIFIED** — it is not installed on the analysis machine, and its documented
@@ -128,7 +61,7 @@ against.
 
 ---
 
-## Q7 — Confirm the retention defaults
+## Q4 — Confirm the retention defaults
 
 **The question.** [ADR-0022](adr/0022-run-retention-policy.md) recommends keeping the
 proposed **10 full runs** and adding a **500 MB** ceiling plus **3 always-kept** runs,
@@ -143,7 +76,7 @@ replace them with real numbers and supersede the ADR.
 
 ---
 
-## Q8 — Approve the seven proposed ADRs?
+## Q5 — Approve the seven proposed ADRs?
 
 [ADR-0035](adr/0035-file-ownership-by-glob-classes.md) through
 [ADR-0041](adr/0041-drop-the-mode-concept.md) are status **Proposed**. They are not merely
@@ -163,7 +96,7 @@ Two deserve a separate look:
 
 ---
 
-## Q9 — Does the README change now?
+## Q6 — Does the README change now?
 
 **The question.** `README.md` still describes "orchestra" and instructs `./install.sh
 /path/to/your-repo`. The repository is now `baphomello/corifeu` and public. The brief says
@@ -177,7 +110,7 @@ cost, but it is paid by every visitor until phase 8.
 
 ---
 
-## Q10 — Should Corifeu's own repository adopt Corifeu's conventions now?
+## Q7 — Should Corifeu's own repository adopt Corifeu's conventions now?
 
 **The question.** The project has no `GLOSSARY.md`, and terms used throughout these
 documents — lead, doer, checker, board, contract, artefact, oracle, class — are load-bearing
@@ -203,3 +136,6 @@ Recorded so they are not reopened by accident.
 | WSL-specific configuration | Removed from defaults, documented in [troubleshooting.md](troubleshooting.md) |
 | `private` mode | Dropped; expressible as `privacy.allow_remote_providers`, [ADR-0041](adr/0041-drop-the-mode-concept.md) |
 | Does `review.sh` discard its diff? | No. `codex exec` appends piped stdin as a `<stdin>` block |
+| **Who writes the tests?** | **Any role the user assigns. The `lead` role never writes; its model may, as a separate role. Same role owning `source` and `test` is permitted and warned.** [ADR-0042](adr/0042-test-authorship.md) |
+| **Where is the schema published?** | **GitHub Pages, `baphomello.github.io/corifeu/schema/v1/config.json`. No domain until the project proves itself.** [ADR-0028](adr/0028-yaml-config-with-json-schema.md) |
+| **Is `corifeu` available?** | **Yes — free on crates.io and npm (checked 2026-10-11). Reserve in phase 1.** |

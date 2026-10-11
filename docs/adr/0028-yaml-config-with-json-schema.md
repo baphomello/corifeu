@@ -15,6 +15,12 @@ first ([diagnosis](../diagnosis.md)).
 Configuration is **YAML**, at `.corifeu/config.yaml`, with a **published JSON Schema** at a
 stable versioned URL.
 
+The schema is served from **GitHub Pages**, at
+`https://baphomello.github.io/corifeu/schema/v1/config.json`. No custom domain is purchased
+until the project has proven itself: a schema URL is referenced by every committed config
+file and by editors, so it is effectively permanent, and committing to a domain that may
+not be renewed would break those references. A later move to a custom domain is a redirect.
+
 The schema is published so that editors provide completion and validation while typing, and
 so the structure is documented in a machine-checkable form rather than only in prose.
 Corifeu validates against the same schema at load time, and schema validation is part of CI.

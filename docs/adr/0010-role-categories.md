@@ -28,6 +28,12 @@ are configuration.
 `lead` holding exactly one member is the architectural core of the product — it is what
 makes the experience "one agent to talk to" rather than a committee.
 
+**A role is not a model.** The `lead` *role* writes nothing. The *model* assigned to it is
+free to hold other roles that do write — a strong model may be both the lead and the author
+of tests, as two separate agents with separate contracts and separate sessions. The
+no-write rule binds the role, never the model behind it
+([ADR-0011](0011-user-defined-granularity.md), [ADR-0042](0042-test-authorship.md)).
+
 ## Alternatives considered
 - **A flat list of roles with per-role capability flags.** More flexible, and worse: every
   preset would re-derive the same five clusters by hand, and invalid combinations (two

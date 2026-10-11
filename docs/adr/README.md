@@ -119,3 +119,8 @@ What this makes easy, what it makes hard, and what it obliges us to build.
 | [0039](0039-provider-conformance-suite.md) | Every provider passes a conformance suite | Proposed |
 | [0040](0040-yaml-parser-selection.md) | YAML parser selection | Proposed |
 | [0041](0041-drop-the-mode-concept.md) | Drop the open/private mode concept | Proposed |
+
+### Decided in review
+| ADR | Title | Status |
+|---|---|---|
+| [0042](0042-test-authorship.md) | Test authorship is configurable, self-testing warned | Accepted |

@@ -30,7 +30,7 @@ Every decision in the foundation brief appears below. The git section is the pro
 owner's own flow, which was the test case the design had to satisfy.
 
 ```yaml
-# yaml-language-server: $schema=https://corifeu.dev/schema/v1/config.json
+# yaml-language-server: $schema=https://baphomello.github.io/corifeu/schema/v1/config.json
 version: 1
 
 project:
@@ -93,7 +93,7 @@ roles:
     provider: local
     model: ornith1.5:9b
     required: true              # a software project cannot exist without one
-    writes: [source]            # file classes, not paths
+    writes: [source, config]    # file classes, not paths
     contract:
       task: true
       acceptance: true
@@ -104,6 +104,18 @@ roles:
       messages: { channels: [reviewer], last: 6 }
       memory: [conventions.md]
       max_tokens: 24000
+
+  qa:
+    category: doers
+    provider: claude
+    model: opus               # the SAME model as the lead, a DIFFERENT agent.
+    required: false           # separate contract, separate session, no shared context.
+    writes: [test, docs]      # the lead ROLE never writes; its model may (ADR-0042)
+    contract:
+      task: true
+      acceptance: true
+      files: [target]
+      max_tokens: 20000
 
   reviewer:
     category: checkers
@@ -133,18 +145,19 @@ file_classes:
     include: ["**/*.md", "docs/**"]
 
 ownership:
-  # UNRESOLVED: this grants the lead write capability, which ADR-0010 denies it.
-  # Who authors the tests is open question Q1 in open-questions.md.
-  test: [lead, reviewer]        # the oracle belongs to whoever is judged by it
+  # No class names `lead`: the lead ROLE writes nothing (ADR-0010). Its model
+  # still can — here opus also holds `qa`, as a separate agent (ADR-0042).
+  test:   [qa]                  # deliberately NOT [coder]: see the warning below
   source: [coder]
-  config: [lead]
-  docs: [lead]
+  config: [coder]
+  docs:   [qa]
 
 # ──────────────────────────── channels ───────────────────────────
 # Direct messages only between declared pairs. Every message is still
 # recorded on the board: direct means unrelayed, never unobserved.
 channels:
   - [coder, reviewer]
+  - [coder, qa]
   - [architect, lead]
 
 # ──────────────────────────── oracles ────────────────────────────
@@ -259,10 +272,14 @@ roles:
     provider: local
     model: qwen2.5-coder:7b
     required: true
-    writes: [source]
+    writes: [source, test]    # warns: same role writes code and its own oracle
 oracles:
   test: { command: ["npm", "test"] }
 ```
+
+This minimal form deliberately triggers the self-testing warning. It is what the `few-roles`
+preset produces, and it is a legitimate choice for a small project — the point is that
+Corifeu says so during installation rather than letting the compromise pass unnoticed.
 
 Validation rejects anything thinner: exactly one `lead`, at least one `doers` role that can
 write, and the roles referenced by `ownership` and `channels` must exist
@@ -276,7 +293,7 @@ structure, abbreviated:
 ```jsonc
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://corifeu.dev/schema/v1/config.json",
+  "$id": "https://baphomello.github.io/corifeu/schema/v1/config.json",
   "type": "object",
   "required": ["version", "roles", "oracles"],
   "additionalProperties": false,
@@ -383,9 +400,14 @@ the offending role named — never runtime surprises:
 3. **Referential integrity** — every role named in `ownership`, `channels` or `escalate_to`
    must exist.
 
-Two further checks are **warnings**, not errors, because they indicate probable mistakes
+Three further checks are **warnings**, not errors, because they indicate probable mistakes
 rather than impossible configurations:
 
+- **A role owning both `source` and `test`.** An agent that writes the code and the tests
+  that judge it is marking its own homework, and the oracle is no longer independent
+  ([ADR-0042](adr/0042-test-authorship.md)). Permitted — a solo user on a small project may
+  reasonably accept it — but never silent, because the configuration otherwise looks like it
+  has an oracle. The remedy is a separate role, which may use the same model.
 - A `file_classes` rule fully shadowed by an earlier one, which ordering makes possible.
 - A doer whose contract excludes `acceptance`, or a checker whose contract excludes the
   diff — configurations that will technically run and produce poor work.

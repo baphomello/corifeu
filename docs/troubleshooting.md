@@ -75,7 +75,7 @@ projects whose unit tests sit beside their sources (`src/bank/deposit.ts` next t
 `src/bank/deposit_test.ts`) have their tests blocked along with their sources.
 This is a known structural limit of the prefix approach, not a configuration
 mistake. Corifeu replaces it with glob-based ownership rules — see
-[ADR-0021](adr/0021-file-ownership-by-glob-classes.md).
+[ADR-0035](adr/0035-file-ownership-by-glob-classes.md).
 
 ## Tool calls never arrive from a local model
 

@@ -13,4 +13,5 @@ Acceptance criteria: ${CRITERIA}
 Report findings most-severe first (correctness bugs before style/nits), concise.
 If it is correct and meets the criteria, reply exactly: APPROVED."
 printf '%s' "$DIFF" | CODEX_HOME="$ORCH/codex-home" codex exec \
+  -m "${ORCHESTRA_CODEX_MODEL:-gpt-5.5}" \
   -c sandbox_mode="read-only" -c approval_policy="never" "$PROMPT"

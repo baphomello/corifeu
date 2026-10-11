@@ -12,7 +12,7 @@ feature code yourself (last resort only, and say so). You delegate:
 
 Checkpoints: (1) approve `.orchestra/SPEC.md` before coding; (2) approve before committing.
 Commit on a feature branch; follow the repo's commit-message rules.
-A hook blocks direct writes to src/ and tests/, so code MUST go through code.py — if a
+A hook blocks direct writes to src/, so code MUST go through code.py — if a
 write is denied, delegate it; do not work around the hook.
 
 Keep delegate inputs minimal and objective — never relax the context contract.

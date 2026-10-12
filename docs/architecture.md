@@ -51,7 +51,7 @@ graph TB
         direction LR
         ClaudeA["Claude Code"]
         CodexA["Codex CLI"]
-        GeminiA["Gemini CLI"]
+        GeminiA["Antigravity CLI"]
         LocalA["Ollama / llama.cpp"]
     end
 
@@ -335,19 +335,35 @@ role** rather than trusting it ([ADR-0036](adr/0036-runtime-enforced-tool-restri
 
 Verified flag mapping, from `--help` on the installed CLIs:
 
-| Need | Claude Code 2.1.295 | Codex CLI 0.162.1 | Gemini CLI |
+| Need | Claude Code 2.1.295 | Codex CLI 0.162.1 | Antigravity CLI 1.3.3 |
 |---|---|---|---|
-| Non-interactive | `-p` | `codex exec` | `-p` |
-| Structured output | `--output-format json\|stream-json` | `--json` | `--output-format json` |
-| Schema output | `--json-schema` | `--output-schema` | **UNVERIFIED** |
-| Restrict tools | `--tools ""`, `--disallowedTools`, `--restricted` | `-s read-only` | **UNVERIFIED** |
-| Suppress ambient context | `--bare`, `--setting-sources`, `--strict-mcp-config` | `--ignore-user-config`, `--ignore-rules` | **UNVERIFIED** |
-| Session | `--session-id`, `--resume`, `--fork-session` | `exec resume`, `fork` | **UNVERIFIED** |
-| Working dir | `--add-dir` | `-C`, `--add-dir` | `--include-directories` |
+| Non-interactive | `-p` | `codex exec` | `-p` / `--print` |
+| Structured output | `--output-format json\|stream-json` | `--json` | `--output-format json\|stream-json` |
+| Schema output | `--json-schema` | `--output-schema` | `--json-schema` |
+| Restrict tools | `--tools ""`, `--disallowedTools`, `--restricted` | `-s read-only` | **headless default-deny** + `permissions.allow` |
+| Suppress ambient context | `--bare`, `--setting-sources`, `--strict-mcp-config` | `--ignore-user-config`, `--ignore-rules` | **no flag — UNVERIFIED** |
+| Session | `--session-id`, `--resume`, `--fork-session` | `exec resume`, `fork` | `--continue`, `--conversation <id>` |
+| Working dir | `--add-dir` | `-C`, `--add-dir` | `--add-dir` |
+| Usage reporting | in structured output | in structured output | `usage` block, incl. thinking + cache tokens |
 
-Gemini CLI is not installed on the analysis machine; its rows come from official headless
-documentation, and a reported defect (google-gemini/gemini-cli#9009) had `--output-format`
-rejected despite being documented. Treat the whole column as unverified until exercised.
+**Gemini CLI was retired for individual users on 2026-06-18** and replaced by Antigravity
+CLI (`agy`), a closed-source Go binary. The column above was verified by execution on
+2026-10-12, not read from documentation
+([ADR-0044](adr/0044-antigravity-replaces-gemini-cli.md)).
+
+Antigravity restricts tools by a different mechanism from the other two. It has no
+deny-list flag; instead **headless mode auto-denies anything requiring permission**, and
+`permissions.allow` in `~/.gemini/antigravity-cli/settings.json` grants selectively. Verified
+adversarially: instructed to write a file under default permissions it attempted the write,
+was denied, and created nothing — reporting
+`"denied_actions":[{"action":"command","display_name":"RunCommand"}]` — while the same
+instruction with `--dangerously-skip-permissions` created the file.
+
+One measurement that constrains budgets: a six-word prompt to Antigravity consumed **11,859
+input tokens** with no tools and **24,362 with tools available**. Per-provider baseline
+overhead is substantial and must be counted separately from the assembled view
+([ADR-0018](adr/0018-loop-and-budget-control.md)) — a 24k-token contract means nothing
+against a provider that spends 24k before reading it.
 
 ### Local runtimes
 

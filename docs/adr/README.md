@@ -121,3 +121,4 @@ What this makes easy, what it makes hard, and what it obliges us to build.
 | [0041](0041-drop-the-mode-concept.md) | Drop the open/private mode concept | Accepted |
 | [0042](0042-test-authorship.md) | Test authorship is configurable, self-testing warned | Accepted |
 | [0043](0043-any-provider-may-lead.md) | Any provider may lead, with a quality warning | Accepted |
+| [0044](0044-antigravity-replaces-gemini-cli.md) | Antigravity CLI replaces the retired Gemini CLI | Accepted |

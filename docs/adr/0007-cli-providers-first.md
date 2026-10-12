@@ -10,9 +10,14 @@ also bring working tool execution, repository awareness and session handling —
 amounts of functionality Corifeu would otherwise reimplement.
 
 ## Decision
-MVP 1 supports **agent CLIs only**: **Claude Code**, **Codex CLI**, **Gemini CLI**, plus
+MVP 1 supports **agent CLIs only**: **Claude Code**, **Codex CLI**, **Antigravity CLI**, plus
 local runtimes ([ADR-0008](0008-local-runtimes.md)). Corifeu invokes them in
 non-interactive mode and parses structured output.
+
+> **Amended 2026-10-12.** This ADR originally named **Gemini CLI**. Gemini CLI was retired
+> for individual users on 2026-06-18 and replaced by Antigravity CLI (`agy`). The Gemini
+> column below is superseded by [ADR-0044](0044-antigravity-replaces-gemini-cli.md), which
+> carries capabilities verified by execution rather than from documentation.
 
 The capabilities below were verified by running `--help` locally, except where marked.
 

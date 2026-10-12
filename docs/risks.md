@@ -7,7 +7,7 @@ not hopes — each names something to build, measure or decide.
 
 | # | Risk | L | I | Phase |
 |---|---|---|---|---|
-| T1 | Provider CLI output and flags change | **high** | **high** | 2 |
+| T1 | Provider CLI output and flags change — **already materialised** | **high** | **high** | 2 |
 | T2 | Local models too weak for useful doer work | medium | **high** | 4 |
 | T3 | Context leaks between roles | medium | **high** | 3–4 |
 | T4 | Windows and WSL divergence | **high** | medium | 1, 5 |
@@ -31,10 +31,19 @@ not hopes — each names something to build, measure or decide.
 ## Technical
 
 ### T1 — Provider CLI output and flags change
-**The dominant technical risk.** These are pre-1.0 tools: Codex 0.162.1, Claude Code
-2.1.295. Gemini CLI has a reported defect where a documented `--output-format` was rejected
-outright. The dangerous failure is silent — a restriction flag ignored after an upgrade
+**The dominant technical risk, and it has already materialised once.** Between this
+project's foundation analysis and its first verification pass, **Google retired Gemini CLI
+entirely** and replaced it with Antigravity CLI
+([ADR-0044](adr/0044-antigravity-replaces-gemini-cli.md)). Not a flag change — a different
+product, a different language, a different licence. That happened inside a single week of
+this project's life.
+
+These are pre-1.0 or fast-moving tools: Codex 0.162.1, Claude Code 2.1.295, Antigravity
+1.3.3. The dangerous failure is silent — a restriction flag ignored after an upgrade
 produces a lead that *appears* restricted, and a parse that *appears* to succeed.
+
+**Antigravity is additionally closed source**, so its behaviour can only be observed, never
+read, and breaking changes arrive without a readable diff.
 
 *Mitigation.* The conformance suite ([ADR-0039](adr/0039-provider-conformance-suite.md)),
 run in CI against pinned versions **and on a schedule against latest**, so breakage is found

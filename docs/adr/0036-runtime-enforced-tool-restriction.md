@@ -31,7 +31,7 @@ against the installed CLIs:
 |---|---|---|
 | Claude Code 2.1.295 | `--tools ""`, `--disallowedTools`, `--allowedTools`, `--restricted` | Yes, `--help` |
 | Codex CLI 0.162.1 | `-s read-only` / `workspace-write`, `--ignore-rules` | Yes, `--help` |
-| Gemini CLI | `--approval-mode`; tool-level restriction unclear | **UNVERIFIED** |
+| Antigravity CLI 1.3.3 | **Headless default-deny**, plus `permissions.allow` in settings.json | **Yes — adversarially** |
 
 **Layer 3 — path and sandbox validation.** Every write that does reach the runtime is checked
 against the ownership map ([ADR-0035](0035-file-ownership-by-glob-classes.md)), and shell
@@ -57,8 +57,11 @@ explicit message, rather than being trusted and hoped for. This is why
 - Each adapter must declare which restrictions it can enforce, and the core must refuse role
   assignments it cannot back. This is a capability negotiation at configuration time, and
   `doctor` must surface it plainly.
-- Gemini CLI's row is unverified and **blocks nothing except Gemini-as-restricted-role** until
-  tested on a real installation. It must not be assumed.
+- Antigravity CLI was verified adversarially on 2026-10-12 and **passes**, by a mechanism
+  different from the other two: it fails closed in headless mode rather than accepting a
+  deny-list ([ADR-0044](0044-antigravity-replaces-gemini-cli.md)). Its permission
+  configuration lives in a settings file, so the adapter manages a file rather than passing
+  flags.
 - Layer 1 is the strongest and applies only to local models — a pleasing inversion, since the
   least capable models get the strictest enforcement.
 - Verification belongs in the conformance suite and must run against each supported CLI

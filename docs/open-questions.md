@@ -1,29 +1,35 @@
 # Open questions
 
-All foundation questions were decided in review on 2026-10-11. Nothing below blocks phase 1.
+All foundation questions were decided in review on 2026-10-11, and the Gemini verification
+that was pending resolved on 2026-10-12 — by discovering the product no longer exists.
+Nothing below blocks phase 1.
 
-What remains is one pending action, and a list of decisions that were taken on reasoning
-rather than evidence and should be re-examined once the product is actually used.
+What remains is one unverified capability, and a list of decisions taken on reasoning rather
+than evidence that should be re-examined once the product is actually used.
 
 ---
 
 ## Pending action
 
-### Verify Gemini CLI — blocked on environment
+### Antigravity CLI context isolation — the one unverified capability
 
-Gemini CLI is not installed on the analysis machine, so **every Gemini capability in these
-documents is UNVERIFIED**: tool restriction, context isolation, schema-constrained output and
-session handling. The flags recorded come from official headless documentation, and a
-reported defect (google-gemini/gemini-cli#9009) had a documented `--output-format` rejected
-outright — so the documentation alone is not sufficient evidence.
+Antigravity CLI was verified by execution on 2026-10-12 and passes every conformance check
+exercised, **except context isolation**. It exposes no `--bare` or `--ignore-user-config`
+equivalent.
 
-**Owner:** project owner, once back at the home environment. **Blocks:** the Gemini adapter
-in phase 2, which can be sketched but not specified until then.
+What is known: configuration lives under `~/.gemini/`, and a trust model
+(`trustedFolders.json`, `trustedWorkspaces`) governs whether project agents, hooks, MCP
+servers and skills load — an untrusted folder skips them, which the CLI states on startup.
+Whether that can be driven deliberately by the adapter, or a config home redirected the way
+`CODEX_HOME` allows for Codex, is **UNVERIFIED**.
 
-No special handling is needed beyond that. The capability model already covers the outcome:
-a provider that cannot prove restriction is refused for restricted roles with a clear
-message ([ADR-0036](adr/0036-runtime-enforced-tool-restriction.md)), and the conformance
-suite ([ADR-0039](adr/0039-provider-conformance-suite.md)) is where the proof is produced.
+This matters because context contracts ([ADR-0014](adr/0014-context-contracts-per-role.md))
+depend on suppressing ambient context. A provider that cannot guarantee a clean context
+breaches its contract invisibly.
+
+**Resolve in phase 2.** If no mechanism exists, the honest outcome is to document
+Antigravity as unable to guarantee a clean contract, and let the capability model decide
+which roles it may hold ([ADR-0036](adr/0036-runtime-enforced-tool-restriction.md)).
 
 ---
 
@@ -49,6 +55,8 @@ suite ([ADR-0039](adr/0039-provider-conformance-suite.md)) is where the proof is
 | README | Marked as under rebuild; full rewrite stays in phase 8 |
 | Glossary | Written in phase 0 — [glossary.md](glossary.md) |
 | Does `review.sh` discard its diff? | No. `codex exec` appends piped stdin as a `<stdin>` block |
+| Third agent CLI | **Antigravity CLI (`agy`)**, not Gemini CLI — retired for individual users 2026-06-18. Verified by execution 2026-10-12 — [ADR-0044](adr/0044-antigravity-replaces-gemini-cli.md) |
+| Does Antigravity enforce tool restriction? | **Yes, adversarially verified.** Headless default-deny plus `permissions.allow`; fails closed, which suits Corifeu better than a deny-list |
 
 ---
 

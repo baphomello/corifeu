@@ -123,22 +123,24 @@ has lead time — start it in this phase.
 
 **Acceptance.**
 - All five adapters pass tests 1–4 and 7–8 of the suite.
-- **Test 5 passes for Claude Code and Codex**: an agent told it may not write, and then
-  instructed to write, does not write.
-- Gemini CLI's capabilities are **measured and recorded**, replacing every UNVERIFIED mark
-  in [architecture.md](architecture.md) with a result — including a negative one.
+- **Test 5 passes for Claude Code, Codex and Antigravity**: an agent told it may not write,
+  and then instructed to write, does not write. Antigravity already passes as of 2026-10-12.
+- **Context isolation is measured for Antigravity**, which exposes no `--bare` equivalent.
+  Either a mechanism is found, or the limitation is recorded and the provider is documented
+  as unable to guarantee a clean context contract.
 - A model that fails the tool-call test is refused for a tool-using role, with a message
   naming the probable cause (for llama.cpp, a missing `--jinja`).
 - Scheduled CI job runs the suite against latest CLI versions.
 
-**Dependencies.** Phase 1, **plus a machine with Gemini CLI installed and authenticated** —
-it is absent from the analysis environment, so every Gemini capability is currently
-UNVERIFIED. The project owner will provide this; until then Gemini's adapter cannot be
-specified, only sketched.
+**Dependencies.** Phase 1. The third provider is now **Antigravity CLI**, verified by
+execution on 2026-10-12 — Gemini CLI was retired for individual users
+([ADR-0044](adr/0044-antigravity-replaces-gemini-cli.md)). All three agent CLIs now have
+measured capabilities, so no adapter is blocked on an environment.
 
-**Risks.** Gemini's capabilities may be insufficient for restricted roles — then it is
-documented as lead-only-unrestricted, not silently trusted. CI needs real credentials for
-cloud CLIs; see [risks.md](risks.md).
+**Risks.** Antigravity is **closed source**, so its behaviour can only be observed, never
+read — which raises the conformance suite from useful to necessary. Its context-isolation
+mechanism is still unverified. CI needs real credentials for cloud CLIs; see
+[risks.md](risks.md).
 
 ---
 

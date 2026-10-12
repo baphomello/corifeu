@@ -123,3 +123,4 @@ What this makes easy, what it makes hard, and what it obliges us to build.
 | [0043](0043-any-provider-may-lead.md) | Any provider may lead, with a quality warning | Accepted |
 | [0044](0044-antigravity-replaces-gemini-cli.md) | Antigravity CLI replaces the retired Gemini CLI | Accepted |
 | [0045](0045-prepared-workspace-for-context-isolation.md) | Prepared workspace for context isolation | Proposed — deferred past MVP 1 |
+| [0046](0046-release-integrity-without-code-signing.md) | Release integrity without code-signing certificates | Accepted |

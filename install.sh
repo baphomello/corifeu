@@ -11,7 +11,9 @@ bash "$DST/.orchestra/setup-codex-home.sh"
 mkdir -p "$DST/.claude/commands"
 cp "$SRC/.claude/commands/cycle.md" "$DST/.claude/commands/cycle.md"
 grep -qF "Orchestra — you are the orchestrator" "$DST/CLAUDE.md" 2>/dev/null || printf '\n%s\n' "$(cat "$SRC/CLAUDE.orchestra.md")" >> "$DST/CLAUDE.md"
-grep -qxF '.orchestra/codex-home/' "$DST/.gitignore" 2>/dev/null || printf '.orchestra/codex-home/\n__pycache__/\n' >> "$DST/.gitignore"
+for ignore in '.orchestra/codex-home/' '__pycache__/' '.orchestra/SPEC.md'; do
+  grep -qxF "$ignore" "$DST/.gitignore" 2>/dev/null || printf '%s\n' "$ignore" >> "$DST/.gitignore"
+done
 # merge the enforcement hook + allowlist into .claude/settings.json
 python3 - "$SRC/settings.orchestra.json" "$DST/.claude/settings.json" <<'PY'
 import json, os, sys

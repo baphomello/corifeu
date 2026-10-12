@@ -1,3 +1,4 @@
 .orchestra/codex-home/
 __pycache__/
 *.pyc
+.orchestra/SPEC.md

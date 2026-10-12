@@ -1,8 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python3 .orchestra/scripts/code.py:*)",
-      "Bash(cargo:*)"
+      "Bash(python3 .orchestra/scripts/code.py:*)"
     ]
   },
   "hooks": {

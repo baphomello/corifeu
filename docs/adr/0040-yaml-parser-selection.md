@@ -1,6 +1,7 @@
 # 0040 — YAML parser selection
 
-- **Status:** Accepted (process); parser pending the phase 1 spike
+- **Status:** Accepted
+- **Decided:** 2026-10-12, by measurement
 - **Date:** 2026-10-11
 
 ## Context
@@ -22,36 +23,60 @@ dangerous.
 | `yaml-rust2` | Lower-level parser; successor to the unmaintained `yaml-rust` |
 
 ## Decision
-What is decided here is the **process and the exclusion**, not yet the crate.
+**`serde-saphyr`**, decided by running the spike rather than reading about the crates.
 
-1. **`serde_yml` is excluded permanently**, enforced by `cargo-deny`. It carries
-   RUSTSEC-2025-0068 for unsoundness, is unmaintained, and its name makes it the crate most
-   likely to be chosen by mistake. `yaml-rust` is denied alongside it.
-2. **The parser is isolated behind one internal module**, so the choice can change later by
-   touching one file. Given the state of this ecosystem, that isolation is built
-   deliberately rather than hoped for.
-3. **The crate is chosen by a time-boxed spike in phase 1**, on the criteria below.
+`serde_yml` and `yaml-rust` are denied permanently in `deny.toml`. The parser is isolated
+behind one internal module, so this choice can change by touching one file — worth building
+deliberately given the state of this ecosystem.
 
-Current recommendation, to be confirmed or overturned by the spike: **`serde-saphyr`**, with
-`serde_norway` as the fallback if it proves immature. A later ADR supersedes this one with
-the result.
+### What the spike measured
 
-Reasoning for `serde-saphyr`: it avoids the `unsafe-libyaml` lineage entirely, which is where
-both maintained forks carry their risk. `serde_yaml_ng` depending on an unmaintained unsafe C
-port is the specific thing worth avoiding in a tool that parses files from the internet.
+Three candidates, each parsing five deliberately broken configs shaped like Corifeu's own.
 
-`serde_yml` must be excluded explicitly, including in `cargo-deny` configuration. Its name
-makes it the most likely crate to be picked by mistake, and it carries a RUSTSEC advisory.
+**`serde_yaml_ng` eliminated itself.** It fails Corifeu's own dependency gate:
 
-Decided by a **time-boxed spike** in phase 1 that loads the full illustrative configuration
-from [config.md](../config.md) and evaluates:
+```
+error[unmaintained]: unsafe-libyaml is unmaintained
+advisories FAILED
+```
 
-1. Round-trip fidelity for every construct the schema uses.
-2. **Error message quality — line and column numbers.** This is the deciding criterion.
-   Configuration errors are the most common user-facing failure, and an error without a
-   location is a support burden forever.
-3. Anchors and aliases, if the schema permits them.
-4. Maintenance signals and `cargo-deny` cleanliness.
+No judgement needed — `cargo deny` rejects it.
+
+The remaining two:
+
+| | `serde_norway` | `serde-saphyr` |
+|---|---|---|
+| Latest | 0.9.42 | **1.3.0** |
+| Last release | 2024-12-21 (~22 months) | **2026-09-16** |
+| Backing parser | `unsafe-libyaml-norway`, a C port, also stale since 2024-12 | **pure Rust** |
+| Crates in tree | **15** | 26 |
+| Cold build | **6.0 s** | 7.3 s |
+| Drop-in for `serde_yaml` | **yes** | no |
+| Advisories | pass | pass |
+
+**Error quality decided it**, as this ADR committed in advance. Tabs instead of spaces, the
+most common YAML mistake there is:
+
+```
+serde_norway : found character that cannot start any token at line 3 column 1,
+               while scanning for the next token
+
+serde-saphyr : error: line 3 column 2: tabs disallowed within this context
+               (block indentation)
+ --> <input>:3:2
+  |
+2 | roles:
+3 |     lead:
+  |     ^ tabs disallowed within this context (block indentation)
+```
+
+One names the problem. The other describes the parser's internal state. Across all five
+cases `serde-saphyr` produced rustc-style output with source context and a caret; both forks
+produced a single cryptic line.
+
+A "maintained fork" that has not shipped in 22 months is maintained in name. `serde-saphyr`
+is the only candidate under active development, and it wins on the criterion chosen before
+the evidence was gathered.
 
 ## Alternatives considered
 - **TOML instead of YAML.** Sidesteps this entirely; `toml` is well maintained. Rejected by
@@ -64,9 +89,15 @@ from [config.md](../config.md) and evaluates:
   and an unmaintained parser handling untrusted input is a poor foundation.
 
 ## Consequences
-- The choice is isolated behind a thin internal module, so switching later touches one file.
-  Given the ecosystem's state, that isolation is worth building deliberately.
-- `cargo-deny` runs in CI with `serde_yml` and `yaml-rust` explicitly denied.
-- If no crate gives line-and-column errors, custom error mapping is needed, and that cost
-  belongs in the phase 1 estimate rather than being discovered later.
-- This ADR is superseded by a decision record once the spike completes.
+- **Costs accepted knowingly.** `serde-saphyr` adds ~1.3 s to a cold build and 11 crates
+  over `serde_norway`, pulling `encoding_rs`, `base64` and `annotate-snippets`. All are
+  healthy, but it is more surface. Its own description advertises "fast builds", which this
+  measurement mildly contradicts.
+- **Migration is not free.** `serde_norway` is API-compatible with `serde_yaml`, so moving
+  between them is a rename. `serde-saphyr` is not, so a future switch costs real work. The
+  isolation module exists for exactly this.
+- **It is a small project**, essentially one maintainer. If it stalls we migrate — and we
+  would be migrating *from* good errors *to* worse ones. Revisit if it goes a year without
+  a release.
+- No custom error mapping is needed. `serde-saphyr` already reports line and column with
+  source context, which was the thing worth paying for.

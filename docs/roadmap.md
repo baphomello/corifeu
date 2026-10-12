@@ -81,8 +81,8 @@ instinct behind the original phase 1 — never be far from a release — is righ
 
 **Deliverables.**
 - Cargo workspace; `corifeu --version`, `--help`.
-- **YAML parser spike** resolving [ADR-0040](adr/0040-yaml-parser-selection.md), decided on
-  error-message quality.
+- ~~YAML parser spike~~ — **done 2026-10-12**. `serde-saphyr`, decided on error-message
+  quality ([ADR-0040](adr/0040-yaml-parser-selection.md)).
 - Config loader: YAML, JSON Schema validation, four-level precedence,
   `corifeu config show --explain`.
 - `corifeu doctor` — platform, versions, `.gitignore` correctness. Provider checks land in

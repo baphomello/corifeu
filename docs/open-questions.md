@@ -20,7 +20,7 @@ reasoning rather than evidence, to be re-examined once the product is actually u
 | Local model as lead | **Allowed, warned, never the default** — [ADR-0043](adr/0043-any-provider-may-lead.md) |
 | Retention defaults | **10 full runs / 500 MB / 3 always kept** — [ADR-0022](adr/0022-run-retention-policy.md) |
 | Sandboxing | Accepted **with staging**: allowlist and argv-only in phase 4, platform sandboxes in phase 7 — [ADR-0037](adr/0037-sandboxed-command-execution.md) |
-| YAML parser | **Process accepted, crate pending.** `serde_yml` excluded permanently; parser chosen by a phase 1 spike — [ADR-0040](adr/0040-yaml-parser-selection.md) |
+| YAML parser | **`serde-saphyr`**, decided by measurement 2026-10-12. `serde_yaml_ng` eliminated by our own advisory gate; `serde_norway` 22 months stale. Error quality decided it — [ADR-0040](adr/0040-yaml-parser-selection.md) |
 | File ownership | Ordered glob classes, first match wins — [ADR-0035](adr/0035-file-ownership-by-glob-classes.md) |
 | `private` mode | Dropped; expressible as `privacy.allow_remote_providers` — [ADR-0041](adr/0041-drop-the-mode-concept.md) |
 | Install backups | None. The generated config is the restore point — [ADR-0038](adr/0038-config-as-uninstall-restore.md) |
@@ -50,7 +50,7 @@ expected, not a failure.**
 | **Checkers optional** | A bet that oracles outweigh agent review | Dogfooding showing the reviewer catches what tests systematically miss |
 | **Sequential execution** | Determinism beats speed while the design is unsettled | Runs slow enough that the workflow becomes impractical |
 | **Context contract defaults** | Reasoned from the prototype's shapes | Doers producing locally correct, globally wrong work — the signal that a view is too narrow |
-| **`serde-saphyr`** | Avoids the `unsafe-libyaml` lineage | The phase 1 spike, on error-message quality |
+| **`serde-saphyr`** | Won the spike on error quality; only actively maintained option | It going a year without a release, or its error quality regressing |
 | **Warning, not error, for self-testing** | Refusing would be paternalistic | Users routinely shipping compromised oracles without noticing the warning |
 | **Five role categories** | They cover the observed cases | A real role that fits none of them |
 | **Refusing Antigravity over a prepared workspace** | Cheaper, and defers a large change until there is code to weigh it against | Cross-family review proving materially weaker with two families, or a second provider failing isolation |

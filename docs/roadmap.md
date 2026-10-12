@@ -81,15 +81,16 @@ instinct behind the original phase 1 — never be far from a release — is righ
 
 **Deliverables.**
 - Cargo workspace; `corifeu --version`, `--help`.
-- **YAML parser spike** resolving [ADR-0040](adr/0040-yaml-parser-selection.md), decided on
-  error-message quality.
+- ~~YAML parser spike~~ — **done 2026-10-12**. `serde-saphyr`, decided on error-message
+  quality ([ADR-0040](adr/0040-yaml-parser-selection.md)).
 - Config loader: YAML, JSON Schema validation, four-level precedence,
   `corifeu config show --explain`.
 - `corifeu doctor` — platform, versions, `.gitignore` correctness. Provider checks land in
   phase 2.
 - CI matrix: Linux, macOS, Windows × `x86_64`, `aarch64`. `cargo-deny` with `serde_yml` and
   `yaml-rust` denied.
-- Release pipeline: tagged builds, **SHA-256 checksums, signed artefacts**.
+- Release pipeline: tagged builds, **SHA-256 checksums, Sigstore keyless signatures**. No
+  code-signing certificate ([ADR-0046](adr/0046-release-integrity-without-code-signing.md)).
 - `install.sh` and `install.ps1` — download, verify, place the binary. No wizard yet.
 - `NOTICE` (AGPL §7(b)), DCO check in CI, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
 - **Reserve `corifeu` on crates.io** — verified free on 2026-10-11, along with npm.
@@ -102,9 +103,9 @@ instinct behind the original phase 1 — never be far from a release — is righ
   `install.ps1` both verify before placing.
 - A PR without `Signed-off-by` fails CI.
 
-**Dependencies.** Phase 0. **Risks.** YAML ecosystem instability
-([ADR-0040](adr/0040-yaml-parser-selection.md)); Windows signing requires a certificate and
-has lead time — start it in this phase.
+**Dependencies.** Phase 0. **Risks.** ~~YAML ecosystem instability~~ — resolved 2026-10-12
+([ADR-0040](adr/0040-yaml-parser-selection.md)). ~~Windows signing lead time~~ — removed by
+[ADR-0046](adr/0046-release-integrity-without-code-signing.md); no certificate is purchased.
 
 ---
 
@@ -298,10 +299,10 @@ by shipping it marked **experimental** in 0.1.0, with the stability promise begi
 **Deliverables.**
 - Documentation site: install, concepts, configuration reference, troubleshooting, plugin
   authoring.
-- `README.md` rewritten once, properly.
+- `README.md` reviewed against the shipped product (rewritten for the Corifeu identity on
+  2026-10-12, ahead of this phase).
 - Issue and PR templates; security policy.
 - Versioning and compatibility policy, stating what 0.1.0 does and does not promise.
-- `.orchestra/` deleted.
 - Release 0.1.0 and announce.
 
 **Acceptance.**
@@ -309,7 +310,8 @@ by shipping it marked **experimental** in 0.1.0, with the stability promise begi
   published documentation.
 - Every UNVERIFIED mark in the documentation is either resolved or explicitly declared a
   known limitation.
-- `.orchestra/` is gone and the owner's daily work runs on Corifeu.
+- The owner's daily work runs on Corifeu. (The legacy `.orchestra/` tree was removed on
+  2026-10-12 — [ADR-0034](adr/0034-break-existing-personal-setup.md).)
 - The compatibility policy states plainly that the plugin protocol is experimental.
 
 **Dependencies.** Phase 7. **Risks.** `curl | sh` distribution invites scrutiny — checksums,

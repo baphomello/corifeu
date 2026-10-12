@@ -34,7 +34,7 @@ graph TB
     end
 
     subgraph Core["Core runtime"]
-        Orch["Orchestrator<br/>run lifecycle · scheduling"]
+        Orch["Run engine<br/>run lifecycle · scheduling"]
         Board["Blackboard<br/>tasks · artefacts · messages"]
         View["View assembler<br/>context contracts"]
         Policy["Policy engine<br/>ownership · budgets · loops · autonomy"]
@@ -81,7 +81,12 @@ graph TB
     Meter --> DB
 ```
 
-The orchestrator never talks to a model directly — only through an adapter. The view
+The **run engine** is infrastructure, not an agent: it schedules tasks and moves events. It
+is deliberately not called an orchestrator, because the prototype's "orchestrator" conflated
+coordinating a run with being the agent that talks to the user, and Corifeu separates those
+([glossary](glossary.md)). The lead is an agent with a model; the run engine is code.
+
+The run engine never talks to a model directly — only through an adapter. The view
 assembler is the only component that may read broadly from the board, and it is the only
 one that writes into an agent's context. Those two facts are what make context contracts
 enforceable rather than aspirational.
@@ -93,7 +98,7 @@ sequenceDiagram
     autonumber
     actor U as User
     participant L as Lead
-    participant O as Orchestrator
+    participant O as Run engine
     participant B as Blackboard
     participant P as Planner
     participant D as Doer

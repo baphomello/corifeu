@@ -204,8 +204,11 @@ explicit and documented.
 Piping a remote script to a shell is widely and correctly criticised. Users will ask what
 protects them, and "it is on GitHub" is not an answer.
 
-*Mitigation.* SHA-256 checksums and signed release artefacts verified by the installer
-before anything is placed. The install script kept short and readable, with the
+*Mitigation.* SHA-256 checksums and **Sigstore keyless signatures** verified by the
+installer before anything is placed — no code-signing certificate is purchased
+([ADR-0046](adr/0046-release-integrity-without-code-signing.md)), because provenance from
+the build workflow answers the real threat and a certificate mostly answers a warning
+dialog. The install script kept short and readable, with the
 download-and-inspect path documented as a first-class alternative. Reproducible builds where
 practical. A `SECURITY.md` with a disclosure process. Pinned, `cargo-deny`-audited
 dependencies.

@@ -92,6 +92,11 @@ rather than mid-run. The opposite is **optional**. There is no weighting between
 **Researcher** — a role category that gathers context and returns findings. Exists to move
 token-expensive, quality-cheap exploration off the lead.
 
+**Run engine** — the runtime component that schedules tasks, dispatches to adapters and
+moves events onto the board. **Infrastructure, not an agent**: it has no model and no
+context. Deliberately not called an *orchestrator*, because that word conflated this job
+with the lead's.
+
 **Role** — a named job within a category, assigned to a model, with a contract, write
 permissions and required artefacts. Roles are user-defined; the user chooses how many exist
 per category ([ADR-0011](adr/0011-user-defined-granularity.md)).
@@ -112,7 +117,7 @@ in the payload**, with the retained range and the full size.
 
 | Avoided | Use instead | Why |
 |---|---|---|
-| *orchestrator* | **lead** | Names the prototype's conflation of coordinating with architecting |
+| *orchestrator* | **lead** (the agent) or **run engine** (the code) | The prototype's word conflated two different things: the agent that talks to you, and the machinery that schedules the run |
 | *mode* | configuration | `open`/`private` was a label with nothing behind it ([ADR-0041](adr/0041-drop-the-mode-concept.md)) |
 | *importance*, *priority*, *weight* | **required** / **optional** | Implies a number that nothing consumes ([ADR-0012](adr/0012-required-and-optional-roles.md)) |
 | *memory* for run state | **board**, **event log** | Reserved for project memory, which is a different thing with a different lifetime |

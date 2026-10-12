@@ -1,7 +1,14 @@
 # Diagnosis of the existing repository
 
-State analysed: `main` at `93fc905`, plus the cleanup commit that opens this branch.
-Everything below was read in full; nothing is inferred from file names.
+State analysed: `main` at `93fc905`, plus the cleanup commit that opened the foundation
+branch. Everything below was read in full; nothing is inferred from file names.
+
+> **This is a historical document.** The prototype it examines was removed from the
+> repository on 2026-10-12 ([ADR-0034](adr/0034-break-existing-personal-setup.md)); it
+> remains in git history at `4235adb`. The document is kept because the ADRs cite it as
+> the evidence for their decisions — several of Corifeu's rules exist because of a specific
+> defect recorded here, and deleting it would leave that reasoning unsupported. Read it as
+> *why Corifeu is shaped this way*, not as a description of the current repository.
 
 ## Verdict in one paragraph
 
@@ -21,21 +28,23 @@ inheritance. Almost none of the code is.
 
 ## Inventory
 
+Paths link into git history at `4235adb`, the last commit before the prototype was removed.
+
 | Path | What it does | Fate |
 |---|---|---|
-| [install.sh](../install.sh) | Copies `.orchestra/` into a target repo, appends to `CLAUDE.md`, merges JSON into `.claude/settings.json` | **Rewrite** |
-| [.orchestra/scripts/code.py](../.orchestra/scripts/code.py) | Self-contained agent loop over Ollama `/api/chat`: 4 tools, native + text-mode tool-call parsing, loop detection, step cap | **Rewrite**, harvest the behaviours |
-| [.orchestra/scripts/review.sh](../.orchestra/scripts/review.sh) | Pipes `git diff` to `codex exec` under a scrubbed `CODEX_HOME` | **Rewrite**, keep the isolation idea |
-| [.orchestra/hooks/guard-src.py](../.orchestra/hooks/guard-src.py) | `PreToolUse` hook denying writes to `src/` via Write/Edit and 5 Bash regexes | **Delete**, replace the concept |
-| [.orchestra/setup-codex-home.sh](../.orchestra/setup-codex-home.sh) | Builds a minimal `CODEX_HOME`: symlinked auth, tiny config, empty `AGENTS.md` | **Delete**, absorb into the provider adapter |
-| [.orchestra/orchestra.config.sh](../.orchestra/orchestra.config.sh) | Eight `export` statements sourced before the harness | **Delete**, replaced by `.corifeu/config.yaml` |
-| [.orchestra/ORCHESTRA.md](../.orchestra/ORCHESTRA.md) | The workflow specification: roles, flow, rules, context contracts, modes, enforcement | **Rewrite** as real docs |
-| [CLAUDE.orchestra.md](../CLAUDE.orchestra.md) | The block appended to a target repo's `CLAUDE.md` telling Claude it is the orchestrator | **Rewrite**, one per lead provider |
-| [settings.orchestra.json](../settings.orchestra.json) | Hook registration + permission allowlist, merged into `.claude/settings.json` | **Delete**, Claude-Code-specific |
-| [.claude/commands/cycle.md](../.claude/commands/cycle.md) | Slash command restating the flow for the human to trigger | **Delete**, becomes `corifeu run` |
-| [.orchestra/templates/SPEC.md](../.orchestra/templates/SPEC.md) | Template: goal + per-task target/change/acceptance | **Keep the shape** as an artifact schema |
-| [.orchestra/templates/PLAN.md](../.orchestra/templates/PLAN.md) | Empty-section template: approach, breakdown, open questions | **Delete**, never referenced |
-| [.orchestra/templates/REVIEW.md](../.orchestra/templates/REVIEW.md) | Empty-section template: findings, resolution | **Delete**, never referenced |
+| [install.sh](https://github.com/baphomello/corifeu/blob/4235adb/install.sh) | Copies `.orchestra/` into a target repo, appends to `CLAUDE.md`, merges JSON into `.claude/settings.json` | **Rewrite** |
+| [.orchestra/scripts/code.py](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/scripts/code.py) | Self-contained agent loop over Ollama `/api/chat`: 4 tools, native + text-mode tool-call parsing, loop detection, step cap | **Rewrite**, harvest the behaviours |
+| [.orchestra/scripts/review.sh](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/scripts/review.sh) | Pipes `git diff` to `codex exec` under a scrubbed `CODEX_HOME` | **Rewrite**, keep the isolation idea |
+| [.orchestra/hooks/guard-src.py](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/hooks/guard-src.py) | `PreToolUse` hook denying writes to `src/` via Write/Edit and 5 Bash regexes | **Delete**, replace the concept |
+| [.orchestra/setup-codex-home.sh](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/setup-codex-home.sh) | Builds a minimal `CODEX_HOME`: symlinked auth, tiny config, empty `AGENTS.md` | **Delete**, absorb into the provider adapter |
+| [.orchestra/orchestra.config.sh](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/orchestra.config.sh) | Eight `export` statements sourced before the harness | **Delete**, replaced by `.corifeu/config.yaml` |
+| [.orchestra/ORCHESTRA.md](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/ORCHESTRA.md) | The workflow specification: roles, flow, rules, context contracts, modes, enforcement | **Rewrite** as real docs |
+| [CLAUDE.orchestra.md](https://github.com/baphomello/corifeu/blob/4235adb/CLAUDE.orchestra.md) | The block appended to a target repo's `CLAUDE.md` telling Claude it is the orchestrator | **Rewrite**, one per lead provider |
+| [settings.orchestra.json](https://github.com/baphomello/corifeu/blob/4235adb/settings.orchestra.json) | Hook registration + permission allowlist, merged into `.claude/settings.json` | **Delete**, Claude-Code-specific |
+| [.claude/commands/cycle.md](https://github.com/baphomello/corifeu/blob/4235adb/.claude/commands/cycle.md) | Slash command restating the flow for the human to trigger | **Delete**, becomes `corifeu run` |
+| [.orchestra/templates/SPEC.md](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/templates/SPEC.md) | Template: goal + per-task target/change/acceptance | **Keep the shape** as an artifact schema |
+| [.orchestra/templates/PLAN.md](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/templates/PLAN.md) | Empty-section template: approach, breakdown, open questions | **Delete**, never referenced |
+| [.orchestra/templates/REVIEW.md](https://github.com/baphomello/corifeu/blob/4235adb/.orchestra/templates/REVIEW.md) | Empty-section template: findings, resolution | **Delete**, never referenced |
 | [README.md](../README.md) | Six lines describing orchestra | **Rewrite** in a later phase |
 | [LICENSE](../LICENSE) | AGPL-3.0 verbatim | **Keep** |
 | [.gitignore](../.gitignore) | Four entries | **Keep**, extend |

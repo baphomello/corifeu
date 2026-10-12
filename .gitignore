@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .orchestra/SPEC.md
+
+# Rust
+/target/

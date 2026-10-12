@@ -20,5 +20,8 @@ fn main() {
     println!("corifeu {}", env!("CARGO_PKG_VERSION"));
     println!();
     println!("Not implemented yet. This release reserves the name while the");
-    println!("runtime is built. The design is at {}", env!("CARGO_PKG_REPOSITORY"));
+    println!(
+        "runtime is built. The design is at {}",
+        env!("CARGO_PKG_REPOSITORY")
+    );
 }

@@ -1,0 +1,55 @@
+# cargo-deny configuration.
+# See docs/adr/0040-yaml-parser-selection.md for why the YAML crates are listed.
+
+[graph]
+all-features = true
+
+[advisories]
+# Any crate carrying a RUSTSEC advisory fails the build.
+yanked = "deny"
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+# ADR-0040. serde_yml is the crate most likely to be reached for by mistake,
+# because of the name. It carries RUSTSEC-2025-0068 for unsoundness and its
+# project is archived. yaml-rust is unmaintained (RUSTSEC-2024-0320).
+[[bans.deny]]
+name = "serde_yml"
+reason = "unsound and unmaintained (RUSTSEC-2025-0068); use serde-saphyr or serde_norway"
+
+[[bans.deny]]
+name = "yaml-rust"
+reason = "unmaintained (RUSTSEC-2024-0320); use yaml-rust2"
+
+[licenses]
+# Corifeu is AGPL-3.0-or-later. Dependencies compiled into the binary must be
+# permissively licensed; a copyleft dependency is a decision, not an accident,
+# and should arrive through a reviewed exception rather than silently.
+# Dependencies must be permissive. Our own crates are the exception below:
+# Corifeu is AGPL by decision (ADR-0003), and must not be read as a dependency
+# that slipped a copyleft licence into the tree.
+unused-allowed-license = "allow"
+allow = [
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "MIT",
+    "MIT-0",
+    "MPL-2.0",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.9
+
+[[licenses.exceptions]]
+name = "corifeu"
+allow = ["AGPL-3.0-or-later"]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+# Only actions/* and actions/cache are used, both GitHub's own. Toolchain setup
+# goes through rustup directly rather than a third-party action: CI builds the
+# artefacts users will run, so its dependencies are part of the threat model.
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup component add clippy
+      - run: cargo clippy --workspace --all-targets --all-features
+
+  test:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest,    target: x86_64-unknown-linux-gnu }
+          - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { os: macos-13,         target: x86_64-apple-darwin }
+          - { os: macos-latest,     target: aarch64-apple-darwin }
+          - { os: windows-latest,   target: x86_64-pc-windows-msvc }
+          - { os: windows-11-arm,   target: aarch64-pc-windows-msvc }
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustup show active-toolchain
+      - run: cargo build --workspace --all-targets
+      - run: cargo test --workspace
+      # The binary must actually start on every platform. A build that links and
+      # a binary that runs are different claims, and only the second one matters.
+      - run: cargo run -p corifeu -- --version
+
+  msrv:
+    name: MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # rust-version in Cargo.toml is a promise to users. Check it rather than
+      # discovering it was wrong when someone on an older toolchain reports it.
+      - run: |
+          MSRV=$(grep -m1 '^rust-version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')
+          echo "Declared MSRV: $MSRV"
+          rustup toolchain install "$MSRV" --profile minimal
+          rustup run "$MSRV" cargo check --workspace --all-targets
+
+  deny:
+    name: Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-deny
+          key: cargo-deny-${{ runner.os }}-v1
+      - run: |
+          if ! command -v cargo-deny >/dev/null; then
+            cargo install cargo-deny --locked
+          fi
+      - run: cargo deny check

@@ -94,12 +94,16 @@ is meaningless against a provider that spends 24k before reading it.
 - Permission configuration lives in a **settings file, not flags**. The adapter must write
   and manage a settings file, which is closer to the prototype's `CODEX_HOME` approach than
   to passing arguments.
-- **Context isolation is unresolved.** Antigravity exposes no `--bare` or
-  `--ignore-user-config` equivalent. Configuration lives under `~/.gemini/`, and a
-  trust model (`trustedFolders.json`, `trustedWorkspaces`) governs whether project agents,
-  hooks, MCP servers and skills load — an untrusted folder skips them. Whether that can be
-  driven deliberately, or a config home redirected as `CODEX_HOME` allows, is **UNVERIFIED**
-  and is an open question.
+- **Context isolation is impossible by flag — measured, not assumed.** Antigravity loads
+  workspace `GEMINI.md` and `AGENTS.md` **unconditionally**. Four suppression attempts all
+  failed on 2026-10-12: an untrusted folder, a project-level `contextFileName` override, a
+  redirected `HOME` with a global `contextFileName` override, and denying all tools. The
+  decisive case ran with tools denied and a prompt forbidding tool use: **one turn, zero tool
+  calls, zero denied actions, and the canary still came back**, so the content was
+  pre-injected into the prompt.
+  The model also **obeyed an injected directive** planted in the file, which is risk S1
+  demonstrated live. See [ADR-0045](0045-prepared-workspace-for-context-isolation.md) for the
+  proposed structural answer.
 - `--dangerously-skip-permissions` must **never** be Corifeu's default. It is the correct
   flag only for a role that genuinely holds full capability, and even then the allowlist is
   preferable.

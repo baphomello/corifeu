@@ -1,0 +1,46 @@
+Corifeu
+Copyright (c) 2026 Vinicius Mello (https://github.com/baphomello)
+
+This product is licensed under the GNU Affero General Public License v3.0.
+See the LICENSE file for the full text.
+
+----------------------------------------------------------------------
+ADDITIONAL TERM UNDER AGPL-3.0 SECTION 7(b)
+----------------------------------------------------------------------
+
+As permitted by section 7(b) of the GNU Affero General Public License
+version 3, this work is distributed with the following additional term:
+
+  You must preserve the author attributions contained in this NOTICE
+  file. Anyone who conveys this work, a modified version of it, or a
+  work based on it must retain this file, and must keep the attributions
+  below intact in all copies they convey.
+
+This term does not restrict any freedom granted by the AGPL. It requires
+only that credit is preserved. You remain free to run, study, modify,
+and redistribute this software under the terms of the AGPL, and to add
+your own attributions alongside those below.
+
+----------------------------------------------------------------------
+ATTRIBUTIONS
+----------------------------------------------------------------------
+
+Corifeu was created by Vinicius Mello (baphomello).
+
+Corifeu grew out of "orchestra", a personal multi-agent development
+workflow by the same author.
+
+Contributors are listed in the repository's commit history, which is
+part of the distributed source.
+
+----------------------------------------------------------------------
+THIRD-PARTY SOFTWARE
+----------------------------------------------------------------------
+
+Corifeu invokes third-party command-line tools and model runtimes as
+separate processes. They are not linked into this work, are not derived
+from it, and remain under their own licenses and terms of service.
+Corifeu does not distribute them.
+
+Dependencies compiled into the binary are listed, with their licenses,
+in the generated THIRD-PARTY-LICENSES file accompanying each release.

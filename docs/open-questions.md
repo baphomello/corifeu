@@ -1,35 +1,41 @@
 # Open questions
 
-All foundation questions were decided in review on 2026-10-11, and the Gemini verification
-that was pending resolved on 2026-10-12 — by discovering the product no longer exists.
-Nothing below blocks phase 1.
+All foundation questions were decided in review on 2026-10-11. The pending Gemini
+verification resolved on 2026-10-12, twice over: the product no longer exists, and its
+replacement fails context isolation outright.
 
-What remains is one unverified capability, and a list of decisions taken on reasoning rather
-than evidence that should be re-examined once the product is actually used.
+That leaves **one open decision**, which affects phase 4 scope. Nothing blocks phase 1.
+Below it is a list of decisions taken on reasoning rather than evidence, to be re-examined
+once the product is actually used.
 
 ---
 
-## Pending action
+## Open decision
 
-### Antigravity CLI context isolation — the one unverified capability
+### How to handle Antigravity's context leak — [ADR-0045](adr/0045-prepared-workspace-for-context-isolation.md)
 
-Antigravity CLI was verified by execution on 2026-10-12 and passes every conformance check
-exercised, **except context isolation**. It exposes no `--bare` or `--ignore-user-config`
-equivalent.
+The pending verification is **done, and the answer was negative.** Antigravity CLI loads
+workspace `GEMINI.md` and `AGENTS.md` unconditionally. Four suppression attempts failed:
+untrusted folder, project-level `contextFileName`, redirected `HOME` with a global
+`contextFileName`, and denying all tools. In the decisive run — tools denied, prompt
+forbidding tool use — it answered in **one turn with zero tool calls**, so the content was
+pre-injected. It also **obeyed a directive planted in the file**.
 
-What is known: configuration lives under `~/.gemini/`, and a trust model
-(`trustedFolders.json`, `trustedWorkspaces`) governs whether project agents, hooks, MCP
-servers and skills load — an untrusted folder skips them, which the CLI states on startup.
-Whether that can be driven deliberately by the adapter, or a config home redirected the way
-`CODEX_HOME` allows for Codex, is **UNVERIFIED**.
+Two ways forward, and this needs your decision:
 
-This matters because context contracts ([ADR-0014](adr/0014-context-contracts-per-role.md))
-depend on suppressing ambient context. A provider that cannot guarantee a clean context
-breaches its contract invisibly.
+| | Option | Cost |
+|---|---|---|
+| **A** | **Prepared workspace** ([ADR-0045](adr/0045-prepared-workspace-for-context-isolation.md)). Agents run in a workspace assembled from the contract, which never contains foreign context files. | Significant phase 4 scope increase. Needs a "build context" concept for lockfiles and toolchains |
+| **B** | **Refuse Antigravity for contracted roles.** Ship with Claude Code and Codex only for roles needing a clean view. | Two model families instead of three, weakening cross-family review |
 
-**Resolve in phase 2.** If no mechanism exists, the honest outcome is to document
-Antigravity as unable to guarantee a clean contract, and let the capability model decide
-which roles it may hold ([ADR-0036](adr/0036-runtime-enforced-tool-restriction.md)).
+**Recommendation: B now, A later.** Option A is the right end state — isolation by what is on
+disk beats isolation by a flag the vendor may remove, and it converges with the worktree work
+parallel doers already need. But it is a large change to accept on the strength of one
+provider's defect, before a single line of Rust exists. Shipping B first keeps phase 4
+honest, and the measurement that justifies A will still be there.
+
+**Do not let this quietly become "support Antigravity anyway and hope".** That ships a
+contract the product cannot keep.
 
 ---
 

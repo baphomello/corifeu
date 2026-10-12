@@ -57,11 +57,15 @@ explicit message, rather than being trusted and hoped for. This is why
 - Each adapter must declare which restrictions it can enforce, and the core must refuse role
   assignments it cannot back. This is a capability negotiation at configuration time, and
   `doctor` must surface it plainly.
-- Antigravity CLI was verified adversarially on 2026-10-12 and **passes**, by a mechanism
-  different from the other two: it fails closed in headless mode rather than accepting a
-  deny-list ([ADR-0044](0044-antigravity-replaces-gemini-cli.md)). Its permission
-  configuration lives in a settings file, so the adapter manages a file rather than passing
-  flags.
+- Antigravity CLI **passes tool restriction** and **fails context isolation**, both measured
+  on 2026-10-12. It fails closed in headless mode rather than accepting a deny-list, which
+  suits Corifeu well ([ADR-0044](0044-antigravity-replaces-gemini-cli.md)); but it loads
+  workspace context files unconditionally, with no flag to stop it. Restriction and isolation
+  are therefore independent capabilities and must be negotiated separately — a provider may
+  hold one without the other.
+- That failure is what motivates
+  [ADR-0045](0045-prepared-workspace-for-context-isolation.md): isolation enforced by **what
+  is on disk**, not by a flag the vendor may remove.
 - Layer 1 is the strongest and applies only to local models — a pleasing inversion, since the
   least capable models get the strictest enforcement.
 - Verification belongs in the conformance suite and must run against each supported CLI

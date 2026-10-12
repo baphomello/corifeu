@@ -1,0 +1,24 @@
+[package]
+name = "corifeu"
+description = "A runtime that orchestrates AI agents and models to build software. One lead agent talks to you; a team of specialised roles works behind it."
+categories = ["command-line-utilities", "development-tools"]
+keywords = ["agents", "llm", "orchestration", "ai", "codegen"]
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+# The published package carries the licence texts and the attribution that
+# AGPL section 7(b) requires be preserved (see NOTICE).
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+
+[[bin]]
+name = "corifeu"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }

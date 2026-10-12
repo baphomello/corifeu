@@ -1,0 +1,21 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+# Shared across every crate so metadata cannot drift between them.
+[workspace.package]
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+repository = "https://github.com/baphomello/corifeu"
+homepage = "https://github.com/baphomello/corifeu"
+authors = ["Vinicius Mello <baphomello@gmail.com>"]
+
+[workspace.dependencies]
+clap = { version = "4.5.23", features = ["derive"] }
+
+[profile.release]
+strip = true
+lto = "thin"
+codegen-units = 1

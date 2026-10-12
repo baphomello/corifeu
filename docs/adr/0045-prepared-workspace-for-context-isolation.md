@@ -1,6 +1,6 @@
 # 0045 — Prepared workspace for context isolation
 
-- **Status:** Proposed
+- **Status:** Proposed — **deferred past MVP 1** (decided 2026-10-12)
 - **Date:** 2026-10-12
 
 ## Context
@@ -43,8 +43,14 @@ that must be re-verified on every upgrade, and a silently-ignored flag is the wo
 mode because the restriction appears to work.
 
 ## Decision
-**Proposed:** Corifeu runs each agent in a **prepared workspace** rather than the user's
-working tree directly.
+**Proposed, and deferred past MVP 1.** For MVP 1 the interim is
+[ADR-0036](0036-runtime-enforced-tool-restriction.md)'s capability rule: a provider that
+cannot isolate context is refused for roles requiring a clean contract. That costs a third
+model family for those roles and weakens cross-family review, and it is the cheaper of the
+two while no implementation exists.
+
+What follows is the proposal to return to. Corifeu runs each agent in a **prepared
+workspace** rather than the user's working tree directly.
 
 The prepared workspace is assembled by the runtime from the context contract, as a sibling of
 the repository or as a git worktree:

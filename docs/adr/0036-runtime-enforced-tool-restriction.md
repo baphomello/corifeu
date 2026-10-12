@@ -43,6 +43,25 @@ Corifeu cannot prove a lead will not write, that provider is refused as lead wit
 explicit message, rather than being trusted and hoped for. This is why
 [ADR-0039](0039-provider-conformance-suite.md) must test restriction, not only invocation.
 
+**The same rule governs context isolation, which is a separate capability.** Measurement
+showed the two do not travel together: Antigravity CLI enforces restriction well and cannot
+isolate context at all ([ADR-0044](0044-antigravity-replaces-gemini-cli.md)). A provider is
+therefore negotiated on both axes independently.
+
+| Provider can… | …and cannot | May hold |
+|---|---|---|
+| restrict **and** isolate | — | any role |
+| restrict only | isolate | unrestricted roles, or roles whose contract grants the whole workspace anyway |
+| neither | — | nothing |
+
+**Decided 2026-10-12:** for MVP 1, Corifeu **refuses Antigravity for roles requiring a clean
+context contract**, and says so plainly at configuration time. The structural alternative —
+assembling a workspace that cannot leak
+([ADR-0045](0045-prepared-workspace-for-context-isolation.md)) — is deferred past MVP 1.
+Accepting a phase 4 scope increase on the strength of one provider's defect, before any
+implementation exists, is the wrong order. The measurement that justifies it will still be
+there.
+
 ## Alternatives considered
 - **Prompt instruction only** ("you must not write code"). Degrades exactly when the run gets
   hard. The prototype already rejected this and added a hook.

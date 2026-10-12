@@ -1,0 +1,20 @@
+[package]
+name = "corifeu-config"
+description = "Configuration model and loader for Corifeu."
+# Published, not because anyone should depend on it, but because crates.io
+# forbids path dependencies in a published crate and `corifeu` depends on this.
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+serde-saphyr = { workspace = true }
+serde_path_to_error = { workspace = true }
+thiserror = { workspace = true }

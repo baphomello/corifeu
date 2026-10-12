@@ -1,7 +1,10 @@
-.orchestra/codex-home/
-__pycache__/
-*.pyc
-.orchestra/SPEC.md
-
 # Rust
 /target/
+
+# Corifeu runtime state. Project memory under .corifeu/memory/ IS committed;
+# only run data is ignored (ADR-0023).
+.corifeu/run/
+
+# Python
+__pycache__/
+*.pyc

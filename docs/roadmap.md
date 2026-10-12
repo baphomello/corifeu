@@ -298,10 +298,10 @@ by shipping it marked **experimental** in 0.1.0, with the stability promise begi
 **Deliverables.**
 - Documentation site: install, concepts, configuration reference, troubleshooting, plugin
   authoring.
-- `README.md` rewritten once, properly.
+- `README.md` reviewed against the shipped product (rewritten for the Corifeu identity on
+  2026-10-12, ahead of this phase).
 - Issue and PR templates; security policy.
 - Versioning and compatibility policy, stating what 0.1.0 does and does not promise.
-- `.orchestra/` deleted.
 - Release 0.1.0 and announce.
 
 **Acceptance.**
@@ -309,7 +309,8 @@ by shipping it marked **experimental** in 0.1.0, with the stability promise begi
   published documentation.
 - Every UNVERIFIED mark in the documentation is either resolved or explicitly declared a
   known limitation.
-- `.orchestra/` is gone and the owner's daily work runs on Corifeu.
+- The owner's daily work runs on Corifeu. (The legacy `.orchestra/` tree was removed on
+  2026-10-12 — [ADR-0034](adr/0034-break-existing-personal-setup.md).)
 - The compatibility policy states plainly that the plugin protocol is experimental.
 
 **Dependencies.** Phase 7. **Risks.** `curl | sh` distribution invites scrutiny — checksums,

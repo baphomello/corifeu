@@ -1,41 +1,9 @@
 # Open questions
 
-All foundation questions were decided in review on 2026-10-11. The pending Gemini
-verification resolved on 2026-10-12, twice over: the product no longer exists, and its
-replacement fails context isolation outright.
+Every question raised by the foundation analysis has been decided. Nothing is blocked.
 
-That leaves **one open decision**, which affects phase 4 scope. Nothing blocks phase 1.
-Below it is a list of decisions taken on reasoning rather than evidence, to be re-examined
-once the product is actually used.
-
----
-
-## Open decision
-
-### How to handle Antigravity's context leak — [ADR-0045](adr/0045-prepared-workspace-for-context-isolation.md)
-
-The pending verification is **done, and the answer was negative.** Antigravity CLI loads
-workspace `GEMINI.md` and `AGENTS.md` unconditionally. Four suppression attempts failed:
-untrusted folder, project-level `contextFileName`, redirected `HOME` with a global
-`contextFileName`, and denying all tools. In the decisive run — tools denied, prompt
-forbidding tool use — it answered in **one turn with zero tool calls**, so the content was
-pre-injected. It also **obeyed a directive planted in the file**.
-
-Two ways forward, and this needs your decision:
-
-| | Option | Cost |
-|---|---|---|
-| **A** | **Prepared workspace** ([ADR-0045](adr/0045-prepared-workspace-for-context-isolation.md)). Agents run in a workspace assembled from the contract, which never contains foreign context files. | Significant phase 4 scope increase. Needs a "build context" concept for lockfiles and toolchains |
-| **B** | **Refuse Antigravity for contracted roles.** Ship with Claude Code and Codex only for roles needing a clean view. | Two model families instead of three, weakening cross-family review |
-
-**Recommendation: B now, A later.** Option A is the right end state — isolation by what is on
-disk beats isolation by a flag the vendor may remove, and it converges with the worktree work
-parallel doers already need. But it is a large change to accept on the strength of one
-provider's defect, before a single line of Rust exists. Shipping B first keeps phase 4
-honest, and the measurement that justifies A will still be there.
-
-**Do not let this quietly become "support Antigravity anyway and hope".** That ships a
-contract the product cannot keep.
+What follows is the record of those decisions, and then a list of the ones taken on
+reasoning rather than evidence, to be re-examined once the product is actually used.
 
 ---
 
@@ -63,6 +31,8 @@ contract the product cannot keep.
 | Does `review.sh` discard its diff? | No. `codex exec` appends piped stdin as a `<stdin>` block |
 | Third agent CLI | **Antigravity CLI (`agy`)**, not Gemini CLI — retired for individual users 2026-06-18. Verified by execution 2026-10-12 — [ADR-0044](adr/0044-antigravity-replaces-gemini-cli.md) |
 | Does Antigravity enforce tool restriction? | **Yes, adversarially verified.** Headless default-deny plus `permissions.allow`; fails closed, which suits Corifeu better than a deny-list |
+| Can Antigravity isolate context? | **No.** Workspace `GEMINI.md`/`AGENTS.md` load unconditionally; four suppression attempts failed, and a planted directive was obeyed — [ADR-0045](adr/0045-prepared-workspace-for-context-isolation.md) |
+| What to do about that leak | **Refuse Antigravity for roles needing a clean contract** (MVP 1). The prepared workspace is deferred past MVP 1 rather than accepted — a phase 4 scope increase on one provider's defect, before any code exists, is the wrong order — [ADR-0036](adr/0036-runtime-enforced-tool-restriction.md) |
 
 ---
 
@@ -83,6 +53,7 @@ expected, not a failure.**
 | **`serde-saphyr`** | Avoids the `unsafe-libyaml` lineage | The phase 1 spike, on error-message quality |
 | **Warning, not error, for self-testing** | Refusing would be paternalistic | Users routinely shipping compromised oracles without noticing the warning |
 | **Five role categories** | They cover the observed cases | A real role that fits none of them |
+| **Refusing Antigravity over a prepared workspace** | Cheaper, and defers a large change until there is code to weigh it against | Cross-family review proving materially weaker with two families, or a second provider failing isolation |
 
 The honest framing: a foundation document set written before any code exists is a set of
 hypotheses with citations. The ADR format exists so that overturning one is a recorded

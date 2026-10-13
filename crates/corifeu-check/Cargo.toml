@@ -1,0 +1,13 @@
+[package]
+name = "corifeu-check"
+description = "Judges what a check command produced: pass, fail, vacuous or did-not-terminate."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]

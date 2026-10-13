@@ -43,8 +43,11 @@ is a failure whatever its exit code.**
 1. **The count comes from the oracle, not from the file.** When QA hands over a slice, its
    red run reports how many cases executed. That number is recorded on the slice. Every later
    run of the same oracle is compared against it. This needs no knowledge of how the language
-   lays out tests, only that the runner reports a count — which `cargo test`, `pytest`, `go
-   test` and `jest` all do.
+   lays out tests, only that the runner reports a count. `cargo test` prints
+   `test result: ok. N passed; …`. Plain `go test` prints no count at all, and reports
+   `ok  pkg  0.005s [no tests to run]` with exit 0, so under that runner the guard is
+   unavailable unless the check runs with `-v`, where one `--- PASS:` line per case can be
+   counted. Corifeu names the runners it can count instead of assuming all of them.
 2. **`vacuous` is a verdict.** [ADR-0049](0049-faithful-check-results.md) added
    `did-not-terminate` as a third outcome beside pass and fail. This adds a fourth: a check
    that ran fewer cases than the slice declares is `vacuous`, and `vacuous` is a failure.
@@ -58,6 +61,9 @@ is a failure whatever its exit code.**
    project's language, because [ADR-0053](0053-qa-writes-the-tests.md)'s promise is only true
    under the first.
 5. **Only QA may lower the count.** Deleting a test is QA's work, and it sets the new number.
+6. **No count and a count of zero are different results.** A suite that fails to compile
+   reports no count — `cargo test` exits 101 with no `test result` line — and that is an
+   ordinary failure. `vacuous` is reserved for a check that ran and ran too few cases.
 
 ## Alternatives considered
 - **Trust the sandbox.** What [ADR-0053](0053-qa-writes-the-tests.md) claims today. Whether
@@ -78,7 +84,8 @@ is a failure whatever its exit code.**
 ## Consequences
 - The check runner gains an obligation: report how many cases ran, not only whether any
   failed. A runner that cannot is usable only with the weaker file-ownership guarantee, and
-  `doctor` must say so.
+  `doctor` must say so. The two formats above were read from real runs; `pytest` and `jest`
+  are recognised from their documented summary lines and are not verified here.
 - [ADR-0053](0053-qa-writes-the-tests.md)'s claim is narrowed to what it can keep. The coder
   cannot write tests where the language separates them; everywhere else, the coder cannot
   *reduce* them, which is the part that protects the oracle.

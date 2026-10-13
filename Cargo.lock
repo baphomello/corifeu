@@ -176,6 +176,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-workspace"
+version = "0.0.0"
+dependencies = [
+ "thiserror",
+]
+
+[[package]]
 name = "encoding_rs"
 version = "0.8.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"

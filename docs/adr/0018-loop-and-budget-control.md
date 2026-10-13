@@ -1,7 +1,7 @@
 # 0018 — Rounds, budgets, loop detection and timeouts
 
 - **Status:** Accepted
-- **Date:** 2026-10-11
+- **Date:** 2026-10-11 (amended 2026-10-13)
 
 ## Context
 Two agents correcting each other can run indefinitely. A reviewer finds an issue, a coder
@@ -30,6 +30,34 @@ Escalation goes to the lead, and from the lead to the user per the autonomy leve
 Loop detection compares content hashes: an artefact whose hash equals a previous version's,
 or a finding whose normalised text matches an unresolved earlier finding. This generalises
 the prototype's identical-tool-call check from one harness to the whole system.
+
+> **Amended 2026-10-13, by measurement.** The prototype compared each action against the
+> **immediately preceding** one. That never fires on a cycle. In Task A of the thesis
+> measurement, steps 20 and 26 were byte-identical with different steps between them, and
+> the detector stayed silent while the agent burned 57 steps.
+>
+> Detection therefore compares against a **window of recent actions**, not the last one.
+> Two further signals proved necessary in the same run:
+>
+> - **No progress.** The agent made **one** `write_file` at step 3 and then 54 `run` plus
+>   5 `read_file` calls without editing anything. A doer that has not changed an artefact
+>   in *n* steps is looping, whatever its commands look like.
+> - **Near-duplicate commands.** Steps differing only in a `grep` pattern or a `sed` range
+>   are the same action. Normalise before comparing.
+>
+> The no-progress signal is the strongest of the three, because it is about the task rather
+> than the text: a doer that is not producing artefacts is not doing its job, however
+> varied its tool calls look.
+>
+> How the runtime *responds* to a detected repeat is
+> [ADR-0050](0050-loop-detection-warns-before-it-stops.md): it warns, and only
+> consecutive warnings stop the run.
+>
+> **Detection must also be state-aware, or it fires on correct behaviour.** The first
+> implementation of the above stopped a run at step 5 because `cargo test` matched step 3 —
+> ignoring that step 4 had rewritten the file between them. Re-running a check after an
+> edit is the loop working, not looping. **An artefact change resets the comparison
+> window**: the same command against different code is a different action.
 
 ## Alternatives considered
 - **Token budget alone.** Lets a cheap loop run a long time before tripping, and reports the

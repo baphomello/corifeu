@@ -124,3 +124,21 @@ What this makes easy, what it makes hard, and what it obliges us to build.
 | [0044](0044-antigravity-replaces-gemini-cli.md) | Antigravity CLI replaces the retired Gemini CLI | Accepted |
 | [0045](0045-prepared-workspace-for-context-isolation.md) | Prepared workspace for context isolation | Proposed — deferred past MVP 1 |
 | [0046](0046-release-integrity-without-code-signing.md) | Release integrity without code-signing certificates | Accepted |
+
+### Found by measurement
+These record decisions forced by the first run of the thesis
+[measurement](../measurement.md), which traced twelve causes for stopped runs — nine of them
+defects in the runtime rather than in any model.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0047](0047-bounded-agent-context-within-a-task.md) | The agent loop rebuilds a bounded context each step | Accepted |
+| [0048](0048-bounded-generation-for-local-runtimes.md) | Local runtimes get an explicit generation budget | Accepted |
+| [0049](0049-faithful-check-results.md) | Check results reach the doer intact | Accepted |
+| [0050](0050-loop-detection-warns-before-it-stops.md) | Loop detection warns before it stops | Accepted |
+| [0051](0051-checkpoint-before-every-write.md) | Every artefact is checkpointed before it is overwritten | Accepted |
+| [0052](0052-write-restriction-in-the-sandbox.md) | Write restriction is enforced by the sandbox | Accepted |
+| [0053](0053-qa-writes-the-tests.md) | The default role pair is QA and coder, QA owning the tests | Accepted |
+| [0054](0054-findings-become-work-only-as-tests.md) | A finding becomes work only after QA reproduces it | Accepted |
+| [0055](0055-one-local-doer-by-default.md) | One local doer by default, raised per provider | Accepted |
+| [0056](0056-one-oracle-per-slice.md) | A slice has exactly one oracle | Accepted |

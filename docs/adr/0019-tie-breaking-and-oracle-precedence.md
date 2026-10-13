@@ -1,7 +1,7 @@
 # 0019 — Oracles outrank opinions; defined tie-breaking
 
 - **Status:** Accepted
-- **Date:** 2026-10-11
+- **Date:** 2026-10-11 (amended 2026-10-13)
 
 ## Context
 Agents disagree. A reviewer calls a change wrong, the coder defends it, and both arguments
@@ -14,10 +14,25 @@ selects for the most articulate model, not the most correct one.
 ## Decision
 Resolution follows a fixed order. The first rule that applies decides.
 
-1. **Objective oracles decide, always.** Tests, build, lint, type check, and any
-   user-configured check. An oracle outranks every agent opinion, including the lead's and
-   including unanimity against it. If the test fails, the code is wrong, whatever any agent
-   says.
+1. **Objective oracles decide, always — provided they actually ran.** Tests, build, lint,
+   type check, and any user-configured check. An oracle outranks every agent opinion,
+   including the lead's and including unanimity against it. If the test fails, the code is
+   wrong, whatever any agent says.
+
+   **An oracle that executed nothing is not evidence.** Measured in the thesis measurement:
+   a doer ran `cargo test` against an untouched crate, received exit 0 from **zero tests**,
+   and declared the task complete having written nothing. The exit code was honest; the
+   conclusion drawn from it was not. A pass therefore requires all of:
+
+   | | |
+   |---|---|
+   | Exit code | success |
+   | Work performed | the oracle executed a non-zero number of checks |
+   | Artefacts | the task's required artefacts exist and changed |
+   | Regression | the check count did not fall |
+
+   Without the middle two, "tests pass" is a claim a doer can satisfy by doing nothing at
+   all, and the strongest rule in this design becomes trivially bypassable.
 2. **A required role outranks an optional role**
    ([ADR-0012](0012-required-and-optional-roles.md)).
 3. **The lead decides.**

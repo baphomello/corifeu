@@ -1,13 +1,16 @@
-n,defect,origin,task,evidence
-1,Loop detection killed on the first repeated action,harness,B,stopped at step 12 of 400 holding 18/21
-2,cargo test | tail reported exit 0,harness,B,a failing suite was reported as passing
-3,read_file truncated at 8000 bytes,harness,B,the file was 9570 bytes; the defect sat past the cut
-4,Context compaction evicted the file being edited,harness,B,"28 steps reading, 0 edits, 1064 output tokens"
-5,Command output truncated from the tail,harness,C,30 compile errors in 15148 chars; the last 4000 shown
-6,No rollback,harness,B,an 18/21 state was overwritten and could not be recovered
-7,The loop warning told a stuck agent to read more,harness,B,"5 steps, 291 output tokens, a pure read loop"
-8,The oracle had no timeout,harness,C,each attempt spent 300s on a test that never returns
-9,write_file bypassed with a shell heredoc,harness,C,"6 shell writes against 16 tool writes, none checkpointed"
-10,Cannot infer a missing requirement from an assertion,model,B,3 runs stuck at 18/21 until the reviewer named the cause
-11,Cannot diagnose its own infinite loop,model,C,"101 steps, 101 minutes, still hangs"
-12,A reviewer finding was fabricated,reviewer,B,2 of 3 findings did not survive verification
+n,run,defect,origin,task,evidence
+1,1,Loop detection killed on the first repeated action,harness,B,stopped at step 12 of 400 holding 18/21
+2,1,cargo test | tail reported exit 0,harness,B,a failing suite was reported as passing
+3,1,read_file truncated at 8000 bytes,harness,B,the file was 9570 bytes; the defect sat past the cut
+4,1,Context compaction evicted the file being edited,harness,B,"28 steps reading, 0 edits, 1064 output tokens"
+5,1,Command output truncated from the tail,harness,C,30 compile errors in 15148 chars; the last 4000 shown
+6,1,No rollback,harness,B,an 18/21 state was overwritten and could not be recovered
+7,1,The loop warning told a stuck agent to read more,harness,B,"5 steps, 291 output tokens, a pure read loop"
+8,1,The oracle had no timeout,harness,C,each attempt spent 300s on a test that never returns
+9,1,write_file bypassed with a shell heredoc,harness,C,"6 shell writes against 16 tool writes, none checkpointed"
+10,1,Cannot infer a missing requirement from an assertion,model,B,3 runs stuck at 18/21 until the reviewer named the cause
+11,1,Cannot diagnose its own infinite loop,model,C,"101 steps, 101 minutes, still hangs"
+12,1,A reviewer finding was fabricated,reviewer,B,2 of 3 findings did not survive verification
+13,2,A check that runs zero tests exits 0,harness,C re-sliced,the coder deleted 12 tests; cargo test --lib slice2_seg returned exit 0
+14,2,File-class ownership cannot separate in-file tests,harness,C re-sliced,Rust puts the unit test in the file it tests; the coder wrote the file it owns
+15,2,The slice boundary was not enforced,harness,C re-sliced,slice 2 implemented three functions it was told to leave as todo!()

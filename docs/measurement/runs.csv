@@ -10,3 +10,7 @@ B,repair 3,58,410764,16457,39.1,4,26,21,21,GREEN
 C,impl 1,6,37982,4108,14.6,1,2,0,10,30 compile errors
 C,impl 2,14,69818,3185,19.0,1,4,0,10,hangs
 C,repair 1,101,813778,44918,101.0,16,24,0,10,still hangs
+C re-sliced,slice 1 split_segs,3,5712,656,1.5,1,0,4,4,GREEN
+C re-sliced,slice 2 match_seg,49,176421,5629,12.7,4,4,0,8,deleted the tests; the oracle passed on zero
+C re-sliced,slice 2 retry,27,180098,11260,24.6,6,1,8,8,GREEN
+C re-sliced,slices 3 and 4,0,0,0,0.0,0,0,14,14,green on first check; implemented during slice 2

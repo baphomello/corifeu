@@ -142,3 +142,15 @@ defects in the runtime rather than in any model.
 | [0054](0054-findings-become-work-only-as-tests.md) | A finding becomes work only after QA reproduces it | Accepted |
 | [0055](0055-one-local-doer-by-default.md) | One local doer by default, raised per provider | Accepted |
 | [0056](0056-one-oracle-per-slice.md) | A slice has exactly one oracle | Accepted |
+
+### Found by the second measurement run
+Task C was re-sliced under [ADR-0056](0056-one-oracle-per-slice.md) and went from a
+135-minute hang to a green suite in 39 minutes. Three more causes surfaced on the way, all of
+them holes in decisions taken from the first run rather than new discoveries. These refine
+those decisions; none supersedes one.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0057](0057-oracle-integrity-by-test-inventory.md) | Oracle integrity is checked by test count, not file ownership | Accepted |
+| [0058](0058-slice-boundaries-are-observed.md) | A slice boundary is observed, not enforced | Accepted |
+| [0059](0059-a-test-is-unvalidated-until-green.md) | A test is unvalidated until it has gone green | Accepted |

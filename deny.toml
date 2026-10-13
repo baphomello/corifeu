@@ -11,6 +11,9 @@ yanked = "deny"
 [bans]
 multiple-versions = "warn"
 wildcards = "deny"
+# Path dependencies between our own workspace crates carry no version by
+# design. The lint targets wildcard requirements on *registry* crates.
+allow-wildcard-paths = true
 
 # ADR-0040. serde_yml is the crate most likely to be reached for by mistake,
 # because of the name. It carries RUSTSEC-2025-0068 for unsoundness and its
@@ -45,8 +48,14 @@ allow = [
 ]
 confidence-threshold = 0.9
 
+# Corifeu's own crates. AGPL by decision (ADR-0003); listed so the licence
+# cannot be mistaken for a copyleft dependency that slipped into the tree.
 [[licenses.exceptions]]
 name = "corifeu"
+allow = ["AGPL-3.0-or-later"]
+
+[[licenses.exceptions]]
+name = "corifeu-config"
 allow = ["AGPL-3.0-or-later"]
 
 [sources]

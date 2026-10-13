@@ -200,6 +200,8 @@ git:
   push:
     when: after-approval        # the gate: nothing leaves the machine unasked
     present_commits: true       # show every commit and why it exists, first
+                                # (only `push` carries this; it is the gate
+                                #  where work leaves the machine)
   pull_request:
     when: after-approval
     description: generated
@@ -284,6 +286,10 @@ Corifeu says so during installation rather than letting the compromise pass unno
 Validation rejects anything thinner: exactly one `lead`, at least one `doers` role that can
 write, and the roles referenced by `ownership` and `channels` must exist
 ([ADR-0012](adr/0012-required-and-optional-roles.md)).
+
+`file_classes` defaults to the set shown above — `test` first, then `source`, `config` and
+`docs` — so `writes: [source, test]` resolves without declaring them. Override the list to
+match a project whose layout differs.
 
 ## JSON Schema outline
 
@@ -414,15 +420,27 @@ rather than impossible configurations:
 
 ## Environment variable mapping
 
-`CORIFEU_` plus the key path, uppercased, underscore-joined:
+`CORIFEU_` plus the key path, uppercased, with **`__` between path segments**. A single
+underscore is part of a key:
 
 | Key | Variable |
 |---|---|
 | `autonomy` | `CORIFEU_AUTONOMY` |
-| `limits.rounds_per_pair` | `CORIFEU_LIMITS_ROUNDS_PER_PAIR` |
-| `providers.local.base_url` | `CORIFEU_PROVIDERS_LOCAL_BASE_URL` |
-| `git.push.when` | `CORIFEU_GIT_PUSH_WHEN` |
+| `limits.rounds_per_pair` | `CORIFEU_LIMITS__ROUNDS_PER_PAIR` |
+| `providers.local.base_url` | `CORIFEU_PROVIDERS__LOCAL__BASE_URL` |
+| `git.push.when` | `CORIFEU_GIT__PUSH__WHEN` |
 
-The mapping must be **reversible**, so key names may not contain underscores — enforced by
-the `propertyNames` pattern above, which permits only kebab-case. This is a small
-restriction that removes a whole class of ambiguous-override bugs.
+> **Corrected 2026-10-12, by implementing it.** This section originally joined the whole
+> path with single underscores and called the mapping reversible. It is not:
+> `CORIFEU_LIMITS_ROUNDS_PER_PAIR` could mean `limits.rounds_per_pair` or
+> `limits.rounds.per.pair`, and nothing in the name distinguishes them. The proposed remedy
+> — forbidding underscores in key names — would have renamed every key in this document.
+> Separating segments with `__` costs nothing and removes the ambiguity entirely.
+
+Values are parsed with YAML scalar rules, so `CORIFEU_LIMITS__ROUNDS_PER_PAIR=5` is the
+number 5 and `CORIFEU_LIMITS__LOOP_DETECTION=false` is a boolean, without a special case per
+field.
+
+**Each variable is its own layer.** They share a precedence, so merging is unaffected, but
+`corifeu config show --explain` can then name the exact variable that set a value rather
+than crediting the environment as a whole.

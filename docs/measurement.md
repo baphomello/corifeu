@@ -101,7 +101,7 @@ concrete input and was wrong about it; another stated none.
 This matters more than the arithmetic. Had those findings been handed to the coder, it would
 have changed working code to satisfy a false report — which is exactly what happened in the
 first repair round, where prose findings produced a wholesale rewrite that broke the build.
-[ADR-0055](adr/0055-findings-become-work-only-as-tests.md) is the consequence.
+[ADR-0054](adr/0054-findings-become-work-only-as-tests.md) is the consequence.
 
 ## Cost
 

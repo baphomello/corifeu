@@ -25,6 +25,7 @@ thiserror = "2.0.9"
 corifeu-config = { path = "crates/corifeu-config", version = "0.0.0" }
 corifeu-check = { path = "crates/corifeu-check", version = "0.0.0" }
 corifeu-exec = { path = "crates/corifeu-exec", version = "0.0.0" }
+corifeu-agent = { path = "crates/corifeu-agent", version = "0.0.0" }
 
 [profile.release]
 strip = true

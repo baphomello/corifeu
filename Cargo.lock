@@ -149,6 +149,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-agent"
+version = "0.0.0"
+
+[[package]]
 name = "corifeu-check"
 version = "0.0.0"
 

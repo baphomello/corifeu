@@ -58,6 +58,10 @@ allow = ["AGPL-3.0-or-later"]
 name = "corifeu-config"
 allow = ["AGPL-3.0-or-later"]
 
+[[licenses.exceptions]]
+name = "corifeu-check"
+allow = ["AGPL-3.0-or-later"]
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

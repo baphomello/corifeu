@@ -154,3 +154,10 @@ those decisions; none supersedes one.
 | [0057](0057-oracle-integrity-by-test-inventory.md) | Oracle integrity is checked by test count, not file ownership | Accepted |
 | [0058](0058-slice-boundaries-are-observed.md) | A slice boundary is observed, not enforced | Accepted |
 | [0059](0059-a-test-is-unvalidated-until-green.md) | A test is unvalidated until it has gone green | Accepted |
+
+### Found while implementing
+A decision the documents disagreed about, discovered because code had to pick one.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0060](0060-argv-execution-and-where-pipefail-applies.md) | Commands run as argument vectors; pipefail governs the shell opt-in | Accepted |

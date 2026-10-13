@@ -149,6 +149,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-check"
+version = "0.0.0"
+
+[[package]]
 name = "corifeu-config"
 version = "0.0.0"
 dependencies = [
@@ -156,6 +160,14 @@ dependencies = [
  "serde-saphyr",
  "serde_json",
  "serde_path_to_error",
+ "thiserror",
+]
+
+[[package]]
+name = "corifeu-exec"
+version = "0.0.0"
+dependencies = [
+ "corifeu-check",
  "thiserror",
 ]
 

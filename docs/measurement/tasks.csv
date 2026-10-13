@@ -2,3 +2,4 @@ task,scenario,steps,prompt_tokens,output_tokens,minutes,rounds,tests_passing,tes
 A,expensive model implements,,,,,2,15,15,yes
 B,local model implements,149,945675,47727,113.3,6,21,21,no
 C,local model implements,121,921578,52211,134.6,3,0,10,no
+C re-sliced,"local model implements, four slices",79,362231,17545,38.9,3,26,26,

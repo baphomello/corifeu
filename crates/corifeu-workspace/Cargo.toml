@@ -1,0 +1,14 @@
+[package]
+name = "corifeu-workspace"
+description = "Where a role's writes go, what classifies them, and what refuses them."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+thiserror = { workspace = true }

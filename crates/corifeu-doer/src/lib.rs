@@ -23,6 +23,7 @@
 //! things worse is reversible, which the measurement's repair round needed and
 //! did not have.
 
+pub mod pair;
 pub mod tools;
 
 use corifeu_agent::{Action, Artefact, Context, Contract, Detector, Repeat, Step, Window};
@@ -56,6 +57,37 @@ pub struct Slice {
     pub oracle: Oracle,
 }
 
+/// What ends a role's turn on a slice.
+///
+/// ADR-0053 puts QA before the coder, and they have different finish lines.
+///
+/// The coder is done when the check passes. QA is done when the check *runs* —
+/// which is not the same as failing. A test that will not compile is broken,
+/// not red (ADR-0059 §4), and handing the coder one is handing it nothing to
+/// work against. A test that passes the moment it is written is also finished
+/// QA work: it says the thing was already built, by an earlier slice's coder
+/// exceeding its boundary (ADR-0058). Both are results QA has to see, and
+/// neither of them is "keep writing".
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Goal {
+    /// The coder's.
+    Green,
+    /// QA's: at least one case executed, whatever it said.
+    TestRuns,
+}
+
+impl Goal {
+    fn reached(self, verdict: &Verdict, cases: &Cases) -> bool {
+        match self {
+            Goal::Green => verdict.is_green(),
+            Goal::TestRuns => {
+                matches!(verdict, Verdict::Passed | Verdict::Failed)
+                    && cases.ran().is_some_and(|ran| ran > 0)
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
     pub max_steps: u32,
@@ -74,8 +106,8 @@ impl Default for Limits {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Outcome {
-    /// The oracle went green.
-    Green,
+    /// The role's goal was met: green for a coder, a running test for QA.
+    Reached,
     /// The step budget ran out with the oracle still not green.
     Exhausted { last: Option<Verdict> },
     /// Six consecutive repeats (ADR-0050).
@@ -94,16 +126,25 @@ pub struct Run {
     /// How many times the oracle ran, which is what the slice really cost in
     /// machine time next to the model's own.
     pub checks: u32,
+    /// What the last oracle run counted. This is how QA hands a case count to
+    /// the coder's guard (ADR-0057): nobody knows how many tests a slice has
+    /// until they are written.
+    pub cases: Cases,
+    /// What the last oracle run said. For QA this is the difference between a
+    /// red test, which is work for the coder, and one that passed the moment it
+    /// was written, which says the work was already done.
+    pub verdict: Option<Verdict>,
 }
 
 impl Run {
-    pub fn is_green(&self) -> bool {
-        self.outcome == Outcome::Green
+    pub fn reached(&self) -> bool {
+        self.outcome == Outcome::Reached
     }
 }
 
 pub struct Doer<'a> {
     pub provider: &'a dyn Provider,
+    pub goal: Goal,
     pub model: String,
     pub budget: Budget,
     pub allowlist: Allowlist,
@@ -175,7 +216,7 @@ impl Doer<'_> {
                         state
                             .trace
                             .push(Step::new(number, action, state.last_result.clone()));
-                        return state.finish(number, Outcome::Green);
+                        return state.finish(number, Outcome::Reached);
                     }
                     state.last_result.clone()
                 }
@@ -197,6 +238,29 @@ impl Doer<'_> {
 
         let last = state.last_verdict;
         state.finish(self.limits.max_steps, Outcome::Exhausted { last })
+    }
+
+    /// Run a slice's oracle once, without a model, and say whether it passes
+    /// with at least one case. Used to tell "this was already done" from "the
+    /// role that judged it also did it".
+    pub fn probe(&self, slice: &Slice, workspace: &Workspace) -> bool {
+        let Some(command) = Command::from_argv(&slice.oracle.argv) else {
+            return false;
+        };
+        let Ok(observed) = corifeu_exec::run(
+            &command,
+            workspace.root(),
+            slice.oracle.timeout,
+            &self.allowlist,
+        ) else {
+            return false;
+        };
+        let report = Check {
+            expect_cases: None,
+            output_budget: self.limits.output_budget,
+        }
+        .judge(observed);
+        report.verdict.is_green() && report.cases.ran().is_some_and(|ran| ran > 0)
     }
 
     fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Option<Artefact> {
@@ -334,6 +398,20 @@ impl Doer<'_> {
         // smaller check as a regression.
         let scope = slice.oracle.describe();
         let mut note = String::new();
+        // ADR-0051 protects a coder's progress, which is measured by how much
+        // passes. QA is working the other way, and scoring its states by the
+        // same number would read every new failing test as a regression.
+        if self.goal == Goal::TestRuns {
+            state.last_verdict = Some(report.verdict);
+            state.last_cases = report.cases;
+            state.last_result = format!(
+                "$ {}\n{}\n{}",
+                slice.oracle.describe(),
+                report.verdict,
+                report.output
+            );
+            return self.goal.reached(&report.verdict, &report.cases);
+        }
         if let Some(better) = workspace.regression(&slice.artefact, &scope, score) {
             let id = better.id;
             if let Ok(restored) = workspace.restore(id) {
@@ -351,6 +429,7 @@ impl Doer<'_> {
         }
 
         state.last_verdict = Some(report.verdict);
+        state.last_cases = report.cases;
         state.last_result = format!(
             "$ {}\n{}\n{}{}",
             slice.oracle.describe(),
@@ -361,7 +440,7 @@ impl Doer<'_> {
             report.output,
             note
         );
-        state.last_verdict.as_ref().is_some_and(|v| v.is_green())
+        self.goal.reached(&report.verdict, &report.cases)
     }
 
     fn render(&self, context: &Context) -> Vec<Message> {
@@ -430,6 +509,7 @@ struct State {
     detector: Detector,
     last_result: String,
     last_verdict: Option<Verdict>,
+    last_cases: Cases,
     prompt_tokens: u32,
     output_tokens: u32,
     checks: u32,
@@ -444,6 +524,8 @@ impl State {
             prompt_tokens: self.prompt_tokens,
             output_tokens: self.output_tokens,
             checks: self.checks,
+            cases: self.last_cases,
+            verdict: self.last_verdict,
         }
     }
 }

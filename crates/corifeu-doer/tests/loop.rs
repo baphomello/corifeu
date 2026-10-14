@@ -7,7 +7,7 @@
 
 use corifeu_agent::Window;
 use corifeu_check::Verdict;
-use corifeu_doer::{Doer, Limits, Oracle, Outcome, Slice};
+use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice};
 use corifeu_exec::Allowlist;
 use corifeu_provider::{Budget, Error, Message, Provider, Stop, ToolCall, Turn, http};
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
@@ -182,6 +182,7 @@ fn write(content: &str) -> Turn {
 fn doer<'a>(provider: &'a Replay, max_steps: u32) -> Doer<'a> {
     Doer {
         provider,
+        goal: Goal::Green,
         model: "scripted".into(),
         budget: Budget::doer(),
         allowlist: allowlist(),
@@ -205,7 +206,7 @@ fn a_write_that_satisfies_the_oracle_ends_the_slice() {
     let provider = Replay::of(vec![write("DONE\n")]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert_eq!(run.steps, 1);
     assert_eq!(
         run.checks, 1,
@@ -223,7 +224,7 @@ fn the_model_never_has_to_think_of_running_the_check() {
     let provider = Replay::of(vec![write("still not\n"), write("DONE\n")]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert_eq!(run.checks, 2, "once per write that landed");
     assert!(
         run.trace[0].result.contains("1 failed"),
@@ -247,7 +248,7 @@ fn a_refused_write_reaches_the_model_and_leaves_the_file_alone() {
     ]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(
         run.trace[0].result.starts_with("REFUSED:"),
         "{}",
@@ -269,7 +270,7 @@ fn a_command_outside_the_allowlist_comes_back_as_a_refusal_not_a_crash() {
     ]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(
         run.trace[0].result.contains("is not permitted"),
         "{}",
@@ -289,7 +290,7 @@ fn a_repeated_action_is_warned_not_stopped() {
 
     assert_eq!(
         run.outcome,
-        Outcome::Green,
+        Outcome::Reached,
         "three repeats must not end a run"
     );
     assert!(run.trace[1].result.starts_with("REPEAT:"));
@@ -326,7 +327,7 @@ fn a_write_makes_the_same_command_worth_running_again() {
     ]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(
         !run.trace[3].result.starts_with("REPEAT:"),
         "the file changed, so reading it again is a different action"
@@ -342,7 +343,7 @@ fn a_turn_with_no_tool_call_is_nudged_rather_than_counted_as_work() {
     let provider = Replay::of(vec![says("Let me think about this."), write("DONE\n")]);
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(run.trace[0].result.contains("Call a tool"));
 }
 
@@ -480,7 +481,7 @@ fn a_run_carries_on_from_the_state_it_was_rolled_back_to() {
 
     assert_eq!(
         run.outcome,
-        Outcome::Green,
+        Outcome::Reached,
         "a rollback is a setback, not an end"
     );
     assert!(run.trace.iter().any(|s| s.result.contains("ROLLED BACK")));
@@ -495,7 +496,7 @@ fn still_red_but_no_worse_is_not_rolled_back() {
     let provider = Replay::of(vec![write("A\n"), write("AB\n"), write("ABC\n")]);
     let run = doer(&provider, 5).work(&markers_slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(
         !run.trace.iter().any(|s| s.result.contains("ROLLED BACK")),
         "every step gained ground; nothing should have been undone"
@@ -516,7 +517,7 @@ fn the_oracle_is_matched_by_prefix_not_by_exact_argv() {
     let provider = Replay::of(vec![calls("run", json!({"argv": with_flag}))]);
     let run = doer(&provider, 3).work(&slice(), &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert_eq!(
         run.checks, 1,
         "it was judged as the oracle, not run as a bare command"
@@ -540,7 +541,7 @@ fn a_green_slice_is_not_a_regression_from_a_larger_one() {
     let wide = Replay::of(vec![write("ABC\n")]);
     assert_eq!(
         doer(&wide, 3).work(&markers_slice(), &mut ws).outcome,
-        Outcome::Green
+        Outcome::Reached
     );
 
     // A one-case slice on the same file goes green with fewer cases passing.
@@ -552,7 +553,7 @@ fn a_green_slice_is_not_a_regression_from_a_larger_one() {
     let narrow = Replay::of(vec![write("ABC DONE\n")]);
     let run = doer(&narrow, 3).work(&narrow_slice, &mut ws);
 
-    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(run.outcome, Outcome::Reached);
     assert!(
         !run.trace.iter().any(|s| s.result.contains("ROLLED BACK")),
         "one check's count cannot be compared with another's"

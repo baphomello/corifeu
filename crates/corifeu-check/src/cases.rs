@@ -17,7 +17,7 @@
 /// is damaged whether or not what remains passes. `passed` is what ADR-0051
 /// scores a saved state by, and a run of 21 with 18 passing has to be worth
 /// more than a run of 21 with 3.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum Cases {
     Counted {
         ran: u32,
@@ -25,6 +25,8 @@ pub enum Cases {
     },
     /// The runner printed no count this crate can recognize. The ADR-0057
     /// guard cannot be applied, which is reported rather than assumed away.
+    /// Also the default: before a check has run, nothing is known.
+    #[default]
     Unknown,
 }
 

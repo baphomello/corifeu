@@ -2,8 +2,9 @@
 
 Corifeu exists to answer two questions: does delegating to a local model cut the cost of
 expensive tokens, and does a small scoped task with an objective check raise quality. This
-document records the two runs that tried to answer them with numbers instead of belief: a
-first run across three tasks, and a second that re-ran the task the first one failed.
+document records the three runs that tried to answer them with numbers instead of belief: a
+first across three tasks, a second that re-ran the task the first one failed, and a third
+driven by Corifeu itself rather than by a throwaway harness.
 
 Everything here comes from a run. Where a number is missing it is left blank rather than
 estimated, and where a conclusion is not fully verified it says so.
@@ -188,6 +189,104 @@ Neither was ever exposed, because the implementation hung before any assertion r
 that has never gone green is an untested claim, not an oracle.
 [ADR-0059](adr/0059-a-test-is-unvalidated-until-green.md) is the consequence.
 
+## Third run — Corifeu drives
+
+The first two runs were driven by a throwaway Python harness against Ollama. This one is
+driven by Corifeu against `llama-server`, which makes it the first measurement of the
+product rather than of a sketch of it. Three models ran the same four slices of Task C.
+
+### The runtime was the wrong one
+
+Before anything was measured, the local model was moved from Ollama to llama.cpp, and the
+difference is larger than any decision in this document:
+
+| | Ollama | llama.cpp |
+|---|---:|---:|
+| `ornith1.5:9b`, as the first two runs were configured | **7.8 tok/s** | — |
+| `ornith1.5:9b`, Ollama given the same 8k context | 15.3 tok/s | — |
+| `ornith1.5:9b`, 8k context | — | **42.2 tok/s** |
+| `qwen2.5-coder:7b` | 26.2 tok/s | 65.8 tok/s |
+
+With the model loaded, llama.cpp held **7,383 MiB of the card's 8,192**. Under Ollama the
+same model ran 68% on the GPU and decoded the rest on the CPU. Three things account for it:
+the vision projector was not loaded, the context was 8k rather than the model's declared
+262k, and flash attention was on.
+
+The first two runs are therefore wall-clock measurements of a misconfiguration. Their step
+counts and token counts stand; their minutes do not.
+
+### Four slices, three models
+
+Each model got a fresh scaffold with all four functions stubbed and all 26 tests present,
+then worked the slices in order under a 30-step ceiling.
+
+| Model | Slices green | Steps | Prompt | Output | Minutes | **The crate at the end** |
+|---|---|---:|---:|---:|---:|---|
+| `qwopus3.5-9b-coder` Q4 | 3 + 1 free | 22 | 75,500 | 41,162 | **11.8** | **26/26** |
+| `ornith1.5-9b` Q5 | 3 + 1 free | 24 | 77,858 | 84,822 | 26.4 | **26/26** |
+| `qwen2.5-coder-7b` Q4 | 0 | 120 | 345,363 | 13,305 | 3.5 | **does not compile** |
+
+The last column is the only one that answers the question. Per-slice verdicts say what
+happened on the way; whether the crate works is the result.
+
+For `ornith`, which is the one model all three runs share:
+
+| | Steps | Prompt tokens | Minutes | Result |
+|---|---:|---:|---:|---|
+| Run 1 — monolithic, Python harness | 121 | 921,578 | 135 | hangs |
+| Run 2 — sliced, Python harness | 79 | 362,231 | 39 | 26/26 |
+| Run 3 — sliced, Corifeu | **24** | **77,858** | 26 | 26/26 |
+
+### `qwen2.5-coder` cannot be a doer, and it is the fastest model here
+
+It decodes at 65.8 tok/s, faster than either model that succeeded. It finished none of the
+four slices, spent 120 steps and 345,363 prompt tokens to produce 13,305 output tokens, and
+left a crate that does not compile — it broke the string literals while writing the one
+function it attempted.
+
+The cause is not capability but shape: it does not emit tool calls. Under Ollama it answered
+with a JSON object as plain text; under llama.cpp it invented `<run argv="…">` markup. Every
+step it takes is a step that changes nothing.
+
+**`corifeu doctor` answers this in one call.** A single tool-call probe, which is what
+[ADR-0027](adr/0027-install-wizard-with-tool-call-test.md) gates the installer on, separates
+this model from the other two before any work is attempted.
+
+### The run found a defect in the rollback
+
+The first pass of this run reported `qwopus` green on all four slices and left a `todo!()` in
+the crate. The cause was in Corifeu, not the model:
+
+```
+slice 3 closes green:  9 cases passing   -> saved
+slice 4 closes green:  5 cases passing   -> 5 < 9, read as a regression
+                                         -> the slice-3 state restored over it
+                                         -> the slice reported green anyway
+```
+
+Counts from different checks were being compared. Nine passing under one slice's oracle says
+nothing about five under another's, and ordering them reads every smaller check as a
+regression. A checkpoint now holds a score per check, and only states the same check has
+judged are compared.
+
+This is the second defect in the rollback path, and both were invisible to every test until a
+real run produced a shape the tests did not have. The numbers above are from the re-run.
+
+### Slice overflow rescued both successful runs
+
+[ADR-0058](adr/0058-slice-boundaries-are-observed.md) was written as a metering problem: a
+coder that exceeds its slice makes the per-slice cost wrong. This run shows it is also what
+made the task finish.
+
+| Model | The slice that failed | What saved it |
+|---|---|---|
+| `qwopus` | slice 2 looped after 18 steps | slice 3's coder implemented `match_seg` as well |
+| `ornith` | slice 3 looped after 22 steps | slice 4's coder implemented `glob_match` as well |
+
+Both runs reached 26 of 26 with a slice that never closed. Enforcing the boundary — the
+alternative ADR-0058 rejected on cost — would have left both at 3 of 4 and a broken crate.
+That is an argument for the decision that was not available when it was made.
+
 ## Cost
 
 The thesis is about money, so the comparison that matters is where the tokens went.
@@ -195,6 +294,8 @@ The thesis is about money, so the comparison that matters is where the tokens we
 - **Local**, Tasks B and C together: 1,867,253 prompt and 99,938 output tokens, 248 minutes
   of machine time, costing nothing but electricity and patience.
 - **Local**, Task C re-sliced: a further 362,231 prompt and 17,545 output tokens, 39 minutes.
+- **Local**, the third run's twelve slices across three models: 498,721 prompt and 139,289
+  output tokens, 42 minutes of machine time, one model of the three finishing nothing.
 - **Paid**, the review that unblocked Task B: **7,956 tokens**, one call.
 
 One paid call of eight thousand tokens moved a task that three local runs could not finish.
@@ -218,9 +319,16 @@ output instead of 1,707. A reviewer's environment is part of its cost.
   between them. The gain is real and its attribution is not isolated.
 - **Slices 3 and 4 were delivered by slice 2's coder**, so four slices cost two slices' work.
   A decomposition whose slices are genuinely independent would not get that discount.
-- **The local model ran 68% on the GPU.** `ornith1.5:9b` at Q5_K_M does not fit an 8 GB card
-  alongside a 32k context, so roughly a third of it decoded on the CPU at 7.8 tokens per
-  second. Every minute figure in this document is a wall clock on a misconfigured placement,
-  not a floor.
+- **The first two runs' minutes are a misconfiguration.** `ornith1.5:9b` ran 68% on the GPU
+  under Ollama at 7.8 tokens per second. On llama.cpp the same model decodes at 42.2. Step
+  counts and token counts from those runs stand; their wall clocks do not.
+- **One run per model per slice.** The third run's first pass had `qwopus` closing slice 2
+  green in a single step; the re-run had the same model loop for 18 steps on it. That is
+  sampling variance at default temperature, and with one run per cell nothing here separates
+  a model from a lucky draw. Treat the ranking as "two of these three can do the job at all",
+  not as an ordering of the two that can.
+- **Both successful runs finished with a slice that never closed.** Slice overflow completed
+  the work. A decomposition whose slices were genuinely independent would have left both
+  runs at three of four.
 - **Two data points.** Task A under the old ceiling, B green, C failed. This is evidence, not
   a benchmark.

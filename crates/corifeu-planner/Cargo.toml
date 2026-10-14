@@ -1,0 +1,17 @@
+[package]
+name = "corifeu-planner"
+description = "Cuts a brief into slices, each with one oracle, in a single pass."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+corifeu-exec = { workspace = true }
+corifeu-provider = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

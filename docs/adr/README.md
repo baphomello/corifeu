@@ -161,3 +161,11 @@ A decision the documents disagreed about, discovered because code had to pick on
 | ADR | Title | Status |
 |---|---|---|
 | [0060](0060-argv-execution-and-where-pipefail-applies.md) | Commands run as argument vectors; pipefail governs the shell opt-in | Accepted |
+
+### Privacy
+The thesis was written as two claims, cost and quality. Confidentiality is a third thing
+users want and the first two do not supply.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0061](0061-privacy-by-file-class.md) | Privacy is decided per file class, and what leaves is minimised | Accepted |

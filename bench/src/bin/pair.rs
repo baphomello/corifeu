@@ -17,44 +17,14 @@
 //! Reads the step allowance from `BENCH_STEPS_*`.
 
 use corifeu_agent::Window;
-use corifeu_bench::held_out;
+use corifeu_bench::{Task, held_out};
 use corifeu_doer::pair::{Pair, SliceOutcome};
-use corifeu_doer::{Doer, Goal, Limits, Oracle, Slice};
+use corifeu_doer::{Doer, Goal, Limits};
 use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_provider::Budget;
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
-use std::time::{Duration, Instant};
-
-/// Slice number to its test module and what the pair is told, worded the same
-/// way for all four so that slice size is the only thing that differs.
-fn asked(which: u32) -> (&'static str, &'static str) {
-    match which {
-        2 => (
-            "slice2_seg",
-            "`match_seg(pattern, component) -> bool` matches ONE path component against one \
-             pattern segment. `*` matches any run of characters, including none; `?` matches \
-             exactly one. Neither matches a '/'.",
-        ),
-        3 => (
-            "slice3_glob",
-            "`glob_match(pattern, path) -> bool` matches a whole glob pattern against a whole \
-             path. `**` matches any number of path components including none; `*` and `?` \
-             stay inside one component, where `*` is any run of characters and `?` is exactly \
-             one.",
-        ),
-        4 => (
-            "slice4_classify",
-            "`classify(classes, path) -> Option<&str>` returns the name of the first class in \
-             the list whose include globs match the path, or None.",
-        ),
-        _ => (
-            "slice1_segs",
-            "`split_segs(path) -> Vec<&str>` splits a path on '/' and drops empty components, \
-             so \"a//b\" and \"/a/b/\" both give [\"a\", \"b\"] and \"\" gives [].",
-        ),
-    }
-}
+use std::time::Instant;
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -62,9 +32,9 @@ fn main() {
     let model = args.next().expect("model");
     let root = std::path::PathBuf::from(args.next().expect("workdir"));
     let iteration = args.next().unwrap_or_else(|| "1".into());
-    let which: u32 = args.next().and_then(|n| n.parse().ok()).unwrap_or(1);
-    let (module, spec) = asked(which);
+    let which: usize = args.next().and_then(|n| n.parse().ok()).unwrap_or(1);
 
+    let task = Task::read(&root);
     let provider = LlamaCpp::new(format!("http://{host}:9931"));
     let allow = Allowlist::new([vec!["cargo".into()]]);
     let mut workspace = Workspace::open(&root, root.join(".checkpoints")).expect("workspace");
@@ -115,19 +85,17 @@ fn main() {
         qa_rounds: 2,
     };
 
-    let slice = Slice {
-        task: format!(
-            "{spec} Put the tests in `#[cfg(test)] mod {module}` at the end of the file."
+    let slice = task.slice(
+        which,
+        format!(
+            "{} Put the tests in `#[cfg(test)] mod {}` at the end of the file.",
+            task.at(which).specify,
+            task.at(which).module
         ),
-        artefact: "src/lib.rs".into(),
-        oracle: Oracle {
-            argv: ["cargo", "test", "--lib", module]
-                .map(String::from)
-                .to_vec(),
-            timeout: Duration::from_secs(180),
-            expect_cases: None,
-        },
-    };
+        // QA's red run sets it (ADR-0057): nobody knows how many cases a slice
+        // has until the tests exist.
+        None,
+    );
 
     let started = Instant::now();
     let run = pair.work(&slice, &mut workspace);

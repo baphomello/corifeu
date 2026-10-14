@@ -169,6 +169,8 @@ dependencies = [
  "corifeu-llamacpp",
  "corifeu-provider",
  "corifeu-workspace",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,8 +1,10 @@
-//! One doer, four slices, one model: what a decomposition costs end to end.
+//! One doer, every slice of a task, one model: what a decomposition costs end
+//! to end.
 //!
-//! The crate starts with every function a `todo!()` and all 26 tests present,
-//! so each slice is red-to-green against cases it did not write. This is the
-//! shape that produced the fourth run's ranking.
+//! The crate starts with every function a `todo!()` and every test present, so
+//! each slice is red-to-green against cases it did not write. This is the shape
+//! that produced the fourth run's ranking. Which task is whatever the scaffold
+//! built in the workspace — `task.json` is copied in beside the crate.
 //!
 //! Usage: `rank <host> <model> <workdir> <iteration>`
 //!
@@ -10,54 +12,13 @@
 //! asks for, then a total. Reads the step allowance from `BENCH_STEPS_*`.
 
 use corifeu_agent::Window;
-use corifeu_doer::{Allowance, Doer, Goal, Limits, Oracle, Outcome, Slice};
+use corifeu_bench::Task;
+use corifeu_doer::{Allowance, Doer, Goal, Limits, Outcome};
 use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_provider::Budget;
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
-use std::time::{Duration, Instant};
-
-/// Module, expected case count, and what the slice is told.
-const SLICES: [(&str, u32, &str); 4] = [
-    (
-        "slice1_segs",
-        4,
-        "`split_segs` is unimplemented. Implement it so its tests pass.",
-    ),
-    (
-        "slice2_seg",
-        8,
-        "`match_seg` is unimplemented. Implement it so its tests pass. It matches ONE path \
-         component against one pattern segment, where `*` is any run of characters and `?` is \
-         exactly one.",
-    ),
-    (
-        "slice3_glob",
-        9,
-        "`glob_match` is unimplemented. Implement it so its tests pass. `**` crosses `/`, `*` \
-         and `?` do not.",
-    ),
-    (
-        "slice4_classify",
-        5,
-        "`classify` is unimplemented. Implement it so its tests pass. The first class whose \
-         include globs match wins.",
-    ),
-];
-
-fn slice(module: &str, cases: u32, task: &str) -> Slice {
-    Slice {
-        task: format!("{task} Do not change any test, and do not touch any other function."),
-        artefact: "src/lib.rs".into(),
-        oracle: Oracle {
-            argv: ["cargo", "test", "--lib", module]
-                .map(String::from)
-                .to_vec(),
-            timeout: Duration::from_secs(240),
-            expect_cases: Some(cases),
-        },
-    }
-}
+use std::time::Instant;
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -66,6 +27,7 @@ fn main() {
     let root = std::path::PathBuf::from(args.next().expect("workdir"));
     let iteration = args.next().unwrap_or_else(|| "1".into());
 
+    let task = Task::read(&root);
     let provider = LlamaCpp::new(format!("http://{host}:9931"));
     let allow = Allowlist::new([vec!["cargo".into()]]);
     let mut workspace = Workspace::open(&root, root.join(".checkpoints")).expect("workspace");
@@ -98,8 +60,16 @@ fn main() {
     let (mut closed, mut free) = (0, 0);
     let mut unfinished = Vec::new();
 
-    for (module, cases, task) in SLICES {
-        let slice = slice(module, cases, task);
+    for at in 1..=task.slices.len() {
+        let module = task.at(at).module.clone();
+        let slice = task.slice(
+            at,
+            format!(
+                "{} Do not change any test, and do not touch any other function.",
+                task.at(at).implement
+            ),
+            Some(task.at(at).cases),
+        );
 
         // ADR-0058: someone may have built it already on the way past.
         if doer.probe(&slice, &workspace) {
@@ -123,7 +93,7 @@ fn main() {
         if run.reached() {
             closed += 1;
         } else {
-            unfinished.push((module, slice));
+            unfinished.push((module.clone(), slice));
         }
 
         println!(
@@ -161,9 +131,10 @@ fn main() {
     }
 
     println!(
-        "TOTAL\t{iteration}\t{model}\tclosed={closed}/4\tovertaken={overtaken}\tfree={free}\
+        "TOTAL\t{iteration}\t{model}\tclosed={closed}/{}\tovertaken={overtaken}\tfree={free}\
          \tsteps={steps}\tprompt={prompt}\toutput={output}\tchecks={checks}\
          \tfloor_left={}\tminutes={:.1}",
+        task.slices.len(),
         allowance.raised(),
         whole.elapsed().as_secs_f64() / 60.0
     );

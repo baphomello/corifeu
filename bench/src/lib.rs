@@ -8,9 +8,74 @@
 
 use corifeu_check::{Cases, Check, Verdict};
 use corifeu_doer::Steps;
+use corifeu_doer::{Oracle, Slice};
 use corifeu_exec::{Allowlist, Command};
+use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+/// A task, as `task.json` describes it.
+///
+/// The scaffold copies this file into the workspace it builds, so a round reads
+/// what it is working on rather than carrying a copy of it in Rust. Adding a
+/// task is then a directory and a JSON file, which is the only way the number
+/// of tasks is going to grow.
+#[derive(Debug, Clone, Deserialize)]
+pub struct Task {
+    pub name: String,
+    /// The one file every slice edits.
+    pub artefact: String,
+    /// The per-slice check, with `{module}` standing in for the slice's module.
+    pub oracle: Vec<String>,
+    /// Every case the task has, for the row measured after a round is scored.
+    pub whole_suite: Vec<String>,
+    pub slices: Vec<TaskSlice>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct TaskSlice {
+    pub module: String,
+    pub cases: u32,
+    /// What a doer is told when the tests already exist.
+    pub implement: String,
+    /// What a pair is told when they do not, so QA has a specification to read
+    /// rather than a suite to satisfy.
+    pub specify: String,
+}
+
+impl Task {
+    pub fn read(work: &Path) -> Task {
+        let text = std::fs::read_to_string(work.join("task.json"))
+            .unwrap_or_else(|e| panic!("no task.json in {}: {e}", work.display()));
+        serde_json::from_str(&text).unwrap_or_else(|e| panic!("task.json: {e}"))
+    }
+
+    pub fn at(&self, which: usize) -> &TaskSlice {
+        self.slices
+            .get(which - 1)
+            .unwrap_or_else(|| panic!("{} has {} slices", self.name, self.slices.len()))
+    }
+
+    /// The slice as the runtime wants it. `expect_cases` is what the task
+    /// declares for a doer working against tests that already exist, and None
+    /// for a pair, where QA's red run supplies it instead (ADR-0057).
+    pub fn slice(&self, at: usize, task: String, expect_cases: Option<u32>) -> Slice {
+        let slice = self.at(at);
+        Slice {
+            task,
+            artefact: self.artefact.clone(),
+            oracle: Oracle {
+                argv: self
+                    .oracle
+                    .iter()
+                    .map(|part| part.replace("{module}", &slice.module))
+                    .collect(),
+                timeout: Duration::from_secs(240),
+                expect_cases,
+            },
+        }
+    }
+}
 
 /// The step allowance this round runs with (ADR-0062).
 ///

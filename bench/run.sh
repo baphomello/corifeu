@@ -9,6 +9,7 @@
 #   BENCH_ROUND           where to write (default: bench/rounds/<stamp>-<mode>)
 #   BENCH_TIMEOUT         seconds per iteration (default: 3600)
 #   BENCH_SLICE           which slice the pair works, 1-4 (default: 1)
+#   BENCH_TASK            a directory under bench/tasks/ (default: c-glob)
 #   BENCH_STEPS_FLOOR     \
 #   BENCH_STEPS_CEILING    |  the step allowance, ADR-0062. Unset means the
 #   BENCH_STEPS_PATIENCE   |  runtime's own defaults, which is what a round
@@ -41,10 +42,11 @@ esac
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(cd "$HERE/.." && pwd)
 STAMP=$(date +%Y%m%d-%H%M%S)
-ROUND=${BENCH_ROUND:-$HERE/rounds/$STAMP-$MODE}
+ROUND=${BENCH_ROUND:-$HERE/rounds/$STAMP-${BENCH_TASK:-c-glob}-$MODE}
 HOST=${BENCH_HOST:-$(ip route show default | awk '{print $3}')}
 CAP=${BENCH_TIMEOUT:-3600}
 SLICE=${BENCH_SLICE:-1}
+TASK=${BENCH_TASK:-c-glob}
 
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
@@ -58,6 +60,7 @@ LOG="$ROUND/log"
 {
   echo "round:   $STAMP"
   echo "mode:    $MODE"
+  echo "task:    $TASK"
   echo "host:    $HOST"
   echo "models:  ${MODELS[*]}"
   echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
@@ -76,7 +79,7 @@ for i in $(seq 1 "$N"); do
   for M in "${MODELS[@]}"; do
     W="$ROUND/work/$M/$i"
     if [ "$MODE" = rank ]; then SCAFFOLD=(--mode slices); else SCAFFOLD=(--mode pair --slice "$SLICE"); fi
-    if ! python3 -I "$HERE/tasks/scaffold.py" "$W" "${SCAFFOLD[@]}" >>"$LOG" 2>&1; then
+    if ! python3 -I "$HERE/tasks/scaffold.py" "$W" --task "$TASK" "${SCAFFOLD[@]}" >>"$LOG" 2>&1; then
       echo "[$(date +%H:%M:%S)] $MODE $i / $M: scaffold failed" | tee -a "$LOG"
       continue
     fi

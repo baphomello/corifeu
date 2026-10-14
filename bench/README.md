@@ -13,6 +13,7 @@ runtime that breaks the harness breaks the build, rather than the next round.
 bench/run.sh rank 10 qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
 bench/run.sh pair 10 ornith1.5-9b-Q5_K_M
 BENCH_SLICE=3 bench/run.sh pair 10 ornith1.5-9b-Q5_K_M   # the expensive slice
+BENCH_TASK=e-indep bench/run.sh rank 10 ornith1.5-9b-Q5_K_M
 ```
 
 You need a llama.cpp server in router mode on port 9931 that can load the models you name.
@@ -63,15 +64,35 @@ passes by construction. Twelve cases from outside the round can say.
 Every case in that file passes against the reference implementation. A case the reference
 fails would be measuring the suite, not the work.
 
-## The task
+## The tasks
 
-`tasks/c-glob/` is the reference crate: a glob matcher and a path classifier, 261 lines, 26
-tests, all green. `tasks/scaffold.py` cuts the hole a round starts from.
+A task is a directory under `tasks/` holding `task.json`, the complete crate it describes, and
+one held-out suite per slice that a pair can work. The crate is green before a round touches
+it. `task.json` carries everything else — the artefact, the oracle, and per slice its case
+count, the signature to stub, the helpers to delete with it, and the two wordings a doer and a
+pair are given. The drivers read it from the workspace rather than carrying a copy in Rust, so
+adding a task is a directory and a JSON file.
+
+| | `c-glob` | `e-indep` |
+|---|---|---|
+| What | a glob matcher and a path classifier | Roman numerals, word wrap, base32, Luhn |
+| Slices | 4, each calling the one before it | 4, calling nothing at all |
+| Cases | 26 | 26 |
+| Held-out suites | slices 1 and 3 | none yet; `rank` only |
+
+`e-indep` is the control. Every observation of a coder overflowing its slice
+([ADR-0058](../docs/adr/0058-slice-boundaries-are-observed.md)) came from `c-glob`, where
+`classify` calls `glob_match` calls `match_seg` calls `split_segs` — a coder implementing one
+slice has the next one in front of it. In `e-indep` nothing calls anything, and the four are
+deliberately unlike one another: a lookup table, a string loop, bit packing, and a validator.
+
+`tasks/scaffold.py` cuts the hole a round starts from.
 
 ```sh
-python3 tasks/scaffold.py /tmp/w --mode slices            # 4 stubs, 26 tests
-python3 tasks/scaffold.py /tmp/w --mode pair --slice 1    # 1 stub, 0 tests, 12 held out
-python3 tasks/scaffold.py /tmp/w --mode pair --slice 3    # 1 stub, 0 tests, 13 held out
+python3 tasks/scaffold.py /tmp/w --mode slices                 # 4 stubs, 26 tests
+python3 tasks/scaffold.py /tmp/w --mode pair --slice 1         # 1 stub, 0 tests, 12 held out
+python3 tasks/scaffold.py /tmp/w --mode pair --slice 3         # 1 stub, 0 tests, 13 held out
+python3 tasks/scaffold.py /tmp/w --task e-indep --mode slices  # 4 stubs, 26 tests
 ```
 
 `--mode pair` also deletes the private helpers that exist only to serve the stubbed function.

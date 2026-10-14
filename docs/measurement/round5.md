@@ -51,9 +51,13 @@ share one module, one data type and a helper chain: `classify` calls `glob_match
 `match_seg` calls `split_segs`. A coder implementing one of them has the next one in front of
 it. That is the easiest possible case for overflow, and it may be the only one.
 
-**The cell.** A new task, **Task E**, whose slices are genuinely independent: separate
-functions, no call between them, no shared type beyond `&str`. Same shape otherwise — one
-file, one oracle per slice, all tests present from the start.
+**The cell.** [`bench/tasks/e-indep`](../../bench/tasks/e-indep), whose slices are genuinely
+independent: separate functions, no call between them, no shared helper, no shared type. Same
+shape otherwise — one file, one oracle per slice, 26 cases, all present from the start.
+
+```sh
+BENCH_TASK=e-indep bench/run.sh rank 10 <model>
+```
 
 **What would say no.** Overflow rate near zero on Task E while Task C keeps producing it. Then
 ADR-0058's "slices overflow" is a property of *that decomposition*, not of coders, and
@@ -63,8 +67,15 @@ anything. Both would need narrowing to the case where slices share code.
 **What would say yes.** Overflow on Task E too. Then it is about the model, not the task, and
 both decisions stand as written.
 
-**Status: Task E is designed below but not built.** It is the one piece of this round that
-does not exist yet.
+The four were picked to be mutually unlike — a lookup table, a string loop, bit packing, and a
+validator — so that a slice is not easy merely because the slice before it warmed the model up.
+
+| Slice | Function | Cases |
+|---|---:|---:|
+| 1 | `roman(n: u32) -> String` — 1–3999 | 6 |
+| 2 | `wrap(text: &str, width: usize) -> Vec<String>` — greedy, never splits a word | 7 |
+| 3 | `base32(bytes: &[u8]) -> String` — RFC 4648, padded | 6 |
+| 4 | `luhn(digits: &str) -> bool` — spaces ignored, anything else rejected | 7 |
 
 ---
 
@@ -163,28 +174,6 @@ attached.
 
 ---
 
-## Task E, designed
-
-Four functions in one file, no call between them, all tests present. Each takes and returns
-plain data, so a coder implementing one has no reason to look at the next.
-
-| Slice | Function | Cases |
-|---|---|---|
-| 1 | `roman(n: u32) -> String` — 1–3999 to Roman numerals | 6 |
-| 2 | `wrap(text: &str, width: usize) -> Vec<String>` — greedy word wrap, never split a word | 7 |
-| 3 | `base32(bytes: &[u8]) -> String` — RFC 4648 with padding | 6 |
-| 4 | `luhn(digits: &str) -> bool` — checksum, spaces allowed, anything else rejected | 7 |
-
-Nothing here calls anything else here. If overflow still happens, it is the model finishing
-work it was not asked for, which is a different and more interesting finding than a coder
-following a call chain.
-
-The four were picked to be mutually unlike: a lookup table, a string loop, bit packing, and a
-validator. A model that is good at one has no particular reason to be good at the next, which
-keeps a slice from being easy only because the slice before it warmed the model up.
-
----
-
 ## What this round costs
 
 The fourth run was 20 ranking iterations at a median of 5–10 minutes and 20 pair iterations,
@@ -195,7 +184,7 @@ about nine hours of machine time in total. This round is larger:
 | Q1 + Q4 — pair, slice 1 and slice 3, 2 models | 40 | 4 h |
 | Q3 — Task D, rank, 2 models | 20 | 3 h |
 | Q5 — Task C, rank, 3 floors, 2 models | 60 | 8 h |
-| Q2 — Task E, rank, 2 models | 20 | 3 h |
+| Q2 — `e-indep`, rank, 2 models | 20 | 3 h |
 
 Q5 is the expensive one and the most fitted to data it already saw. If the round has to be cut,
 cut Q5 to floors 12 and 30 and spend the hours on Q2, which is the question whose answer could

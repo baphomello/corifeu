@@ -16,3 +16,6 @@ n,run,defect,origin,task,evidence
 15,2,The slice boundary was not enforced,harness,C re-sliced,slice 2 implemented three functions it was told to leave as todo!()
 16,3,A score from one check was compared with another check's,runtime,"C sliced, Corifeu",slice 4 green on 5 cases was read as a regression from slice 3's 9 and rolled back
 17,3,A model that emits no tool call burns its whole step budget,model,"C sliced, Corifeu","qwen2.5-coder-7b: 120 steps, 345363 prompt tokens, 0 of 4 slices"
+18,4,A slice verdict reports failure on work that is already done,runtime,"C sliced, n=10",8 of 19 runs reached 26/26 with a slice that never closed; those runs cost 17.5 min against 4.5
+19,4,QA writes the implementation it was asked to test,runtime,C slice 1 pair,"11 of 20 pair runs were green before the coder ran, with the check probed red beforehand"
+20,4,A failed run's workspace is overwritten by the next iteration,harness,C slice 1 pair,"the two NoRunnableTest runs cannot be inspected; their test counts came from grep, not from a run"

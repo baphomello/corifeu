@@ -1,0 +1,120 @@
+iteration	model	slice	outcome	steps	prompt	output	checks	seconds
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	LOOPING	15	51949	25539	1	418
+1	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	LOOPING	15	52988	27912	1	468
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	3	10340	9323	2	164
+1	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	1	qwopus3.5-9b-coder-Q4_K_M	green=2/4	free=1	steps=33	prompt=115277	output=62774	checks=4	minutes=17.5
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+1	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2450	1	64
+1	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2355	1	54
+1	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	5	15210	8575	1	191
+1	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2906	2339	1	54
+TOTAL	1	ornith1.5-9b-Q5_K_M	green=4/4	free=0	steps=8	prompt=23888	output=15719	checks=4	minutes=6.1
+FINAL	1	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+2	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2612	1	55
+2	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	1	2921	3538	1	66
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	1	2915	2743	1	50
+2	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2940	2842	1	52
+TOTAL	2	qwopus3.5-9b-coder-Q4_K_M	green=4/4	free=0	steps=4	prompt=11645	output=11735	checks=4	minutes=3.8
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+2	ornith1.5-9b-Q5_K_M	slice1_segs	LOOPING	17	65004	28872	2	569
+2	ornith1.5-9b-Q5_K_M	slice2_seg	EXHAUSTED	30	131347	60584	5	1140
+2	ornith1.5-9b-Q5_K_M	slice3_glob	LOOPING	27	99426	72881	2	1320
+FINAL	2	ornith1.5-9b-Q5_K_M	test result: FAILED. 18 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2505	1	57
+3	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	2	5871	6534	1	108
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	3	8862	10523	1	180
+3	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	3	qwopus3.5-9b-coder-Q4_K_M	green=4/4	free=1	steps=6	prompt=17602	output=19562	checks=3	minutes=5.8
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+3	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2388	1	51
+3	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2344	1	46
+3	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	1	2897	3380	1	66
+3	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2900	2353	1	46
+TOTAL	3	ornith1.5-9b-Q5_K_M	green=4/4	free=0	steps=4	prompt=11569	output=10465	checks=4	minutes=3.5
+FINAL	3	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	2	5787	6609	1	116
+4	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	2	5855	6770	1	116
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	3	10197	6755	2	120
+4	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2922	2763	1	49
+TOTAL	4	qwopus3.5-9b-coder-Q4_K_M	green=4/4	free=0	steps=8	prompt=24761	output=22897	checks=5	minutes=6.7
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+4	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2655	1	56
+4	ornith1.5-9b-Q5_K_M	slice2_seg	LOOPING	8	25302	15142	0	281
+4	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	12	42795	38901	3	782
+4	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2906	2351	1	50
+TOTAL	4	ornith1.5-9b-Q5_K_M	green=3/4	free=0	steps=22	prompt=73872	output=59049	checks=5	minutes=19.5
+FINAL	4	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2430	1	47
+5	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	1	2903	3016	1	53
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	1	2897	3043	1	56
+5	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2914	2689	1	50
+TOTAL	5	qwopus3.5-9b-coder-Q4_K_M	green=4/4	free=0	steps=4	prompt=11583	output=11178	checks=4	minutes=3.5
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+5	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2384	1	59
+5	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2908	2329	1	52
+5	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	8	34842	9628	3	207
+5	ornith1.5-9b-Q5_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	5	ornith1.5-9b-Q5_K_M	green=4/4	free=1	steps=10	prompt=40619	output=14341	checks=5	minutes=5.4
+FINAL	5	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+6	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2663	1	51
+6	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	LOOPING	23	81180	35489	1	604
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	4	14682	13279	2	234
+6	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	6	qwopus3.5-9b-coder-Q4_K_M	green=3/4	free=1	steps=28	prompt=98731	output=51431	checks=4	minutes=14.9
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+6	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2424	1	55
+6	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2407	1	47
+6	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	1	2897	3396	1	65
+6	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2948	2692	1	53
+TOTAL	6	ornith1.5-9b-Q5_K_M	green=4/4	free=0	steps=4	prompt=11617	output=10919	checks=4	minutes=3.7
+FINAL	6	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	LOOPING	24	83311	31512	1	573
+7	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	3	8817	7640	1	141
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	4	13615	14043	2	262
+7	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	7	qwopus3.5-9b-coder-Q4_K_M	green=3/4	free=1	steps=31	prompt=105743	output=53195	checks=4	minutes=16.3
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+7	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2367	1	57
+7	ornith1.5-9b-Q5_K_M	slice2_seg	DELIVERED_EARLY	0	0	0	0	0
+7	ornith1.5-9b-Q5_K_M	slice3_glob	DELIVERED_EARLY	0	0	0	0	0
+7	ornith1.5-9b-Q5_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	7	ornith1.5-9b-Q5_K_M	green=4/4	free=3	steps=1	prompt=2869	output=2367	checks=1	minutes=1.0
+FINAL	7	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+8	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2740	1	61
+8	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	LOOPING	17	59503	27498	1	525
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	9	41331	9529	4	191
+8	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	8	qwopus3.5-9b-coder-Q4_K_M	green=3/4	free=1	steps=27	prompt=103703	output=39767	checks=6	minutes=13.0
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+8	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2402	1	58
+8	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2372	1	50
+8	ornith1.5-9b-Q5_K_M	slice3_glob	LOOPING	16	57909	45208	0	1005
+8	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	2	5831	7084	1	275
+TOTAL	8	ornith1.5-9b-Q5_K_M	green=3/4	free=0	steps=20	prompt=69512	output=57066	checks=3	minutes=23.2
+FINAL	8	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2869	2653	1	57
+9	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	3	11110	6540	1	122
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	2	5879	6612	1	123
+9	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2940	3037	1	58
+TOTAL	9	qwopus3.5-9b-coder-Q4_K_M	green=4/4	free=0	steps=7	prompt=22798	output=18842	checks=4	minutes=6.0
+FINAL	9	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+9	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2458	1	70
+9	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2312	1	57
+9	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	3	10557	2867	2	71
+9	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2900	2347	1	58
+TOTAL	9	ornith1.5-9b-Q5_K_M	green=4/4	free=0	steps=6	prompt=19229	output=9984	checks=5	minutes=4.3
+FINAL	9	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	2	5787	6607	1	128
+10	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	LOOPING	14	45366	28022	0	511
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	9	39047	19890	5	377
+10	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0
+TOTAL	10	qwopus3.5-9b-coder-Q4_K_M	green=3/4	free=1	steps=25	prompt=90200	output=54519	checks=6	minutes=17.0
+FINAL	10	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+10	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2869	2430	1	64
+10	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2903	2375	1	59
+10	ornith1.5-9b-Q5_K_M	slice3_glob	LOOPING	23	83876	45969	1	943
+10	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2891	2530	1	53
+TOTAL	10	ornith1.5-9b-Q5_K_M	green=3/4	free=0	steps=26	prompt=92539	output=53304	checks=4	minutes=18.7
+FINAL	10	ornith1.5-9b-Q5_K_M	test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+MAX RUN COMPLETE

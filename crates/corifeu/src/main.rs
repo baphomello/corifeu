@@ -4,6 +4,7 @@
 //! `docs/adr/`.
 
 mod config_cmd;
+mod doctor;
 
 use clap::{Parser, Subcommand};
 use std::process::ExitCode;
@@ -27,6 +28,15 @@ enum Command {
         #[command(subcommand)]
         command: ConfigCommand,
     },
+    /// Check what this machine will actually do, by doing it.
+    Doctor {
+        /// Read this file as the project layer instead of discovering it.
+        #[arg(long, value_name = "FILE")]
+        file: Option<std::path::PathBuf>,
+        /// Skip the per-model tool-call probe, which loads each model.
+        #[arg(long)]
+        quick: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -49,6 +59,7 @@ fn main() -> ExitCode {
         Some(Command::Config {
             command: ConfigCommand::Show { explain, file },
         }) => config_cmd::show(explain, file.as_deref()),
+        Some(Command::Doctor { file, quick }) => doctor::run(file.as_deref(), quick),
         None => {
             banner();
             ExitCode::SUCCESS
@@ -62,5 +73,5 @@ fn banner() {
     println!("Not implemented yet. The runtime is being built; the design is at");
     println!("{}", env!("CARGO_PKG_REPOSITORY"));
     println!();
-    println!("Try `corifeu config show --explain`.");
+    println!("Try `corifeu doctor` or `corifeu config show --explain`.");
 }

@@ -2,6 +2,9 @@
 
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Refusal, Score, Workspace};
 use std::path::PathBuf;
+
+/// A score belongs to the check that produced it, so every test names one.
+const CHECK: &str = "cargo test --lib";
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 static NEXT: AtomicUsize = AtomicUsize::new(0);
@@ -186,6 +189,7 @@ fn a_regression_names_the_better_state_to_go_back_to() {
     ws.write("src/lib.rs", &good, &coder()).unwrap();
     ws.score(
         "src/lib.rs",
+        CHECK,
         Score {
             green: false,
             cases_passing: 18,
@@ -205,13 +209,13 @@ fn a_regression_names_the_better_state_to_go_back_to() {
     };
 
     let back_to = ws
-        .regression("src/lib.rs", now)
+        .regression("src/lib.rs", CHECK, now)
         .expect("0 is worse than 18");
     let restored = ws.restore(back_to.id).unwrap();
 
     assert_eq!(ws.read("src/lib.rs").unwrap().unwrap(), good);
     assert_eq!(
-        restored.regained,
+        restored.regained(CHECK),
         Some(Score {
             green: false,
             cases_passing: 18
@@ -226,6 +230,7 @@ fn a_better_state_is_not_a_regression() {
     ws.write("src/lib.rs", &suite(21), &coder()).unwrap();
     ws.score(
         "src/lib.rs",
+        CHECK,
         Score {
             green: false,
             cases_passing: 18,
@@ -237,6 +242,7 @@ fn a_better_state_is_not_a_regression() {
     assert!(
         ws.regression(
             "src/lib.rs",
+            CHECK,
             Score {
                 green: true,
                 cases_passing: 21
@@ -256,6 +262,7 @@ fn with_no_check_yet_there_is_no_regression_to_find() {
     assert!(
         ws.regression(
             "src/lib.rs",
+            CHECK,
             Score {
                 green: false,
                 cases_passing: 0
@@ -272,6 +279,7 @@ fn a_restore_is_itself_checkpointed_so_it_cannot_lose_work() {
     ws.write("src/lib.rs", &suite(5), &coder()).unwrap();
     ws.score(
         "src/lib.rs",
+        CHECK,
         Score {
             green: true,
             cases_passing: 5,
@@ -291,4 +299,76 @@ fn a_path_cannot_escape_the_workspace() {
     for escape in ["../outside.rs", "src/../../outside.rs"] {
         assert!(ws.write(escape, "x", &qa()).is_err(), "{escape}");
     }
+}
+
+/// Found by a twelve-run benchmark: one slice went green with nine cases, the
+/// next went green with five, and five being fewer than nine was read as a
+/// regression. The second slice's work was restored away and reported green.
+#[test]
+fn one_checks_count_is_not_comparable_with_anothers() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    const WIDE: &str = "cargo test --lib slice3_glob";
+    const NARROW: &str = "cargo test --lib slice4_classify";
+
+    ws.write("src/lib.rs", &suite(9), &coder()).unwrap();
+    ws.score(
+        "src/lib.rs",
+        WIDE,
+        Score {
+            green: true,
+            cases_passing: 9,
+        },
+    );
+    ws.write("src/lib.rs", &suite(10), &coder()).unwrap();
+
+    let narrow_green = Score {
+        green: true,
+        cases_passing: 5,
+    };
+    assert!(
+        ws.regression("src/lib.rs", NARROW, narrow_green).is_none(),
+        "the wide check has never judged this state, so it cannot call it worse"
+    );
+    assert!(
+        ws.regression(
+            "src/lib.rs",
+            WIDE,
+            Score {
+                green: false,
+                cases_passing: 2
+            }
+        )
+        .is_some(),
+        "under its own check, losing seven passing cases is still a regression"
+    );
+}
+
+#[test]
+fn a_checkpoint_can_hold_what_several_checks_thought_of_it() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("src/lib.rs", &suite(6), &coder()).unwrap();
+    ws.score(
+        "src/lib.rs",
+        "a",
+        Score {
+            green: true,
+            cases_passing: 6,
+        },
+    );
+    ws.score(
+        "src/lib.rs",
+        "b",
+        Score {
+            green: false,
+            cases_passing: 1,
+        },
+    );
+    ws.write("src/lib.rs", &suite(7), &coder()).unwrap();
+
+    let saved = ws.best("src/lib.rs", "a").expect("check a judged it");
+    assert_eq!(saved.score("a").unwrap().cases_passing, 6);
+    assert_eq!(saved.score("b").unwrap().cases_passing, 1);
+    assert_eq!(saved.score("c"), None);
 }

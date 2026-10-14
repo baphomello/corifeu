@@ -162,14 +162,25 @@ pub struct Score {
     pub cases_passing: u32,
 }
 
-/// A saved state of one file.
+/// A saved state of one file, and what each check thought of it.
+///
+/// Scores are kept per check rather than one per state, because a count only
+/// means something next to the check that produced it. Nine cases passing under
+/// one slice's oracle says nothing about five passing under another's, and
+/// comparing them reads every smaller check as a regression.
 #[derive(Debug, Clone)]
 pub struct Checkpoint {
     pub id: usize,
     pub path: String,
     pub stored: PathBuf,
-    /// Attached when a check runs while this state is on disk.
-    pub score: Option<Score>,
+    /// Keyed by the check that produced each score.
+    pub scores: BTreeMap<String, Score>,
+}
+
+impl Checkpoint {
+    pub fn score(&self, scope: &str) -> Option<Score> {
+        self.scores.get(scope).copied()
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -198,18 +209,31 @@ pub enum Error {
 pub struct Restored {
     pub path: String,
     pub from: usize,
-    pub regained: Option<Score>,
-    pub lost: Option<Score>,
+    /// What each check thought of the state that came back.
+    pub regained: BTreeMap<String, Score>,
+    /// What each check thought of the state that was replaced.
+    pub lost: BTreeMap<String, Score>,
+}
+
+impl Restored {
+    pub fn regained(&self, scope: &str) -> Option<Score> {
+        self.regained.get(scope).copied()
+    }
+
+    pub fn lost(&self, scope: &str) -> Option<Score> {
+        self.lost.get(scope).copied()
+    }
 }
 
 pub struct Workspace {
     root: PathBuf,
     store: PathBuf,
     checkpoints: Vec<Checkpoint>,
-    /// The score of what is on disk now, held until the next write turns that
-    /// content into a checkpoint. A checkpoint is taken *before* a write, so
-    /// the state being scored is not a checkpoint yet when the check runs.
-    pending: BTreeMap<String, Score>,
+    /// Scores of what is on disk now, keyed by path and then by check, held
+    /// until the next write turns that content into a checkpoint. A checkpoint
+    /// is taken *before* a write, so the state being scored is not a checkpoint
+    /// yet when the check runs.
+    pending: BTreeMap<String, BTreeMap<String, Score>>,
 }
 
 impl Workspace {
@@ -272,31 +296,34 @@ impl Workspace {
             id,
             path: path.to_string(),
             stored,
-            score: self.pending.remove(path),
+            scores: self.pending.remove(path).unwrap_or_default(),
         });
         Ok(id)
     }
 
     /// Record what a check said about the state currently on disk for `path`.
     /// It becomes that content's score when the next write checkpoints it.
-    pub fn score(&mut self, path: &str, score: Score) {
-        self.pending.insert(path.to_string(), score);
+    pub fn score(&mut self, path: &str, scope: &str, score: Score) {
+        self.pending
+            .entry(path.to_string())
+            .or_default()
+            .insert(scope.to_string(), score);
     }
 
     /// The best scored state saved for `path`.
-    pub fn best(&self, path: &str) -> Option<&Checkpoint> {
+    pub fn best(&self, path: &str, scope: &str) -> Option<&Checkpoint> {
         self.checkpoints
             .iter()
-            .filter(|c| c.path == path && c.score.is_some())
-            .max_by_key(|c| c.score)
+            .filter(|c| c.path == path && c.score(scope).is_some())
+            .max_by_key(|c| c.score(scope))
     }
 
     /// ADR-0051 §3: a state that scores worse than one already saved is a
     /// regression, and the better state is what to go back to. Where no check
     /// has run there is nothing to compare and the write stands.
-    pub fn regression(&self, path: &str, now: Score) -> Option<&Checkpoint> {
-        self.best(path)
-            .filter(|best| best.score.is_some_and(|saved| saved > now))
+    pub fn regression(&self, path: &str, scope: &str, now: Score) -> Option<&Checkpoint> {
+        self.best(path, scope)
+            .filter(|best| best.score(scope).is_some_and(|saved| saved > now))
     }
 
     /// Put a checkpoint back on disk. The current content is checkpointed
@@ -308,22 +335,25 @@ impl Workspace {
             .ok_or(Error::NoSuchCheckpoint(id))?
             .clone();
         let full = self.resolve(&checkpoint.path)?;
-        let lost = self.pending.get(&checkpoint.path).copied();
+        let lost = self
+            .pending
+            .get(&checkpoint.path)
+            .cloned()
+            .unwrap_or_default();
 
         if full.exists() {
             self.checkpoint(&checkpoint.path, &full)?;
         }
         std::fs::copy(&checkpoint.stored, &full)
             .map_err(|source| Error::Io { path: full, source })?;
-        // What is on disk is now the restored content, so its score is known.
-        if let Some(score) = checkpoint.score {
-            self.pending.insert(checkpoint.path.clone(), score);
-        }
+        // What is on disk is now the restored content, so its scores are known.
+        self.pending
+            .insert(checkpoint.path.clone(), checkpoint.scores.clone());
 
         Ok(Restored {
             path: checkpoint.path,
             from: id,
-            regained: checkpoint.score,
+            regained: checkpoint.scores,
             lost,
         })
     }

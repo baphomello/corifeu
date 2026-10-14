@@ -1,0 +1,16 @@
+[package]
+name = "corifeu-provider"
+description = "What every provider adapter speaks: messages, budgets, turns, and a loopback HTTP client."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }

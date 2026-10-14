@@ -176,7 +176,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-llamacpp"
+version = "0.0.0"
+dependencies = [
+ "corifeu-provider",
+ "serde_json",
+]
+
+[[package]]
 name = "corifeu-ollama"
+version = "0.0.0"
+dependencies = [
+ "corifeu-provider",
+ "serde_json",
+]
+
+[[package]]
+name = "corifeu-provider"
 version = "0.0.0"
 dependencies = [
  "serde",

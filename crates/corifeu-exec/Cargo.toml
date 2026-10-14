@@ -1,0 +1,15 @@
+[package]
+name = "corifeu-exec"
+description = "Runs a command as an argument vector, under an allowlist and a deadline."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+corifeu-check = { workspace = true }
+thiserror = { workspace = true }

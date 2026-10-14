@@ -1,0 +1,19 @@
+[package]
+name = "corifeu-doer"
+description = "Works one slice until its oracle goes green, or says why it did not."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+corifeu-agent = { workspace = true }
+corifeu-check = { workspace = true }
+corifeu-exec = { workspace = true }
+corifeu-provider = { workspace = true }
+corifeu-workspace = { workspace = true }
+serde_json = { workspace = true }

@@ -227,6 +227,12 @@ impl Workspace {
         })
     }
 
+    /// The directory writes resolve against, which is also where a doer's
+    /// commands run.
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
     pub fn read(&self, path: &str) -> Result<Option<String>, Error> {
         let full = self.resolve(path)?;
         match std::fs::read_to_string(&full) {

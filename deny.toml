@@ -70,6 +70,10 @@ allow = ["AGPL-3.0-or-later"]
 name = "corifeu-agent"
 allow = ["AGPL-3.0-or-later"]
 
+[[licenses.exceptions]]
+name = "corifeu-workspace"
+allow = ["AGPL-3.0-or-later"]
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

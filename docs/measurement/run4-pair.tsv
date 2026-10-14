@@ -1,0 +1,62 @@
+iteration	model	outcome	qa_rounds	qa_steps	coder_rounds	coder_steps	prompt	seconds
+1	qwopus3.5-9b-coder-Q4_K_M	GREEN:7	1	12	1	10	71352	588
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	tests=7	todo=0
+0
+1	ornith1.5-9b-Q5_K_M	SELF_TESTED:10	1	5	0	0	18752	216
+FINAL	1	ornith1.5-9b-Q5_K_M	tests=10	todo=0
+0
+2	qwopus3.5-9b-coder-Q4_K_M	NO_RUNNABLE_TEST	1	12	0	0	35471	168
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	tests=4	todo=0
+0
+2	ornith1.5-9b-Q5_K_M	GREEN:8	1	1	1	1	3856	95
+FINAL	2	ornith1.5-9b-Q5_K_M	tests=8	todo=0
+0
+3	qwopus3.5-9b-coder-Q4_K_M	NO_RUNNABLE_TEST	1	12	0	0	45361	321
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	tests=11	todo=0
+0
+3	ornith1.5-9b-Q5_K_M	SELF_TESTED:9	1	1	0	0	1791	41
+FINAL	3	ornith1.5-9b-Q5_K_M	tests=9	todo=0
+0
+4	qwopus3.5-9b-coder-Q4_K_M	SELF_TESTED:7	1	6	0	0	19023	116
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	tests=7	todo=0
+0
+4	ornith1.5-9b-Q5_K_M	SELF_TESTED:6	1	2	0	0	3007	33
+FINAL	4	ornith1.5-9b-Q5_K_M	tests=6	todo=0
+0
+5	qwopus3.5-9b-coder-Q4_K_M	GREEN:10	1	1	1	1	3940	74
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	tests=10	todo=0
+0
+5	ornith1.5-9b-Q5_K_M	GREEN:8	1	1	1	1	3853	72
+FINAL	5	ornith1.5-9b-Q5_K_M	tests=8	todo=0
+0
+6	qwopus3.5-9b-coder-Q4_K_M	SELF_TESTED:7	1	3	0	0	7174	103
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	tests=7	todo=0
+0
+6	ornith1.5-9b-Q5_K_M	SELF_TESTED:7	1	8	0	0	27217	544
+FINAL	6	ornith1.5-9b-Q5_K_M	tests=7	todo=0
+0
+7	qwopus3.5-9b-coder-Q4_K_M	SELF_TESTED:8	1	5	0	0	12856	150
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	tests=8	todo=0
+0
+7	ornith1.5-9b-Q5_K_M	SELF_TESTED:8	2	4	1	11	34661	587
+FINAL	7	ornith1.5-9b-Q5_K_M	tests=8	todo=0
+0
+8	qwopus3.5-9b-coder-Q4_K_M	GREEN:5	1	2	1	1	6200	135
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	tests=5	todo=0
+0
+8	ornith1.5-9b-Q5_K_M	SELF_TESTED:5	1	4	0	0	9829	126
+FINAL	8	ornith1.5-9b-Q5_K_M	tests=5	todo=0
+0
+9	qwopus3.5-9b-coder-Q4_K_M	SELF_TESTED:1	1	2	0	0	3960	73
+FINAL	9	qwopus3.5-9b-coder-Q4_K_M	tests=1	todo=0
+0
+9	ornith1.5-9b-Q5_K_M	SELF_TESTED:9	1	4	0	0	6250	56
+FINAL	9	ornith1.5-9b-Q5_K_M	tests=9	todo=0
+0
+10	qwopus3.5-9b-coder-Q4_K_M	GREEN:11	1	1	1	1	3986	98
+FINAL	10	qwopus3.5-9b-coder-Q4_K_M	tests=11	todo=0
+0
+10	ornith1.5-9b-Q5_K_M	GREEN:7	1	9	1	1	24300	275
+FINAL	10	ornith1.5-9b-Q5_K_M	tests=7	todo=0
+0
+PAIR RUN COMPLETE

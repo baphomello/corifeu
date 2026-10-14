@@ -287,6 +287,93 @@ Both runs reached 26 of 26 with a slice that never closed. Enforcing the boundar
 alternative ADR-0058 rejected on cost — would have left both at 3 of 4 and a broken crate.
 That is an argument for the decision that was not available when it was made.
 
+## Fourth run — ten per cell
+
+Every run before this one had a sample size of one, and the third run's own notes said so:
+*"with one run per cell nothing here separates a model from a lucky draw."* This run answers
+that. Two models, ten iterations each, the same four slices of Task C under a 30-step
+ceiling, a fresh scaffold every iteration, one hour per iteration. Then a second experiment,
+ten iterations per model, measuring the QA and coder pair on slice 1 alone.
+
+Raw rows: [run4-ranking.tsv](measurement/run4-ranking.tsv),
+[run4-pair.tsv](measurement/run4-pair.tsv).
+
+### The crate at the end, twenty times
+
+| | `qwopus3.5-9b-coder` Q4 | `ornith1.5-9b` Q5 |
+|---|---:|---:|
+| Runs | 10 | 10 |
+| **Complete crate, 26/26** | **10** | **9** |
+| Killed by the one-hour cap | 0 | 1 |
+| Minutes, min / median / max | 3.5 / 9.8 / 17.5 | 1.0 / 5.4 / 23.2 |
+| Prompt tokens, min / max | 11,583 / 115,277 | 2,869 / 92,539 |
+| Prompt tokens, ten runs | 602,043 | 345,714 |
+| Steps, ten runs | 173 | 101 |
+
+**19 of 20 runs delivered the complete crate.** The ranking the third run could not make is
+still not a ranking: both models do the job, `ornith` costs about half as much and owns the
+only total failure.
+
+The one failure is the one-hour cap, not a plateau. `ornith` iteration 2 spent 569, 1140 and
+1320 seconds on three slices, was killed before the fourth, and left the crate at 18 of 26.
+
+### A stuck slice costs four times as much and changes nothing
+
+Of the 19 runs that reached 26/26, **8 did it with at least one slice that never closed**.
+Splitting the runs on that one fact separates them completely:
+
+| | Runs | Minutes | Prompt tokens |
+|---|---:|---|---|
+| All four slices closed | 11 | 1.0 – 6.7, avg **4.5** | 2,869 – 40,619, avg **18,016** |
+| A slice never closed | 8 | 13.0 – 23.2, avg **17.5** | 69,512 – 115,277, avg **93,697** |
+
+The two distributions do not overlap. The slowest clean run took 6.7 minutes; the fastest
+run with a stuck slice took 13.0. The gap in tokens is as sharp: 40,619 against 69,512.
+
+Both groups ended with the same crate.
+
+This makes [ADR-0058](adr/0058-slice-boundaries-are-observed.md)'s overflow a measured
+quantity rather than an anecdote. It is not the mechanism — 11 of 19 successful runs closed
+every slice on its own — and it is not noise either. In 8 of 19 runs the per-slice verdict
+reported failure on work that was already done, and the budget spent chasing it bought
+nothing.
+
+### QA writes the implementation in more than half of the pairs
+
+[ADR-0053](adr/0053-qa-writes-the-tests.md) ships QA and coder as separate roles so that the
+test and the code come from two readings of the specification. The pair experiment strips
+slice 1's tests *and* its implementation, leaving one `todo!("slice 1")`, and asks QA for a
+failing test. The check is probed before QA runs, so a green check afterwards is
+distinguishable from one that was green all along.
+
+| Outcome | Runs | What happened |
+|---|---:|---|
+| `SelfTested` | **11 / 20** | QA wrote the test **and** made it pass. The coder never ran. |
+| `Green` | 7 / 20 | QA left red, the coder turned it green. The pair as designed. |
+| `NoRunnableTest` | 2 / 20 | QA burned its 12-step ceiling without a runnable check. |
+
+By model: `ornith` self-tested 7 times in 10, `qwopus` 4 times in 10 and produced both
+`NoRunnableTest` runs.
+
+In the 7 runs where the pair worked as designed, **the coder took one step in 6 of them**.
+Only one coder in twenty runs did substantial work: 10 steps, in the single run where QA also
+spent its full ceiling. Across the whole experiment the coder either never ran or took a
+single step in 17 of 20 runs.
+
+All 20 runs ended with the `todo!` gone, so the implementation was always written. The
+question this answers is not whether the work gets done — it is who does it.
+
+This is [defect 14](measurement/defects.csv) at scale. Rust puts the unit test in the file it
+tests, so the writable-set restriction
+[ADR-0052](adr/0052-write-restriction-in-the-sandbox.md) relies on cannot separate QA from
+the source. ADR-0053's independence argument is not being tested here, because QA rarely
+leaves anything for a second reader to disagree with.
+
+**What this does not settle:** whether a `SelfTested` slice produces worse code than a
+`Green` one. Both end with the implementation present and the tests passing; nothing here
+compares them for correctness or coverage against a reference. That comparison is what the
+ADR-0053 decision actually turns on, and it was not measured.
+
 ## Cost
 
 The thesis is about money, so the comparison that matters is where the tokens went.
@@ -322,13 +409,22 @@ output instead of 1,707. A reviewer's environment is part of its cost.
 - **The first two runs' minutes are a misconfiguration.** `ornith1.5:9b` ran 68% on the GPU
   under Ollama at 7.8 tokens per second. On llama.cpp the same model decodes at 42.2. Step
   counts and token counts from those runs stand; their wall clocks do not.
-- **One run per model per slice.** The third run's first pass had `qwopus` closing slice 2
-  green in a single step; the re-run had the same model loop for 18 steps on it. That is
-  sampling variance at default temperature, and with one run per cell nothing here separates
-  a model from a lucky draw. Treat the ranking as "two of these three can do the job at all",
-  not as an ordering of the two that can.
-- **Both successful runs finished with a slice that never closed.** Slice overflow completed
-  the work. A decomposition whose slices were genuinely independent would have left both
-  runs at three of four.
+- **Runs 1 to 3 have one run per cell.** The third run's first pass had `qwopus` closing
+  slice 2 green in a single step; the re-run had the same model loop for 18 steps on it. The
+  fourth run settles that for the two surviving models at n=10 and still does not produce an
+  ordering: both deliver the crate, `ornith` costs about half as much and owns the only
+  total failure. Nothing here separates them on quality of output.
+- **Slice overflow is measured on one task shape only.** Across 19 completed runs of the
+  fourth round, 8 reached 26/26 with a slice that never closed. Task C's four slices share a
+  module and a data type, which is what makes a coder able to overshoot into the next one. A
+  decomposition whose slices were genuinely independent would not give that discount, and
+  nothing here says how common either shape is in real work.
 - **Two data points.** Task A under the old ceiling, B green, C failed. This is evidence, not
   a benchmark.
+- **The pair was measured on one slice, in one language.** Slice 1 of Task C is small
+  enough that writing the implementation is barely more work than writing the test, which is
+  the most likely reason QA does both. A slice where the implementation is the expensive part
+  may well behave differently, and none was run.
+- **`SelfTested` was never compared with `Green` for quality.** The 55% figure says who wrote
+  the code, not whether it is worse. Until that is measured, ADR-0053's decision rests on the
+  argument in the ADR rather than on evidence from here.

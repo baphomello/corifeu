@@ -175,6 +175,11 @@ limits:
   run_budget_tokens: 1500000
   role_timeout_s: 900           # sized for local-model latency, not cloud intuition
   loop_detection: true          # same diff or same finding repeated
+  steps:                        # how many steps one role gets on one slice
+    floor: 12                   # what every turn starts with (ADR-0062)
+    ceiling: 30                 # what it may grow to, never more
+    patience: 2                 # turns that spend every step before it grows
+    raise_by: 6                 # what one growth adds
 
 # ──────────────────────────── autonomy ───────────────────────────
 autonomy: semi-autonomous       # supervised | semi-autonomous | autonomous

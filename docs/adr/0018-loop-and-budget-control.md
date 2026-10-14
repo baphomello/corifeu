@@ -1,7 +1,7 @@
 # 0018 — Rounds, budgets, loop detection and timeouts
 
 - **Status:** Accepted
-- **Date:** 2026-10-11 (amended 2026-10-13)
+- **Date:** 2026-10-11 (amended 2026-10-13, 2026-10-14)
 
 ## Context
 Two agents correcting each other can run indefinitely. A reviewer finds an issue, a coder
@@ -22,6 +22,7 @@ Four independent controls, all configurable, all defaulting to values that fail 
 | **Token budget per task** | preset-dependent | Cumulative tokens across all roles on a task |
 | **Loop detection** | always on | Same diff, or same finding, repeated |
 | **Timeout** | per role, per task | Wall-clock, sized for local-model latency |
+| **Steps per turn** | floor 12, ceiling 30 | A role's turn on one slice ([ADR-0062](0062-step-allowance-has-a-floor-not-a-ceiling.md)) |
 
 Any control firing **escalates** — it never silently continues and never silently abandons.
 Escalation goes to the lead, and from the lead to the user per the autonomy level
@@ -58,6 +59,15 @@ the prototype's identical-tool-call check from one harness to the whole system.
 > ignoring that step 4 had rewritten the file between them. Re-running a check after an
 > edit is the loop working, not looping. **An artefact change resets the comparison
 > window**: the same command against different code is a different action.
+
+> **Amended 2026-10-14, by measurement.** The step limit was one constant for every turn.
+> The fourth run worked 69 slices and the two populations do not overlap: 57 reached green,
+> 38 of them in one step and the slowest in twelve, while 11 of the 12 that stuck ran past
+> twelve and bought nothing. A constant is therefore either too high for the work that
+> finishes or a guess about work nobody has measured, so the limit became a floor that grows
+> toward a ceiling — and only turns that actually ran out of steps make it grow.
+> [ADR-0062](0062-step-allowance-has-a-floor-not-a-ceiling.md) holds the numbers and the
+> reasoning.
 
 ## Alternatives considered
 - **Token budget alone.** Lets a cheap loop run a long time before tripping, and reports the

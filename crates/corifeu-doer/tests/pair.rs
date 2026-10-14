@@ -7,7 +7,7 @@
 
 use corifeu_agent::Window;
 use corifeu_doer::pair::{Pair, SliceOutcome};
-use corifeu_doer::{Doer, Goal, Limits, Oracle, Slice};
+use corifeu_doer::{Doer, Goal, Limits, Oracle, Slice, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_planner::{Plan, PlannedSlice};
 use corifeu_provider::{Budget, Error, Message, Provider, Stop, ToolCall, Turn};
@@ -117,6 +117,21 @@ impl Provider for Replay {
     }
 }
 
+/// A provider that is not there. Nothing after it can succeed.
+struct Gone;
+
+impl Provider for Gone {
+    fn runtime(&self) -> &'static str {
+        "gone"
+    }
+    fn chat(&self, _: &str, _: &[Message], _: &[Value], _: &Budget) -> Result<Turn, Error> {
+        Err(Error::Shape {
+            runtime: "gone",
+            detail: "connection refused".into(),
+        })
+    }
+}
+
 fn turn(tool_calls: Vec<ToolCall>, content: &str) -> Turn {
     Turn {
         content: content.into(),
@@ -153,7 +168,7 @@ fn reads(path: &str) -> Turn {
     )
 }
 
-fn doer<'a>(provider: &'a Replay, goal: Goal, role: &str, owns: &str) -> Doer<'a> {
+fn doer<'a>(provider: &'a dyn Provider, goal: Goal, role: &str, owns: &str) -> Doer<'a> {
     Doer {
         provider,
         goal,
@@ -163,13 +178,13 @@ fn doer<'a>(provider: &'a Replay, goal: Goal, role: &str, owns: &str) -> Doer<'a
         guard: guard(role, owns),
         window: Window::default(),
         limits: Limits {
-            max_steps: 6,
+            steps: Steps::fixed(6),
             output_budget: 4_000,
         },
     }
 }
 
-fn pair<'a>(qa: &'a Replay, coder: &'a Replay, qa_rounds: u32) -> Pair<'a> {
+fn pair<'a>(qa: &'a dyn Provider, coder: &'a dyn Provider, qa_rounds: u32) -> Pair<'a> {
     Pair {
         qa: doer(qa, Goal::TestRuns, "qa", "test"),
         coder: doer(coder, Goal::Green, "coder", "source"),
@@ -319,29 +334,60 @@ fn planned(task: &str) -> PlannedSlice {
     }
 }
 
+/// Defect 18: a slice that does not close is not the same as work that is
+/// missing. The walk carries on, and asks the unfinished slice's check once
+/// more when the rest of the plan has run.
 #[test]
-fn a_walk_stops_at_the_first_slice_that_does_not_finish() {
+fn a_slice_that_did_not_close_is_asked_again_at_the_end() {
     let (root, store) = scratch();
     let mut ws = Workspace::open(&root, &store).unwrap();
 
-    let qa = Replay(RefCell::new(vec![write("tests.txt", "IMPOSSIBLE\n")]));
-    let coder = Replay(RefCell::new(
-        (0..12).map(|_| write("artefact.txt", "no\n")).collect(),
-    ));
-    // Two slices, but the second must never be attempted: ADR-0056's slices
-    // may depend on each other, so a failure early invalidates what follows.
+    let qa = Replay(RefCell::new(vec![
+        write("tests.txt", "A\n"),
+        write("tests.txt", "A\nB\n"),
+    ]));
+    // Six writes spend the first slice's whole allowance without satisfying
+    // anything. The seventh belongs to the second slice, and satisfies both.
+    let mut coder_turns: Vec<Turn> = (0..6).map(|_| write("artefact.txt", "no\n")).collect();
+    coder_turns.push(write("artefact.txt", "A and B\n"));
+    let coder = Replay(RefCell::new(coder_turns));
+
     let plan = Plan {
         slices: vec![planned("First."), planned("Second.")],
     };
-
     let walked = pair(&qa, &coder, 1).walk(&plan, Duration::from_secs(60), &mut ws);
 
-    assert_eq!(walked.slices.len(), 1);
-    assert!(!walked.all_done());
     assert_eq!(
-        walked.stalled().map(|(p, _)| p.task.as_str()),
-        Some("First.")
+        walked.slices.len(),
+        2,
+        "the failed slice did not end the walk"
     );
+    assert!(!walked.slices[0].1.is_done());
+    assert!(walked.slices[1].1.is_done());
+
+    assert!(
+        !walked.all_done(),
+        "the first slice never closed under its role"
+    );
+    assert!(walked.delivered(), "but its check passes now");
+    assert_eq!(walked.overtaken(), 1);
+    assert_eq!(walked.stalled().count(), 0);
+}
+
+/// Nothing after an unreachable provider can succeed, so nothing after it runs.
+#[test]
+fn an_unreachable_provider_ends_the_walk() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+
+    let plan = Plan {
+        slices: vec![planned("First."), planned("Second.")],
+    };
+    let walked = pair(&Gone, &Gone, 1).walk(&plan, Duration::from_secs(60), &mut ws);
+
+    assert_eq!(walked.slices.len(), 1, "the second slice was attempted");
+    assert!(walked.abandoned());
+    assert!(!walked.delivered());
 }
 
 #[test]
@@ -365,7 +411,7 @@ fn a_walk_that_finishes_reports_every_slice() {
 
     assert!(walked.all_done());
     assert_eq!(walked.slices.len(), 2);
-    assert!(walked.stalled().is_none());
+    assert_eq!(walked.stalled().count(), 0);
     assert!(walked.prompt_tokens() > 0);
 }
 

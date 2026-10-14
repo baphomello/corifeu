@@ -56,6 +56,7 @@ pub fn check(config: &Config) -> Vec<Problem> {
     check_self_testing(config, &mut problems);
     check_shadowed_classes(config, &mut problems);
     check_contracts(config, &mut problems);
+    check_steps(config, &mut problems);
     problems
 }
 
@@ -256,5 +257,28 @@ fn check_contracts(config: &Config, out: &mut Vec<Problem>) {
             ))),
             _ => {}
         }
+    }
+}
+
+/// A step allowance that cannot grow, or cannot run, is a configuration that
+/// behaves nothing like what it says (ADR-0062).
+fn check_steps(config: &Config, out: &mut Vec<Problem>) {
+    let steps = config.limits.steps;
+    if steps.floor == 0 {
+        out.push(error(
+            "limits.steps.floor is 0, so no role would be given a single step",
+        ));
+    }
+    if steps.ceiling < steps.floor {
+        out.push(error(format!(
+            "limits.steps.ceiling ({}) is below limits.steps.floor ({}), so the allowance              would start above the only limit it is allowed to reach",
+            steps.ceiling, steps.floor
+        )));
+    }
+    if steps.patience > 0 && steps.raise_by == 0 && steps.ceiling > steps.floor {
+        out.push(warning(format!(
+            "limits.steps.raise_by is 0, so the allowance can never leave its floor of {}              however often a role runs out of steps; the ceiling of {} is unreachable",
+            steps.floor, steps.ceiling
+        )));
     }
 }

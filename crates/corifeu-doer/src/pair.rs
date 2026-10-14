@@ -18,10 +18,18 @@
 //!   its boundary, which the measurement found is what rescues a looping slice
 //!   ([ADR-0058]).
 //!
+//! # Why an unfinished slice is not a missing deliverable
+//!
+//! The fourth run ended nineteen times with the whole suite green, and eight of
+//! those runs held a slice whose own check never passed. The work was there;
+//! the slice next to it had written it on the way past. So the walk carries on
+//! past a failure and asks the check once more at the end ([ADR-0063]).
+//!
 //! [ADR-0057]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0057-oracle-integrity-by-test-inventory.md
+//! [ADR-0063]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0063-an-unfinished-slice-is-asked-again.md
 //! [ADR-0058]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0058-slice-boundaries-are-observed.md
 
-use crate::{Doer, Oracle, Outcome, Run, Slice};
+use crate::{Allowance, Doer, Oracle, Outcome, Run, Slice};
 use corifeu_check::Verdict;
 use corifeu_planner::{Plan, PlannedSlice};
 use corifeu_workspace::Workspace;
@@ -111,7 +119,23 @@ pub struct Pair<'a> {
 }
 
 impl Pair<'_> {
+    /// One slice, with an allowance of its own.
     pub fn work(&self, slice: &Slice, workspace: &mut Workspace) -> SliceRun {
+        let mut allowance = Allowance::new(self.qa.limits.steps);
+        self.work_within(slice, &mut allowance, workspace)
+    }
+
+    /// One slice, against an allowance the caller carries across the plan.
+    ///
+    /// Both roles draw on the same allowance, because the question it answers
+    /// — is this workload harder than the floor assumes? — is about the run,
+    /// not about the role (ADR-0062).
+    pub fn work_within(
+        &self,
+        slice: &Slice,
+        allowance: &mut Allowance,
+        workspace: &mut Workspace,
+    ) -> SliceRun {
         let mut qa = Vec::new();
         let mut coder = Vec::new();
         // What the check said before anyone touched it. A green check after QA
@@ -120,7 +144,10 @@ impl Pair<'_> {
         let green_before = self.qa.probe(slice, workspace);
 
         for round in 1..=self.qa_rounds.max(1) {
-            let qa_run = self.qa.work(&qa_slice(slice, round), workspace);
+            let qa_run = self
+                .qa
+                .work_within(&qa_slice(slice, round), allowance.now(), workspace);
+            allowance.saw(&qa_run.outcome);
             let reached = qa_run.reached();
             let cases = qa_run.cases.ran().unwrap_or(0);
             let verdict = qa_run.verdict;
@@ -143,7 +170,10 @@ impl Pair<'_> {
                 return SliceRun { outcome, qa, coder };
             }
 
-            let coder_run = self.coder.work(&coder_slice(slice, cases), workspace);
+            let coder_run =
+                self.coder
+                    .work_within(&coder_slice(slice, cases), allowance.now(), workspace);
+            allowance.saw(&coder_run.outcome);
             let passed = coder_run.reached();
             let why = coder_run.outcome.clone();
             coder.push(coder_run);
@@ -212,20 +242,62 @@ fn coder_slice(slice: &Slice, cases: u32) -> Slice {
 
 // ------------------------------------------------------------------ the walk
 
+/// A plan, walked, and what the checks said at the end of it.
+///
+/// A slice that does not close is not the same as work that is missing. The
+/// fourth run measured both: of nineteen runs that ended with the whole suite
+/// green, **eight** held a slice whose own check never passed. The work was
+/// there — an adjacent slice's coder had written it on the way past
+/// ([ADR-0058]) — and the run called itself failed anyway, and spent four times
+/// the budget of a clean run doing it (defect 18).
+///
+/// So the walk asks twice. Every slice that did not close is checked once more
+/// at the end, when the rest of the plan has run. What is green then was late,
+/// not missing, and only what is still red goes back to the planner.
+///
+/// [ADR-0058]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0058-slice-boundaries-are-observed.md
 #[derive(Debug, Clone)]
 pub struct Walked {
     pub slices: Vec<(PlannedSlice, SliceRun)>,
+    /// Every slice that did not close, by its index in `slices`, and what its
+    /// oracle said once the rest of the plan had run.
+    pub asked_again: Vec<(usize, bool)>,
+    /// How many slices the plan held. `slices` is shorter only when the walk
+    /// was abandoned, which happens for one reason: the provider is gone.
+    pub planned: usize,
 }
 
 impl Walked {
+    /// Every slice closed under its own role, with nothing to ask twice.
     pub fn all_done(&self) -> bool {
-        self.slices.iter().all(|(_, run)| run.is_done())
+        self.slices.len() == self.planned && self.asked_again.is_empty()
     }
 
-    /// The first slice that did not finish, which is what goes back to the
-    /// planner (ADR-0056).
-    pub fn stalled(&self) -> Option<&(PlannedSlice, SliceRun)> {
-        self.slices.iter().find(|(_, run)| !run.is_done())
+    /// The walk did not reach the end of the plan. One thing causes it, and
+    /// it is not a verdict on the work: the provider went away.
+    pub fn abandoned(&self) -> bool {
+        self.slices.len() != self.planned
+    }
+
+    /// The work exists. Either every slice closed, or the ones that did not
+    /// are green now that the rest of the plan has run.
+    pub fn delivered(&self) -> bool {
+        self.slices.len() == self.planned && self.asked_again.iter().all(|(_, green)| *green)
+    }
+
+    /// Slices that did not close and are still red. These, and only these, are
+    /// evidence that the decomposition was wrong (ADR-0056).
+    pub fn stalled(&self) -> impl Iterator<Item = &(PlannedSlice, SliceRun)> {
+        self.asked_again
+            .iter()
+            .filter(|(_, green)| !*green)
+            .map(|(at, _)| &self.slices[*at])
+    }
+
+    /// Slices whose check never passed under their own role and passes now.
+    /// This is ADR-0058's overflow, counted rather than argued about.
+    pub fn overtaken(&self) -> usize {
+        self.asked_again.iter().filter(|(_, green)| *green).count()
     }
 
     pub fn prompt_tokens(&self) -> u32 {
@@ -238,24 +310,58 @@ impl Walked {
 }
 
 impl Pair<'_> {
-    /// Work a plan in order, stopping at the first slice that does not finish.
+    /// Work a plan in order, then ask the checks of whatever did not close.
     ///
-    /// A slice ordered after a failed one is not attempted: ADR-0056's slices
-    /// may depend on each other, so a failure early invalidates what follows,
-    /// and the planner is re-consulted rather than the run being carried on
-    /// against a decomposition already known to be wrong.
+    /// A failed slice no longer ends the walk. It used to, on the reasoning
+    /// that slices may depend on each other so a failure early invalidates what
+    /// follows. The fourth run put a number on that reasoning and it came out
+    /// the other way: carrying on is what produced the complete crate in eight
+    /// of nineteen runs. Giving up early would have thrown away work that was
+    /// about to be done by the next slice.
+    ///
+    /// One thing still ends the walk, because nothing after it can succeed: the
+    /// provider being unreachable.
     pub fn walk(&self, plan: &Plan, timeout: Duration, workspace: &mut Workspace) -> Walked {
+        let mut allowance = Allowance::new(self.qa.limits.steps);
         let mut slices = Vec::new();
+
         for planned in &plan.slices {
-            let run = self.work(&from_plan(planned, timeout), workspace);
-            let done = run.is_done();
+            let run = self.work_within(&from_plan(planned, timeout), &mut allowance, workspace);
+            let gone = provider_gone(&run);
             slices.push((planned.clone(), run));
-            if !done {
+            if gone {
                 break;
             }
         }
-        Walked { slices }
+
+        // One oracle run per unfinished slice, and no model at all. This is the
+        // cheapest question in the runtime and the fourth run showed it is the
+        // one worth asking.
+        let asked_again = slices
+            .iter()
+            .enumerate()
+            .filter(|(_, (_, run))| !run.is_done())
+            .map(|(at, (planned, _))| {
+                let slice = from_plan(planned, timeout);
+                (at, self.coder.probe(&slice, workspace))
+            })
+            .collect();
+
+        Walked {
+            slices,
+            asked_again,
+            planned: plan.slices.len(),
+        }
     }
+}
+
+/// The one failure that makes the rest of the plan pointless.
+fn provider_gone(run: &SliceRun) -> bool {
+    let why = match &run.outcome {
+        SliceOutcome::NoRunnableTest { why } | SliceOutcome::NotPassed { why, .. } => why,
+        _ => return false,
+    };
+    matches!(why, Outcome::ProviderFailed { .. })
 }
 
 fn from_plan(planned: &PlannedSlice, timeout: Duration) -> Slice {

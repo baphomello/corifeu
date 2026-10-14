@@ -9,9 +9,8 @@ pre-1.0.
 One chat turn, with tools, under a generation budget that is never optional (ADR-0048). A
 turn that ran out of budget says so rather than coming back short and silent.
 
-It carries its own small HTTP client. A local runtime is reached over plain HTTP on the
-loopback interface, which needs no TLS, no redirects, no cookies and no connection reuse —
-and the project's dependency tree is small enough that keeping it that way is worth a
-hundred lines.
+It translates Ollama's wire format into the turn `corifeu-provider` defines, and does
+nothing else. The transport and the vocabulary live there, shared with the llama.cpp
+adapter, because a turn is a turn whichever runtime produced it.
 
 AGPL-3.0-or-later.

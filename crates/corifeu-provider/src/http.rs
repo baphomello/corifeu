@@ -42,6 +42,15 @@ pub enum Error {
 
 /// POST `body` as JSON and return the reply body.
 pub fn post_json(url: &str, body: &str, timeout: Duration) -> Result<String, Error> {
+    request(url, Some(body), timeout)
+}
+
+/// GET and return the reply body. Used to ask a router which models it serves.
+pub fn get(url: &str, timeout: Duration) -> Result<String, Error> {
+    request(url, None, timeout)
+}
+
+fn request(url: &str, body: Option<&str>, timeout: Duration) -> Result<String, Error> {
     let (host, path) = split(url)?;
     let address = host
         .to_socket_addrs()
@@ -67,17 +76,25 @@ pub fn post_json(url: &str, body: &str, timeout: Duration) -> Result<String, Err
     stream.set_nodelay(true)?;
 
     let mut stream = stream;
-    write!(
-        stream,
-        "POST {path} HTTP/1.1\r\n\
-         Host: {host}\r\n\
-         Content-Type: application/json\r\n\
-         Content-Length: {}\r\n\
-         Connection: close\r\n\
-         \r\n",
-        body.len()
-    )?;
-    stream.write_all(body.as_bytes())?;
+    match body {
+        Some(body) => {
+            write!(
+                stream,
+                "POST {path} HTTP/1.1\r\n\
+                 Host: {host}\r\n\
+                 Content-Type: application/json\r\n\
+                 Content-Length: {}\r\n\
+                 Connection: close\r\n\
+                 \r\n",
+                body.len()
+            )?;
+            stream.write_all(body.as_bytes())?;
+        }
+        None => write!(
+            stream,
+            "GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n\r\n"
+        )?,
+    }
     stream.flush()?;
 
     read_reply(BufReader::new(stream))

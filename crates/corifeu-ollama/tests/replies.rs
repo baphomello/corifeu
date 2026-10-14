@@ -1,6 +1,7 @@
 //! Parsed against replies captured from a running Ollama, not from the docs.
 
-use corifeu_ollama::{Stop, parse};
+use corifeu_ollama::parse;
+use corifeu_provider::Stop;
 
 /// `ornith1.5:9b`, asked to run a test suite with one tool available.
 const WITH_NATIVE_CALL: &str = r#"{

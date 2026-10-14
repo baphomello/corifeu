@@ -1,6 +1,6 @@
 //! The HTTP client, against a loopback server this test starts.
 
-use corifeu_ollama::http::{Error, post_json};
+use corifeu_provider::http::{Error, get, post_json};
 use std::io::{Read, Write};
 use std::net::TcpListener;
 use std::time::Duration;
@@ -88,4 +88,13 @@ fn an_unreachable_port_names_the_host() {
     let failed =
         post_json("http://127.0.0.1:1/api/chat", "{}", Duration::from_secs(2)).unwrap_err();
     assert!(failed.to_string().contains("127.0.0.1:1"));
+}
+
+#[test]
+fn a_get_asks_a_router_what_it_serves() {
+    let url = serving(
+        "HTTP/1.1 200 OK\r\nContent-Length: 34\r\n\r\n{\"data\":[{\"id\":\"qwopus\"}]}\r\n\r\n\r\n\r\n",
+    );
+    let body = get(&url, Duration::from_secs(5)).unwrap();
+    assert!(body.contains("qwopus"), "{body}");
 }

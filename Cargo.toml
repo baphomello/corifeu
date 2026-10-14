@@ -28,6 +28,8 @@ corifeu-exec = { path = "crates/corifeu-exec", version = "0.0.0" }
 corifeu-agent = { path = "crates/corifeu-agent", version = "0.0.0" }
 corifeu-workspace = { path = "crates/corifeu-workspace", version = "0.0.0" }
 corifeu-ollama = { path = "crates/corifeu-ollama", version = "0.0.0" }
+corifeu-provider = { path = "crates/corifeu-provider", version = "0.0.0" }
+corifeu-llamacpp = { path = "crates/corifeu-llamacpp", version = "0.0.0" }
 
 [profile.release]
 strip = true

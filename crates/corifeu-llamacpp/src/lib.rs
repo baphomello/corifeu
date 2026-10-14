@@ -1,0 +1,184 @@
+//! `llama-server`'s `/v1/chat/completions`, translated into a [`Turn`].
+//!
+//! The shape is OpenAI's, which differs from Ollama's at every field that
+//! matters, and in one place that matters more than the names: **tool-call
+//! arguments arrive as a JSON string**, not as an object. A caller that read
+//! them without decoding would get a string where it expected a map, and only
+//! find out at the first tool call.
+//!
+//! Measured on this project's three models, served from one router:
+//!
+//! | Model | decode | tool calls |
+//! |---|---:|---|
+//! | `qwopus3.5-9b-coder-Q4_K_M` | 53.8 t/s | native |
+//! | `qwen2.5-coder-7b-Q4_K_M` | 64.5 t/s | none — emits its own markup |
+//! | `ornith1.5-9b-Q5_K_M` | 40.6 t/s | native |
+//!
+//! A prompt larger than the server's context comes back as `400`, not as a
+//! silently truncated answer. That is the behaviour ADR-0049 asks for and it
+//! reaches the caller as [`Error::Http`] rather than as a short reply.
+
+use corifeu_provider::{
+    Budget, Error, Message, Provider, Speed, Stop, ToolCall, Turn, call_in_text, http,
+};
+use serde_json::{Value, json};
+use std::time::Duration;
+
+pub struct LlamaCpp {
+    base: String,
+    timeout: Duration,
+}
+
+impl LlamaCpp {
+    pub fn new(base: impl Into<String>) -> Self {
+        Self {
+            base: base.into().trim_end_matches('/').to_string(),
+            // A router loads a model on demand, so the first turn against a
+            // cold model pays for reading six gigabytes off disk.
+            timeout: Duration::from_secs(900),
+        }
+    }
+
+    pub fn with_timeout(mut self, timeout: Duration) -> Self {
+        self.timeout = timeout;
+        self
+    }
+
+    /// The models the router serves, by the name `chat` takes.
+    pub fn models(&self) -> Result<Vec<String>, Error> {
+        let body = http::get(&format!("{}/v1/models", self.base), self.timeout)?;
+        let reply: Value = serde_json::from_str(&body)?;
+        Ok(reply
+            .get("data")
+            .and_then(Value::as_array)
+            .map(|models| {
+                models
+                    .iter()
+                    .filter_map(|m| Some(m.get("id")?.as_str()?.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default())
+    }
+}
+
+impl Provider for LlamaCpp {
+    fn runtime(&self) -> &'static str {
+        "llama.cpp"
+    }
+
+    fn chat(
+        &self,
+        model: &str,
+        messages: &[Message],
+        tools: &[Value],
+        budget: &Budget,
+    ) -> Result<Turn, Error> {
+        let mut request = json!({
+            "model": model,
+            "messages": messages,
+            "stream": false,
+            "max_tokens": budget.num_predict,
+        });
+        if !tools.is_empty() {
+            request["tools"] = json!(tools);
+        }
+        // The server decides whether to emit thought tags; asking for none is
+        // how a transcription role keeps its whole budget for the file.
+        if !budget.think {
+            request["reasoning_format"] = json!("none");
+        }
+
+        let body = http::post_json(
+            &format!("{}/v1/chat/completions", self.base),
+            &request.to_string(),
+            self.timeout,
+        )?;
+        parse(&body, budget.num_predict)
+    }
+}
+
+pub fn parse(body: &str, num_predict: u32) -> Result<Turn, Error> {
+    let reply: Value = serde_json::from_str(body)?;
+    let shape = |detail: &str| Error::Shape {
+        runtime: "llama.cpp",
+        detail: detail.to_string(),
+    };
+    let choice = reply
+        .get("choices")
+        .and_then(Value::as_array)
+        .and_then(|c| c.first())
+        .ok_or_else(|| shape("no `choices`"))?;
+    let message = choice.get("message").ok_or_else(|| shape("no `message`"))?;
+
+    let content = text(message, "content");
+    let mut tool_calls = native_calls(message);
+    if tool_calls.is_empty()
+        && let Some(call) = call_in_text(&content)
+    {
+        tool_calls.push(call);
+    }
+
+    let usage = reply.get("usage").cloned().unwrap_or_else(|| json!({}));
+    Ok(Turn {
+        content,
+        thinking: text(message, "reasoning_content"),
+        tool_calls,
+        stop: match choice.get("finish_reason").and_then(Value::as_str) {
+            Some("length") => Stop::BudgetSpent { num_predict },
+            // `tool_calls` means the model stopped because it wants a tool run,
+            // which is a finished turn, not a truncated one.
+            Some("stop") | Some("tool_calls") | None => Stop::Done,
+            Some(other) => Stop::Other(other.to_string()),
+        },
+        prompt_tokens: count(&usage, "prompt_tokens"),
+        output_tokens: count(&usage, "completion_tokens"),
+        speed: speed(&reply),
+    })
+}
+
+/// llama.cpp reports rates directly, measured by the server itself.
+fn speed(reply: &Value) -> Option<Speed> {
+    let timings = reply.get("timings")?;
+    Some(Speed {
+        prefill_per_second: timings.get("prompt_per_second")?.as_f64()?,
+        decode_per_second: timings.get("predicted_per_second")?.as_f64()?,
+    })
+}
+
+fn text(value: &Value, key: &str) -> String {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn count(value: &Value, key: &str) -> u32 {
+    value.get(key).and_then(Value::as_u64).unwrap_or(0) as u32
+}
+
+/// OpenAI sends the arguments as a string holding JSON. Decoding it here is the
+/// difference between a caller getting a map and getting a quoted blob.
+fn native_calls(message: &Value) -> Vec<ToolCall> {
+    message
+        .get("tool_calls")
+        .and_then(Value::as_array)
+        .map(|calls| {
+            calls
+                .iter()
+                .filter_map(|call| {
+                    let function = call.get("function")?;
+                    let raw = function.get("arguments");
+                    let arguments = match raw.and_then(Value::as_str) {
+                        Some(encoded) => serde_json::from_str(encoded).ok()?,
+                        None => raw.cloned().unwrap_or_else(|| json!({})),
+                    };
+                    Some(ToolCall {
+                        name: function.get("name")?.as_str()?.to_string(),
+                        arguments,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}

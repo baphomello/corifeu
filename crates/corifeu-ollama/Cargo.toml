@@ -1,6 +1,6 @@
 [package]
 name = "corifeu-ollama"
-description = "Ollama adapter: one chat turn, with tools and a mandatory generation budget."
+description = "Ollama adapter: translates its wire format into Corifeu's turn."
 readme = "README.md"
 include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
 version.workspace = true
@@ -11,6 +11,8 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-serde = { workspace = true }
+corifeu-provider = { workspace = true }
 serde_json = { workspace = true }
-thiserror = { workspace = true }
+
+[dev-dependencies]
+corifeu-provider = { workspace = true }

@@ -30,6 +30,7 @@ corifeu-workspace = { path = "crates/corifeu-workspace", version = "0.0.0" }
 corifeu-ollama = { path = "crates/corifeu-ollama", version = "0.0.0" }
 corifeu-provider = { path = "crates/corifeu-provider", version = "0.0.0" }
 corifeu-llamacpp = { path = "crates/corifeu-llamacpp", version = "0.0.0" }
+corifeu-doer = { path = "crates/corifeu-doer", version = "0.0.0" }
 
 [profile.release]
 strip = true

@@ -86,6 +86,10 @@ allow = ["AGPL-3.0-or-later"]
 name = "corifeu-llamacpp"
 allow = ["AGPL-3.0-or-later"]
 
+[[licenses.exceptions]]
+name = "corifeu-doer"
+allow = ["AGPL-3.0-or-later"]
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

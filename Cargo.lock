@@ -168,6 +168,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-doer"
+version = "0.0.0"
+dependencies = [
+ "corifeu-agent",
+ "corifeu-check",
+ "corifeu-exec",
+ "corifeu-provider",
+ "corifeu-workspace",
+ "serde_json",
+]
+
+[[package]]
 name = "corifeu-exec"
 version = "0.0.0"
 dependencies = [

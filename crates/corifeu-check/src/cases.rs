@@ -9,19 +9,36 @@
 //! A recognizer that is not certain declines. A wrong count is worse than no
 //! count, because it would let the guard pass on a suite that had shrunk.
 
-/// How many cases ran, or that the runner did not say.
+/// How many cases ran and how many of them passed, or that the runner did not
+/// say.
+///
+/// The two numbers are kept apart because they answer different questions.
+/// `ran` is what ADR-0057's guard compares against, since a suite that shrank
+/// is damaged whether or not what remains passes. `passed` is what ADR-0051
+/// scores a saved state by, and a run of 21 with 18 passing has to be worth
+/// more than a run of 21 with 3.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Cases {
-    Counted(u32),
+    Counted {
+        ran: u32,
+        passed: u32,
+    },
     /// The runner printed no count this crate can recognize. The ADR-0057
     /// guard cannot be applied, which is reported rather than assumed away.
     Unknown,
 }
 
 impl Cases {
-    pub fn counted(self) -> Option<u32> {
+    pub fn ran(self) -> Option<u32> {
         match self {
-            Cases::Counted(n) => Some(n),
+            Cases::Counted { ran, .. } => Some(ran),
+            Cases::Unknown => None,
+        }
+    }
+
+    pub fn passed(self) -> Option<u32> {
+        match self {
+            Cases::Counted { passed, .. } => Some(passed),
             Cases::Unknown => None,
         }
     }
@@ -31,7 +48,10 @@ impl Cases {
 pub fn count(output: &str) -> Cases {
     cargo(output)
         .or_else(|| go_verbose(output))
-        .map_or(Cases::Unknown, Cases::Counted)
+        .map_or(Cases::Unknown, |(ran, passed)| Cases::Counted {
+            ran,
+            passed,
+        })
 }
 
 /// `cargo test` prints one summary per target, so a run with a doc-test target
@@ -44,17 +64,19 @@ pub fn count(output: &str) -> Cases {
 /// Ignored and measured cases are left out: neither executed. A suite that
 /// fails to compile prints no summary at all and is correctly not counted —
 /// that is a failure, not a vacuous pass.
-fn cargo(output: &str) -> Option<u32> {
-    let mut total = 0;
+fn cargo(output: &str) -> Option<(u32, u32)> {
+    let (mut ran, mut passed) = (0, 0);
     let mut seen = false;
     for line in output.lines() {
         let Some(summary) = line.trim_start().strip_prefix("test result:") else {
             continue;
         };
         seen = true;
-        total += count_before(summary, "passed")? + count_before(summary, "failed")?;
+        let ok = count_before(summary, "passed")?;
+        passed += ok;
+        ran += ok + count_before(summary, "failed")?;
     }
-    seen.then_some(total)
+    seen.then_some((ran, passed))
 }
 
 /// `go test -v` prints one `--- PASS:` or `--- FAIL:` line per case.
@@ -64,15 +86,19 @@ fn cargo(output: &str) -> Option<u32> {
 /// lines appear only under `-v` and are what makes the count safe to take.
 ///
 /// Subtests are indented under their parent and are not counted separately.
-fn go_verbose(output: &str) -> Option<u32> {
+fn go_verbose(output: &str) -> Option<(u32, u32)> {
     if !output.lines().any(|l| l.starts_with("=== RUN")) {
         return None;
     }
-    let cases = output
+    let passed = output
         .lines()
-        .filter(|l| l.starts_with("--- PASS:") || l.starts_with("--- FAIL:"))
-        .count();
-    Some(cases as u32)
+        .filter(|l| l.starts_with("--- PASS:"))
+        .count() as u32;
+    let failed = output
+        .lines()
+        .filter(|l| l.starts_with("--- FAIL:"))
+        .count() as u32;
+    Some((passed + failed, passed))
 }
 
 /// Read the number immediately before `word` in `summary`.
@@ -128,14 +154,17 @@ FAIL\tprobe\t0.010s
 
     #[test]
     fn cargo_sums_passed_and_failed() {
-        assert_eq!(count(CARGO_MIXED), Cases::Counted(3));
+        assert_eq!(count(CARGO_MIXED), Cases::Counted { ran: 3, passed: 2 });
     }
 
     #[test]
     fn cargo_filtered_to_nothing_counts_zero_not_unknown() {
         // The whole point of ADR-0057: this run exits 0 and must still be
         // distinguishable from a run that was never attempted.
-        assert_eq!(count(CARGO_FILTERED_TO_NOTHING), Cases::Counted(0));
+        assert_eq!(
+            count(CARGO_FILTERED_TO_NOTHING),
+            Cases::Counted { ran: 0, passed: 0 }
+        );
     }
 
     #[test]
@@ -146,12 +175,12 @@ FAIL\tprobe\t0.010s
     #[test]
     fn cargo_sums_every_target() {
         let two = format!("{CARGO_MIXED}\n{CARGO_FILTERED_TO_NOTHING}");
-        assert_eq!(count(&two), Cases::Counted(3));
+        assert_eq!(count(&two), Cases::Counted { ran: 3, passed: 2 });
     }
 
     #[test]
     fn go_verbose_counts_every_case() {
-        assert_eq!(count(GO_VERBOSE), Cases::Counted(3));
+        assert_eq!(count(GO_VERBOSE), Cases::Counted { ran: 3, passed: 2 });
     }
 
     #[test]

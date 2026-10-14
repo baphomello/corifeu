@@ -210,6 +210,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-planner"
+version = "0.0.0"
+dependencies = [
+ "corifeu-exec",
+ "corifeu-provider",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "corifeu-provider"
 version = "0.0.0"
 dependencies = [

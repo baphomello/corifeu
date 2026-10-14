@@ -176,6 +176,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "corifeu-ollama"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "corifeu-workspace"
 version = "0.0.0"
 dependencies = [

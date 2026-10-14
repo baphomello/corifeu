@@ -3,3 +3,6 @@ A,expensive model implements,,,,,2,15,15,yes
 B,local model implements,149,945675,47727,113.3,6,21,21,no
 C,local model implements,121,921578,52211,134.6,3,0,10,no
 C re-sliced,"local model implements, four slices",79,362231,17545,38.9,3,26,26,
+"C sliced, Corifeu","qwopus3.5-9b-coder-Q4_K_M, four slices",22,75500,41162,11.8,4,26,26,
+"C sliced, Corifeu","ornith1.5-9b-Q5_K_M, four slices",24,77858,84822,26.4,4,26,26,
+"C sliced, Corifeu","qwen2.5-coder-7b-Q4_K_M, four slices",120,345363,13305,3.5,4,0,26,

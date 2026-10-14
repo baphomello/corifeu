@@ -14,3 +14,15 @@ C re-sliced,slice 1 split_segs,3,5712,656,1.5,1,0,4,4,GREEN
 C re-sliced,slice 2 match_seg,49,176421,5629,12.7,4,4,0,8,deleted the tests; the oracle passed on zero
 C re-sliced,slice 2 retry,27,180098,11260,24.6,6,1,8,8,GREEN
 C re-sliced,slices 3 and 4,0,0,0,0.0,0,0,14,14,green on first check; implemented during slice 2
+"C sliced, Corifeu",qwopus3.5-9b-coder-Q4_K_M slice 1,1,2869,2601,0.8,1,0,4,4,GREEN
+"C sliced, Corifeu",qwopus3.5-9b-coder-Q4_K_M slice 2,18,63820,31954,9.0,1,6,0,8,looping; closed later by slice 3's coder
+"C sliced, Corifeu",qwopus3.5-9b-coder-Q4_K_M slice 3,3,8811,6607,1.9,1,0,9,9,GREEN
+"C sliced, Corifeu",qwopus3.5-9b-coder-Q4_K_M slice 4,0,0,0,0.0,0,0,5,5,green before dispatch (ADR-0058)
+"C sliced, Corifeu",ornith1.5-9b-Q5_K_M slice 1,1,2869,2413,0.9,1,0,4,4,GREEN
+"C sliced, Corifeu",ornith1.5-9b-Q5_K_M slice 2,0,0,0,0.0,0,0,8,8,green before dispatch (ADR-0058)
+"C sliced, Corifeu",ornith1.5-9b-Q5_K_M slice 3,22,72090,79961,24.7,0,6,0,9,looping; closed later by slice 4's coder
+"C sliced, Corifeu",ornith1.5-9b-Q5_K_M slice 4,1,2899,2448,0.8,1,0,5,5,GREEN
+"C sliced, Corifeu",qwen2.5-coder-7b-Q4_K_M slice 1,30,83924,2553,0.8,0,0,0,4,exhausted; emits no tool call
+"C sliced, Corifeu",qwen2.5-coder-7b-Q4_K_M slice 2,30,84674,2600,0.7,0,0,0,8,exhausted; emits no tool call
+"C sliced, Corifeu",qwen2.5-coder-7b-Q4_K_M slice 3,30,89306,5572,1.4,0,0,0,9,exhausted; emits no tool call
+"C sliced, Corifeu",qwen2.5-coder-7b-Q4_K_M slice 4,30,87459,2580,0.7,1,0,0,5,exhausted; left the crate not compiling

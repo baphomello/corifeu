@@ -19,3 +19,4 @@ n,run,defect,origin,task,evidence
 18,4,A slice verdict reports failure on work that is already done,runtime,"C sliced, n=10",8 of 19 runs reached 26/26 with a slice that never closed; those runs cost 17.5 min against 4.5
 19,4,QA writes the implementation it was asked to test,runtime,C slice 1 pair,"11 of 20 pair runs were green before the coder ran, with the check probed red beforehand"
 20,4,A failed run's workspace is overwritten by the next iteration,harness,C slice 1 pair,"the two NoRunnableTest runs cannot be inspected; their test counts came from grep, not from a run"
+21,5,Two crates sharing a cargo target directory swap test binaries,harness,harness smoke test,"`cargo test` in the pair workspace reported 12 failures from the held-out copy's binary; both packages were `pathclass 0.0.0`. Caught before the round ran"

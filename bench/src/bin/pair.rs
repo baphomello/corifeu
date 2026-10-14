@@ -7,7 +7,12 @@
 //! worse, and that is the question the ADR actually turns on. So this round
 //! ends by running `held-out.rs` against the crate the pair produced.
 //!
-//! Usage: `pair <host> <model> <workdir> <iteration>`
+//! Usage: `pair <host> <model> <workdir> <iteration> [slice]`
+//!
+//! `slice` is 1 by default. Which slice is the variable round five's Q4 is
+//! about: slice 1 is four lines, so writing the test costs about what writing
+//! the implementation costs, which is the condition under which QA would write
+//! both without noticing. Slice 3 is recursive and nine cases.
 //!
 //! Reads the step allowance from `BENCH_STEPS_*`.
 
@@ -21,12 +26,44 @@ use corifeu_provider::Budget;
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
 use std::time::{Duration, Instant};
 
+/// Slice number to its test module and what the pair is told, worded the same
+/// way for all four so that slice size is the only thing that differs.
+fn asked(which: u32) -> (&'static str, &'static str) {
+    match which {
+        2 => (
+            "slice2_seg",
+            "`match_seg(pattern, component) -> bool` matches ONE path component against one \
+             pattern segment. `*` matches any run of characters, including none; `?` matches \
+             exactly one. Neither matches a '/'.",
+        ),
+        3 => (
+            "slice3_glob",
+            "`glob_match(pattern, path) -> bool` matches a whole glob pattern against a whole \
+             path. `**` matches any number of path components including none; `*` and `?` \
+             stay inside one component, where `*` is any run of characters and `?` is exactly \
+             one.",
+        ),
+        4 => (
+            "slice4_classify",
+            "`classify(classes, path) -> Option<&str>` returns the name of the first class in \
+             the list whose include globs match the path, or None.",
+        ),
+        _ => (
+            "slice1_segs",
+            "`split_segs(path) -> Vec<&str>` splits a path on '/' and drops empty components, \
+             so \"a//b\" and \"/a/b/\" both give [\"a\", \"b\"] and \"\" gives [].",
+        ),
+    }
+}
+
 fn main() {
     let mut args = std::env::args().skip(1);
     let host = args.next().expect("host");
     let model = args.next().expect("model");
     let root = std::path::PathBuf::from(args.next().expect("workdir"));
     let iteration = args.next().unwrap_or_else(|| "1".into());
+    let which: u32 = args.next().and_then(|n| n.parse().ok()).unwrap_or(1);
+    let (module, spec) = asked(which);
 
     let provider = LlamaCpp::new(format!("http://{host}:9931"));
     let allow = Allowlist::new([vec!["cargo".into()]]);
@@ -79,13 +116,12 @@ fn main() {
     };
 
     let slice = Slice {
-        task: "`split_segs(path) -> Vec<&str>` splits a path on '/' and drops empty \
-               components, so \"a//b\" and \"/a/b/\" both give [\"a\", \"b\"] and \"\" gives \
-               []. Put the tests in `#[cfg(test)] mod slice1_segs` at the end of the file."
-            .into(),
+        task: format!(
+            "{spec} Put the tests in `#[cfg(test)] mod {module}` at the end of the file."
+        ),
         artefact: "src/lib.rs".into(),
         oracle: Oracle {
-            argv: ["cargo", "test", "--lib", "slice1_segs"]
+            argv: ["cargo", "test", "--lib", module]
                 .map(String::from)
                 .to_vec(),
             timeout: Duration::from_secs(180),
@@ -110,7 +146,7 @@ fn main() {
     let quality = held_out(&root, &allow);
 
     println!(
-        "{iteration}\t{model}\t{outcome}\t{}\t{}\t{}\t{}\t{}\t{seconds:.0}\t{quality}",
+        "{iteration}\t{model}\t{which}\t{outcome}\t{}\t{}\t{}\t{}\t{}\t{seconds:.0}\t{quality}",
         run.qa.len(),
         run.qa.iter().map(|r| r.steps).sum::<u32>(),
         run.coder.len(),

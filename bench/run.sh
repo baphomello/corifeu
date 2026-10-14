@@ -8,6 +8,7 @@
 #   BENCH_HOST            llama.cpp router host (default: the WSL gateway)
 #   BENCH_ROUND           where to write (default: bench/rounds/<stamp>-<mode>)
 #   BENCH_TIMEOUT         seconds per iteration (default: 3600)
+#   BENCH_SLICE           which slice the pair works, 1-4 (default: 1)
 #   BENCH_STEPS_FLOOR     \
 #   BENCH_STEPS_CEILING    |  the step allowance, ADR-0062. Unset means the
 #   BENCH_STEPS_PATIENCE   |  runtime's own defaults, which is what a round
@@ -43,6 +44,7 @@ STAMP=$(date +%Y%m%d-%H%M%S)
 ROUND=${BENCH_ROUND:-$HERE/rounds/$STAMP-$MODE}
 HOST=${BENCH_HOST:-$(ip route show default | awk '{print $3}')}
 CAP=${BENCH_TIMEOUT:-3600}
+SLICE=${BENCH_SLICE:-1}
 
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
@@ -59,6 +61,7 @@ LOG="$ROUND/log"
   echo "host:    $HOST"
   echo "models:  ${MODELS[*]}"
   echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
+  [ "$MODE" = pair ] && echo "slice:   $SLICE"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
 } | tee "$ROUND/round.txt"
@@ -66,20 +69,21 @@ LOG="$ROUND/log"
 if [ "$MODE" = rank ]; then
   printf 'iteration\tmodel\tslice\toutcome\tsteps\tprompt\toutput\tchecks\tseconds\tallowed\n' > "$RESULTS"
 else
-  printf 'iteration\tmodel\toutcome\tqa_rounds\tqa_steps\tcoder_rounds\tcoder_steps\tprompt\tseconds\theld_out\n' > "$RESULTS"
+  printf 'iteration\tmodel\tslice\toutcome\tqa_rounds\tqa_steps\tcoder_rounds\tcoder_steps\tprompt\tseconds\theld_out\n' > "$RESULTS"
 fi
 
 for i in $(seq 1 "$N"); do
   for M in "${MODELS[@]}"; do
     W="$ROUND/work/$M/$i"
-    if ! python3 -I "$HERE/tasks/scaffold.py" "$W" --mode "$([ "$MODE" = rank ] && echo slices || echo pair)" >>"$LOG" 2>&1; then
+    if [ "$MODE" = rank ]; then SCAFFOLD=(--mode slices); else SCAFFOLD=(--mode pair --slice "$SLICE"); fi
+    if ! python3 -I "$HERE/tasks/scaffold.py" "$W" "${SCAFFOLD[@]}" >>"$LOG" 2>&1; then
       echo "[$(date +%H:%M:%S)] $MODE $i / $M: scaffold failed" | tee -a "$LOG"
       continue
     fi
 
     export CARGO_TARGET_DIR="$ROUND/target/$M/$i"
     echo "[$(date +%H:%M:%S)] $MODE $i / $M" >> "$LOG"
-    timeout "$CAP" "$BIN" "$HOST" "$M" "$W" "$i" >> "$RESULTS" 2>> "$LOG"
+    timeout "$CAP" "$BIN" "$HOST" "$M" "$W" "$i" "$SLICE" >> "$RESULTS" 2>> "$LOG"
     status=$?
     if [ "$status" -ne 0 ]; then
       echo "KILLED\t$i\t$M\texit=$status" >> "$RESULTS"

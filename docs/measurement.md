@@ -374,6 +374,25 @@ leaves anything for a second reader to disagree with.
 compares them for correctness or coverage against a reference. That comparison is what the
 ADR-0053 decision actually turns on, and it was not measured.
 
+### What the fourth run changed
+
+Two decisions came out of it, and both are now in the runtime, which means the fifth run is
+also the first test of them.
+
+| | Was | Is |
+|---|---|---|
+| Steps per turn | one constant, 30 | a floor of 12 that grows to 30, and only where turns are seen running out ([ADR-0062](adr/0062-step-allowance-has-a-floor-not-a-ceiling.md)) |
+| A slice that did not close | ended the walk; the planner was consulted | the walk carries on, and every unfinished slice's oracle is run once more at the end ([ADR-0063](adr/0063-an-unfinished-slice-is-asked-again.md)) |
+
+The harness changed with them. It lives in [`bench/`](../bench/) now rather than in a scratch
+directory, every iteration's workspace is kept including the ones that fail
+([defect 20](measurement/defects.csv)), and a `pair` round ends by running cases it was never
+shown against the crate it produced — which is the one thing the paragraph above says was
+missing.
+
+What each of those has to answer, and what result would say the answer is no, is written down
+before the round runs in [round five's design](measurement/round5.md).
+
 ## Cost
 
 The thesis is about money, so the comparison that matters is where the tokens went.

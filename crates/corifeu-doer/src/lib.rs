@@ -226,7 +226,11 @@ impl Doer<'_> {
                             .to_string();
                     return false;
                 };
-                if argv == slice.oracle.argv {
+                // A prefix, not equality: `cargo test --lib x` and
+                // `cargo test --lib x -- --nocapture` are the same check, and
+                // a model that adds a flag should still get the judging,
+                // scoring and rollback rather than a bare command run.
+                if argv.starts_with(&slice.oracle.argv) {
                     return self.judge(slice, workspace, state);
                 }
                 state.last_result = self.run(&argv, workspace);
@@ -402,12 +406,17 @@ fn slice_timeout() -> Duration {
     Duration::from_secs(120)
 }
 
+/// What a state is worth, for ADR-0051's comparison.
+///
+/// The runner reports how many cases passed even when the run failed, and that
+/// number is the whole point: a repair that goes from 18 passing to 3 is a
+/// regression, and scoring every failing run as zero cannot see it. That was
+/// the measurement's worst round and this is what would have caught it.
 fn passing(cases: &Cases, verdict: &Verdict) -> u32 {
-    match (cases, verdict) {
-        (Cases::Counted(n), Verdict::Passed) => *n,
-        (Cases::Counted(n), Verdict::Vacuous { ran, .. }) => (*n).min(*ran),
-        // A failing run's count includes the failures, so it is not a score.
-        _ => 0,
+    match verdict {
+        // Nothing ran, so nothing was learned about any case.
+        Verdict::DidNotTerminate { .. } => 0,
+        _ => cases.passed().unwrap_or(0),
     }
 }
 

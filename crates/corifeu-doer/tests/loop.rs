@@ -25,6 +25,27 @@ fn artefact_is_done() {
     assert!(body.contains("DONE"), "not done yet");
 }
 
+// A three-case oracle, so a state can be partly green and two states can be
+// compared by how much of the suite passed.
+fn artefact() -> String {
+    std::fs::read_to_string("artefact.txt").unwrap_or_default()
+}
+#[ignore]
+#[test]
+fn marker_a() {
+    assert!(artefact().contains('A'));
+}
+#[ignore]
+#[test]
+fn marker_b() {
+    assert!(artefact().contains('B'));
+}
+#[ignore]
+#[test]
+fn marker_c() {
+    assert!(artefact().contains('C'));
+}
+
 // ---------------------------------------------------------------- scaffolding
 
 static NEXT: AtomicUsize = AtomicUsize::new(0);
@@ -393,5 +414,111 @@ fn a_change_that_scores_worse_is_rolled_back_and_the_model_is_told() {
     assert!(
         run.trace.iter().any(|s| s.result.contains("vacuous")),
         "an oracle running fewer cases than declared is vacuous, not a pass"
+    );
+}
+
+fn markers_oracle() -> Oracle {
+    let exe = std::env::current_exe()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    Oracle {
+        argv: vec![exe, "--ignored".into(), "marker_".into()],
+        timeout: Duration::from_secs(60),
+        expect_cases: Some(3),
+    }
+}
+
+fn markers_slice() -> Slice {
+    Slice {
+        task: "Make the artefact contain A, B and C.".into(),
+        artefact: "artefact.txt".into(),
+        oracle: markers_oracle(),
+    }
+}
+
+/// ADR-0051. The measurement's repair round went from 18 of 21 passing to not
+/// building at all and could not get back. Scoring every failing run as zero
+/// cannot see that, which is why the score is what passed and not what ran.
+#[test]
+fn losing_ground_is_rolled_back_even_though_both_states_are_red() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "nothing\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![
+        write("AB\n"), // two of three pass
+        write("x\n"),  // none pass — worse, not merely still red
+    ]);
+    let run = doer(&provider, 2).work(&markers_slice(), &mut ws);
+
+    let rolled = run
+        .trace
+        .iter()
+        .find(|s| s.result.contains("ROLLED BACK"))
+        .expect("going from 2 passing to 0 is a regression");
+    assert!(
+        rolled.result.contains("You had 0 passing; it has 2"),
+        "{}",
+        rolled.result
+    );
+    assert_eq!(
+        ws.read("artefact.txt").unwrap().unwrap(),
+        "AB\n",
+        "the better state is what is on disk again"
+    );
+}
+
+#[test]
+fn a_run_carries_on_from_the_state_it_was_rolled_back_to() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "nothing\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("AB\n"), write("x\n"), write("ABC\n")]);
+    let run = doer(&provider, 4).work(&markers_slice(), &mut ws);
+
+    assert_eq!(
+        run.outcome,
+        Outcome::Green,
+        "a rollback is a setback, not an end"
+    );
+    assert!(run.trace.iter().any(|s| s.result.contains("ROLLED BACK")));
+}
+
+#[test]
+fn still_red_but_no_worse_is_not_rolled_back() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "nothing\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("A\n"), write("AB\n"), write("ABC\n")]);
+    let run = doer(&provider, 5).work(&markers_slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Green);
+    assert!(
+        !run.trace.iter().any(|s| s.result.contains("ROLLED BACK")),
+        "every step gained ground; nothing should have been undone"
+    );
+}
+
+/// A model that checks its own work with an extra flag is running the same
+/// check, and must get the same judging, scoring and rollback.
+#[test]
+fn the_oracle_is_matched_by_prefix_not_by_exact_argv() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "DONE\n", &guard()).unwrap();
+
+    let mut with_flag = oracle().argv;
+    with_flag.push("--nocapture".into());
+
+    let provider = Replay::of(vec![calls("run", json!({"argv": with_flag}))]);
+    let run = doer(&provider, 3).work(&slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Green);
+    assert_eq!(
+        run.checks, 1,
+        "it was judged as the oracle, not run as a bare command"
     );
 }

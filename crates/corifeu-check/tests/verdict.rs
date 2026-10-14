@@ -33,7 +33,13 @@ fn a_green_suite_passes() {
     };
     let report = check.judge(observed(Some(0), GREEN));
     assert_eq!(report.verdict, Verdict::Passed);
-    assert_eq!(report.cases, Cases::Counted(26));
+    assert_eq!(
+        report.cases,
+        Cases::Counted {
+            ran: 26,
+            passed: 26
+        }
+    );
     assert!(!report.unguarded);
 }
 
@@ -204,5 +210,49 @@ mod truncation {
         let cut = truncate(&text, 100);
         assert!(cut.chars().all(|c| c == 'é' || c.is_ascii() || c == '…'));
         assert!(cut.contains("900 characters"));
+    }
+}
+
+mod scoring {
+    use super::*;
+
+    /// ADR-0051 compares states by how much of the suite passed. The
+    /// measurement's repair round went from 18 of 21 passing to a broken
+    /// build; scoring every failing run as zero cannot tell those apart, and
+    /// telling them apart is the whole point of the rollback.
+    #[test]
+    fn a_failing_run_still_reports_what_passed() {
+        let eighteen =
+            "test result: FAILED. 18 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out";
+        let three =
+            "test result: FAILED. 3 passed; 18 failed; 0 ignored; 0 measured; 0 filtered out";
+
+        let better = Check::default().judge(observed(Some(101), eighteen));
+        let worse = Check::default().judge(observed(Some(101), three));
+
+        assert_eq!(better.verdict, Verdict::Failed);
+        assert_eq!(worse.verdict, Verdict::Failed);
+        assert_eq!(better.cases.passed(), Some(18));
+        assert_eq!(worse.cases.passed(), Some(3));
+        assert_eq!(
+            better.cases.ran(),
+            worse.cases.ran(),
+            "the same suite ran both times; only the outcome moved"
+        );
+    }
+
+    #[test]
+    fn the_vacuous_guard_compares_what_ran_not_what_passed() {
+        // A suite of 12 where 11 fail is red, not vacuous: nothing was deleted.
+        let check = Check {
+            expect_cases: Some(12),
+            ..Check::default()
+        };
+        let mostly_red =
+            "test result: FAILED. 1 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out";
+        assert_eq!(
+            check.judge(observed(Some(101), mostly_red)).verdict,
+            Verdict::Failed
+        );
     }
 }

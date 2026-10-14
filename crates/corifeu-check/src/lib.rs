@@ -172,7 +172,7 @@ impl Check {
                 after: observed.elapsed,
             };
         }
-        if let (Some(expected), Some(ran)) = (self.expect_cases, cases.counted())
+        if let (Some(expected), Some(ran)) = (self.expect_cases, cases.ran())
             && ran < expected
         {
             return Verdict::Vacuous { ran, expected };

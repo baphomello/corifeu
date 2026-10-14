@@ -63,7 +63,7 @@ pub fn show(explain_sources: bool, file: Option<&Path>) -> ExitCode {
 
 /// Layers, weakest first. Missing files are not an error: a user may have only
 /// a project config, or only a global one.
-fn collect_layers(file: Option<&Path>) -> Result<Vec<Layer>, ExitCode> {
+pub(crate) fn collect_layers(file: Option<&Path>) -> Result<Vec<Layer>, ExitCode> {
     let mut layers = Vec::new();
 
     if let Some(path) = corifeu_config::global_config_path()
@@ -98,7 +98,7 @@ fn collect_layers(file: Option<&Path>) -> Result<Vec<Layer>, ExitCode> {
     Ok(layers)
 }
 
-fn project_path() -> Option<PathBuf> {
+pub(crate) fn project_path() -> Option<PathBuf> {
     std::env::current_dir()
         .ok()
         .map(|cwd| corifeu_config::project_config_path(&cwd))

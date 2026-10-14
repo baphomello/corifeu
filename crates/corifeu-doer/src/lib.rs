@@ -329,8 +329,12 @@ impl Doer<'_> {
             green: report.verdict.is_green(),
             cases_passing: passing(&report.cases, &report.verdict),
         };
+        // Scored under this slice's own check. A count from another slice's
+        // oracle is a different question and comparing the two reads every
+        // smaller check as a regression.
+        let scope = slice.oracle.describe();
         let mut note = String::new();
-        if let Some(better) = workspace.regression(&slice.artefact, score) {
+        if let Some(better) = workspace.regression(&slice.artefact, &scope, score) {
             let id = better.id;
             if let Ok(restored) = workspace.restore(id) {
                 note = format!(
@@ -339,11 +343,11 @@ impl Doer<'_> {
                      the restored one.",
                     restored.path,
                     score.cases_passing,
-                    restored.regained.map_or(0, |s| s.cases_passing),
+                    restored.regained(&scope).map_or(0, |s| s.cases_passing),
                 );
             }
         } else {
-            workspace.score(&slice.artefact, score);
+            workspace.score(&slice.artefact, &scope, score);
         }
 
         state.last_verdict = Some(report.verdict);

@@ -522,3 +522,44 @@ fn the_oracle_is_matched_by_prefix_not_by_exact_argv() {
         "it was judged as the oracle, not run as a bare command"
     );
 }
+
+/// A score only means something next to the check that produced it.
+///
+/// Found in the twelve-run benchmark: a model closed slice 3 green with nine
+/// cases passing, then closed slice 4 green with five. Five is fewer than
+/// nine, so the rollback read the second green as a regression, restored the
+/// slice-3 state over it, and reported the slice green anyway. The run said
+/// 4 of 4 and the crate still held a `todo!()`.
+#[test]
+fn a_green_slice_is_not_a_regression_from_a_larger_one() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "nothing\n", &guard()).unwrap();
+
+    // A three-case slice goes green.
+    let wide = Replay::of(vec![write("ABC\n")]);
+    assert_eq!(
+        doer(&wide, 3).work(&markers_slice(), &mut ws).outcome,
+        Outcome::Green
+    );
+
+    // A one-case slice on the same file goes green with fewer cases passing.
+    let narrow_slice = Slice {
+        task: "Keep A, B, C and add DONE.".into(),
+        artefact: "artefact.txt".into(),
+        oracle: oracle(), // artefact_is_done: one case
+    };
+    let narrow = Replay::of(vec![write("ABC DONE\n")]);
+    let run = doer(&narrow, 3).work(&narrow_slice, &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Green);
+    assert!(
+        !run.trace.iter().any(|s| s.result.contains("ROLLED BACK")),
+        "one check's count cannot be compared with another's"
+    );
+    assert_eq!(
+        ws.read("artefact.txt").unwrap().unwrap(),
+        "ABC DONE\n",
+        "the second slice's work must survive"
+    );
+}

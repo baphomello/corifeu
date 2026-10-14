@@ -159,6 +159,19 @@ name = "corifeu-agent"
 version = "0.0.0"
 
 [[package]]
+name = "corifeu-bench"
+version = "0.0.0"
+dependencies = [
+ "corifeu-agent",
+ "corifeu-check",
+ "corifeu-doer",
+ "corifeu-exec",
+ "corifeu-llamacpp",
+ "corifeu-provider",
+ "corifeu-workspace",
+]
+
+[[package]]
 name = "corifeu-check"
 version = "0.0.0"
 

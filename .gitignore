@@ -8,3 +8,8 @@
 # Python
 __pycache__/
 *.pyc
+
+# Measurement rounds. The harness is committed; what a round produced is not —
+# the summary goes to docs/measurement.md and the raw rows to
+# docs/measurement/.
+bench/rounds/

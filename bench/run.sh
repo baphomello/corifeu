@@ -83,6 +83,31 @@ if (( ${#VENV_PACKAGES[@]} )); then
   export PATH="$VENV/bin:$PATH"
 fi
 
+# Defect 25: /health answers 200 with the router up and no model resident, so
+# the probe above proves only that something is listening. The first request of
+# a round then arrives while the router is spawning a child instance and comes
+# back 500 "Context size has been exceeded", which is not what went wrong and
+# cost the round its first iteration.
+#
+# Warmed in reverse, so the model the round asks for first is the one left
+# resident under --models-max 1.
+for (( m = ${#MODELS[@]} - 1; m >= 0; m-- )); do
+  MODEL=${MODELS[$m]}
+  code=000
+  for _ in 1 2 3 4 5 6 7 8; do
+    code=$(curl -s --max-time 180 -o /dev/null -w '%{http_code}' \
+      "http://$HOST:9931/v1/chat/completions" -H 'Content-Type: application/json' \
+      -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"ok\"}],\"max_tokens\":1,\"stream\":false}")
+    [ "$code" = "200" ] && break
+    sleep 10
+  done
+  [ "$code" = "200" ] || {
+    echo "model $MODEL does not answer at $HOST:9931 (last status $code)" >&2
+    exit 1
+  }
+  echo "warm:    $MODEL"
+done
+
 # Defect 23: the oracle could not run at all and it looked exactly like red
 # code. A scaffolded crate inside Corifeu's own cargo workspace fails every
 # command with "believes it's in a workspace when it's not", so eight slice

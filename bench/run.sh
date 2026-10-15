@@ -90,6 +90,7 @@ BIN="$REPO/target/debug/$MODE"
 
 mkdir -p "$ROUND"
 RESULTS="$ROUND/results.tsv"
+STEPS="$ROUND/steps.tsv"
 LOG="$ROUND/log"
 
 {
@@ -110,6 +111,11 @@ if [ "$MODE" = rank ]; then
 else
   printf 'iteration\tmodel\tslice\toutcome\tqa_rounds\tqa_steps\tcoder_rounds\tcoder_steps\tprompt\tseconds\theld_out\n' > "$RESULTS"
 fi
+
+# One row per step, every iteration appended. The drivers write it beside each
+# workspace; this is the whole round in one file, which is what any analysis
+# actually wants.
+printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\toutcome\n' > "$STEPS"
 
 for i in $(seq 1 "$N"); do
   for M in "${MODELS[@]}"; do
@@ -135,6 +141,8 @@ for i in $(seq 1 "$N"); do
     FINAL=$(grep -hoE 'test result: [a-zA-Z]+\. [0-9]+ passed; [0-9]+ failed|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' "$W/final.txt" | tail -1)
     printf 'FINAL\t%s\t%s\t%s\n' "$i" "$M" "${FINAL:-did not build}" >> "$RESULTS"
 
+    [ -f "$W/steps.tsv" ] && cat "$W/steps.tsv" >> "$STEPS"
+
     # The sources, the checkpoints and the final output are the evidence. The
     # build tree is not, and it is 10 MB an iteration.
     rm -rf "$CARGO_TARGET_DIR"
@@ -144,4 +152,5 @@ done
 echo "ROUND COMPLETE" >> "$RESULTS"
 echo
 echo "results:    $RESULTS"
+echo "steps:      $STEPS"
 echo "workspaces: $ROUND/work/<model>/<iteration>  (all kept, including failures)"

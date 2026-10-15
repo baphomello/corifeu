@@ -12,27 +12,12 @@
 //! asks for, then a total. Reads the step allowance from `BENCH_STEPS_*`.
 
 use corifeu_agent::Window;
-use corifeu_bench::Task;
+use corifeu_bench::{Task, one_line, write_steps};
 use corifeu_doer::{Allowance, Doer, Goal, Limits, Outcome};
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_provider::Budget;
 use corifeu_workspace::{Guard, Ownership, Workspace};
 use std::time::Instant;
-
-/// One row is one line.
-///
-/// A provider error carries whatever the server said, and a server that is not
-/// the one expected says it in HTML. A newline inside a field turns
-/// `results.tsv` into something no reader can parse, which is defect 22 and was
-/// found by the harness smoke test rather than by a round.
-fn one_line(text: &str) -> String {
-    text.split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ")
-        .chars()
-        .take(200)
-        .collect()
-}
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -98,6 +83,7 @@ fn main() {
         let run = doer.work_within(&slice, allowed, &mut workspace);
         let wall = started.elapsed().as_secs_f64();
         allowance.saw(&run.outcome);
+        write_steps(&root, &iteration, &model, &module, "doer", &run);
 
         steps += run.steps;
         prompt += run.prompt_tokens;

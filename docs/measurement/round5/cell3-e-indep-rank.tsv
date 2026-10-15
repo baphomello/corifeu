@@ -1,0 +1,132 @@
+iteration	model	slice	outcome	steps	prompt	output	checks	seconds	allowed
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	GREEN	5	23844	7677	3	151	12
+1	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	GREEN	3	7932	11043	1	203	12
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	12	56353	20410	4	385	12
+1	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	EXHAUSTED	12	45267	23993	5	444	12
+AGAIN	1	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+AGAIN	1	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	RED
+TOTAL	1	qwopus3.5-9b-coder-Q4_K_M	closed=2/4	overtaken=0	free=0	steps=32	prompt=133396	output=63123	checks=13	floor_left=true	minutes=19.7
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 20 passed; 6 failed
+1	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	3	11226	5978	3	150	12
+1	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	4	12402	8288	3	173	12
+1	ornith1.5-9b-Q5_K_M	slice3_base32	GREEN	2	5255	6327	1	130	12
+1	ornith1.5-9b-Q5_K_M	slice4_luhn	LOOPING	9	28076	20912	0	424	12
+AGAIN	1	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	1	ornith1.5-9b-Q5_K_M	closed=3/4	overtaken=0	free=0	steps=18	prompt=56959	output=41505	checks=7	floor_left=false	minutes=14.7
+FINAL	1	ornith1.5-9b-Q5_K_M	test result: FAILED. 19 passed; 7 failed
+2	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	EXHAUSTED	12	35300	17273	1	312	12
+2	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	GREEN	5	16902	11686	3	217	12
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	12	44179	33498	4	609	12
+2	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	GREEN	6	23262	11961	3	219	12
+AGAIN	2	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	RED
+AGAIN	2	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+TOTAL	2	qwopus3.5-9b-coder-Q4_K_M	closed=2/4	overtaken=0	free=0	steps=35	prompt=119643	output=74418	checks=11	floor_left=false	minutes=22.7
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 15 passed; 11 failed
+2	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	1	2365	2206	1	51	12
+2	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	2	6076	5958	2	122	12
+2	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	43503	32770	2	693	12
+2	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	12	40147	38491	0	796	12
+AGAIN	2	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	2	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	2	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=27	prompt=92091	output=79425	checks=5	floor_left=true	minutes=27.7
+FINAL	2	ornith1.5-9b-Q5_K_M	test result: FAILED. 14 passed; 12 failed
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	EXHAUSTED	12	31518	18652	0	356	12
+3	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	GREEN	10	31145	18027	3	347	12
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	12	39857	23188	3	444	12
+3	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	EXHAUSTED	12	54818	22474	5	438	12
+AGAIN	3	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	RED
+AGAIN	3	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+AGAIN	3	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	RED
+TOTAL	3	qwopus3.5-9b-coder-Q4_K_M	closed=1/4	overtaken=0	free=0	steps=46	prompt=157338	output=82341	checks=11	floor_left=true	minutes=26.5
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 10 passed; 16 failed
+3	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	5	21995	7614	3	206	12
+3	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	10	47754	23022	2	488	12
+3	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	35905	29253	0	592	12
+3	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	12	47004	26742	3	549	12
+AGAIN	3	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	3	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	3	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=39	prompt=152658	output=86631	checks=8	floor_left=true	minutes=30.6
+FINAL	3	ornith1.5-9b-Q5_K_M	did not build
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	GREEN	2	5478	4888	2	99	12
+4	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	GREEN	10	39596	23757	5	454	12
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	12	55597	15814	3	310	12
+4	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	EXHAUSTED	12	53495	8651	1	173	12
+AGAIN	4	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+AGAIN	4	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	RED
+TOTAL	4	qwopus3.5-9b-coder-Q4_K_M	closed=2/4	overtaken=0	free=0	steps=36	prompt=154166	output=53110	checks=11	floor_left=true	minutes=17.3
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 20 passed; 6 failed
+4	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	11	52951	14007	5	421	12
+4	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	3	9800	4747	2	126	12
+4	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	49858	33074	2	805	12
+4	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	12	58582	24252	4	598	12
+AGAIN	4	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	4	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	4	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=38	prompt=171191	output=76080	checks=13	floor_left=true	minutes=32.6
+FINAL	4	ornith1.5-9b-Q5_K_M	did not build
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	EXHAUSTED	12	31945	24507	0	460	12
+5	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	EXHAUSTED	12	47432	15301	5	303	12
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	18	71831	41162	6	788	18
+5	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	EXHAUSTED	18	79874	21000	4	411	18
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	RED
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	RED
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	RED
+TOTAL	5	qwopus3.5-9b-coder-Q4_K_M	closed=0/4	overtaken=0	free=0	steps=60	prompt=231082	output=101970	checks=15	floor_left=true	minutes=32.8
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	did not build
+5	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	5	17795	7230	3	190	12
+5	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	3	7900	9872	1	208	12
+5	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	34981	45099	0	1030	12
+5	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	12	50217	25036	3	606	12
+AGAIN	5	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	5	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	5	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=32	prompt=110893	output=87237	checks=7	floor_left=true	minutes=34.0
+FINAL	5	ornith1.5-9b-Q5_K_M	test result: FAILED. 17 passed; 9 failed
+6	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	EXHAUSTED	12	49188	5900	3	129	12
+6	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	EXHAUSTED	12	56168	18641	4	362	12
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	18	75003	23489	2	450	18
+6	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	GREEN	10	40952	28381	5	540	18
+AGAIN	6	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	GREEN
+AGAIN	6	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	RED
+AGAIN	6	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+TOTAL	6	qwopus3.5-9b-coder-Q4_K_M	closed=1/4	overtaken=1	free=0	steps=52	prompt=221311	output=76411	checks=14	floor_left=false	minutes=24.7
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 23 passed; 3 failed
+6	ornith1.5-9b-Q5_K_M	slice1_roman	EXHAUSTED	12	40861	36402	2	748	12
+6	ornith1.5-9b-Q5_K_M	slice2_wrap	EXHAUSTED	12	42594	37447	2	750	12
+6	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	18	82695	38316	5	807	18
+6	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	18	69598	34139	2	799	18
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice1_roman	RED
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice2_wrap	RED
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	6	ornith1.5-9b-Q5_K_M	closed=0/4	overtaken=0	free=0	steps=60	prompt=235748	output=146304	checks=11	floor_left=true	minutes=51.8
+FINAL	6	ornith1.5-9b-Q5_K_M	test result: FAILED. 10 passed; 16 failed
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	GREEN	2	4779	7261	1	143	12
+7	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	EXHAUSTED	12	48374	25557	4	484	12
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	EXHAUSTED	12	55930	25702	3	474	12
+7	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	EXHAUSTED	18	69977	26359	2	481	18
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice2_wrap	RED
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice3_base32	RED
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice4_luhn	RED
+TOTAL	7	qwopus3.5-9b-coder-Q4_K_M	closed=1/4	overtaken=0	free=0	steps=44	prompt=179060	output=84879	checks=10	floor_left=true	minutes=26.4
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 19 passed; 7 failed
+7	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	11	44907	27055	4	552	12
+7	ornith1.5-9b-Q5_K_M	slice2_wrap	EXHAUSTED	12	33680	43706	0	859	12
+7	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	42290	40426	1	810	12
+7	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	18	70104	36362	3	750	18
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice2_wrap	RED
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	7	ornith1.5-9b-Q5_K_M	closed=1/4	overtaken=0	free=0	steps=53	prompt=190981	output=147549	checks=8	floor_left=true	minutes=49.6
+FINAL	7	ornith1.5-9b-Q5_K_M	did not build
+8	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	PROVIDER_FAILED the server replied 400 Bad Request: {"error":{"code":400,"message":"request (8972 tokens) exceeds the available context size (8192 tokens), try increasing it","type":"exceed_context_size_error","n_pro	3	14218	4773	2	93	12
+AGAIN	8	qwopus3.5-9b-coder-Q4_K_M	slice1_roman	RED
+TOTAL	8	qwopus3.5-9b-coder-Q4_K_M	closed=0/4	overtaken=0	free=0	steps=3	prompt=14218	output=4773	checks=2	floor_left=false	minutes=1.6
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	did not build
+8	ornith1.5-9b-Q5_K_M	slice1_roman	GREEN	3	8713	4344	2	107	12
+8	ornith1.5-9b-Q5_K_M	slice2_wrap	GREEN	3	7923	11668	1	245	12
+8	ornith1.5-9b-Q5_K_M	slice3_base32	EXHAUSTED	12	41648	42681	1	852	12
+8	ornith1.5-9b-Q5_K_M	slice4_luhn	EXHAUSTED	12	40583	39702	0	778	12
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice3_base32	RED
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice4_luhn	RED
+TOTAL	8	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=30	prompt=98867	output=98395	checks=4	floor_left=true	minutes=33.1
+FINAL	8	ornith1.5-9b-Q5_K_M	test result: FAILED. 14 passed; 12 failed

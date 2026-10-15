@@ -1,0 +1,60 @@
+round five
+started: 2026-10-15T02:31:44-03:00
+commit:  28af2b4
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+n:       10
+cells:   all
+[02:31:44] cell 1: c-glob-rank-default
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261015-023144
+mode:    rank
+task:    c-glob
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  28af2b4
+suite:   cargo test --lib
+oracle:  test result: FAILED. 0 passed; 26 failed; 0 ig
+steps:   floor=default ceiling=default
+         patience=default raise_by=default
+
+results:    /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/1-c-glob-rank-default/results.tsv
+steps:      /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/1-c-glob-rank-default/steps.tsv
+workspaces: /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/1-c-glob-rank-default/work/<model>/<iteration>  (all kept, including failures)
+[06:27:05] cell 1: c-glob-rank-default after 235 min, exit 0
+[06:27:05] cell 2: d-glob-py-rank-default
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261015-062705
+mode:    rank
+task:    d-glob-py
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  28af2b4
+suite:   python3 -m pytest -q pathclass.py
+oracle:  26 failed in 0.91s
+steps:   floor=default ceiling=default
+         patience=default raise_by=default
+
+results:    /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/2-d-glob-py-rank-default/results.tsv
+steps:      /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/2-d-glob-py-rank-default/steps.tsv
+workspaces: /home/mello/github/baphomello/corifeu.ai/bench/rounds/round5-20261015-023144/2-d-glob-py-rank-default/work/<model>/<iteration>  (all kept, including failures)
+[11:34:27] cell 2: d-glob-py-rank-default after 307 min, exit 0
+[11:34:27] cell 3: e-indep-rank-default
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261015-113427
+mode:    rank
+task:    e-indep
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  39f52ad
+suite:   cargo test --lib
+oracle:  test result: FAILED. 0 passed; 26 failed; 0 ig
+steps:   floor=default ceiling=default
+         patience=default raise_by=default
+[19:41:40] interrupted; stopping the round
+[19:41:41] stopping the router
+[19:41:47] llama.exe still running: 0
+[19:41:47] stopping the router
+[19:41:51] llama.exe still running: 0

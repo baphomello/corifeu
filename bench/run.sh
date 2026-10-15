@@ -83,6 +83,57 @@ if (( ${#VENV_PACKAGES[@]} )); then
   export PATH="$VENV/bin:$PATH"
 fi
 
+# Defect 25: /health answers 200 with the router up and no model resident, so
+# the probe above proves only that something is listening. The first request of
+# a round then arrives while the router is spawning a child instance and comes
+# back 500 "Context size has been exceeded", which is not what went wrong and
+# cost the round its first iteration.
+#
+# Warmed in reverse, so the model the round asks for first is the one left
+# resident under --models-max 1.
+for (( m = ${#MODELS[@]} - 1; m >= 0; m-- )); do
+  MODEL=${MODELS[$m]}
+  code=000
+  for _ in 1 2 3 4 5 6 7 8; do
+    code=$(curl -s --max-time 180 -o /dev/null -w '%{http_code}' \
+      "http://$HOST:9931/v1/chat/completions" -H 'Content-Type: application/json' \
+      -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"ok\"}],\"max_tokens\":1,\"stream\":false}")
+    [ "$code" = "200" ] && break
+    sleep 10
+  done
+  [ "$code" = "200" ] || {
+    echo "model $MODEL does not answer at $HOST:9931 (last status $code)" >&2
+    exit 1
+  }
+  echo "warm:    $MODEL"
+done
+
+# Defect 23: the oracle could not run at all and it looked exactly like red
+# code. A scaffolded crate inside Corifeu's own cargo workspace fails every
+# command with "believes it's in a workspace when it's not", so eight slice
+# runs spent their whole allowance being told that correct code was wrong.
+#
+# This proves the oracle executes before the round starts. The suite's result
+# line is the proof: all-red is a valid result and so is no tests at all, but a
+# tool that never ran prints no result line whatsoever.
+probe() {
+  local dir="$1"
+  python3 -I "$HERE/tasks/scaffold.py" "$dir" --task "$TASK" --mode slices >/dev/null 2>&1 ||
+    { echo "the scaffold failed for $TASK" >&2; return 1; }
+  local out
+  out=$(cd "$dir" && CARGO_TARGET_DIR="$dir/.probe-target" "${SUITE[@]}" 2>&1)
+  if ! grep -qE 'test result: |[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s|no tests ran' <<<"$out"; then
+    echo "the oracle for $TASK does not run where this round writes:" >&2
+    echo "$out" | head -8 >&2
+    return 1
+  fi
+  grep -hoE 'test result: [^\n]*|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' <<<"$out" | tail -1
+}
+PROBE_DIR="$ROUND.probe"
+rm -rf "$PROBE_DIR"
+PROBE=$(probe "$PROBE_DIR") || exit 1
+rm -rf "$PROBE_DIR"
+
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
 ( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
@@ -90,6 +141,7 @@ BIN="$REPO/target/debug/$MODE"
 
 mkdir -p "$ROUND"
 RESULTS="$ROUND/results.tsv"
+STEPS="$ROUND/steps.tsv"
 LOG="$ROUND/log"
 
 {
@@ -100,6 +152,7 @@ LOG="$ROUND/log"
   echo "models:  ${MODELS[*]}"
   echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
   echo "suite:   ${SUITE[*]}"
+  echo "oracle:  $PROBE"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
@@ -110,6 +163,11 @@ if [ "$MODE" = rank ]; then
 else
   printf 'iteration\tmodel\tslice\toutcome\tqa_rounds\tqa_steps\tcoder_rounds\tcoder_steps\tprompt\tseconds\theld_out\n' > "$RESULTS"
 fi
+
+# One row per step, every iteration appended. The drivers write it beside each
+# workspace; this is the whole round in one file, which is what any analysis
+# actually wants.
+printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\tflags\toutcome\n' > "$STEPS"
 
 for i in $(seq 1 "$N"); do
   for M in "${MODELS[@]}"; do
@@ -135,6 +193,8 @@ for i in $(seq 1 "$N"); do
     FINAL=$(grep -hoE 'test result: [a-zA-Z]+\. [0-9]+ passed; [0-9]+ failed|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' "$W/final.txt" | tail -1)
     printf 'FINAL\t%s\t%s\t%s\n' "$i" "$M" "${FINAL:-did not build}" >> "$RESULTS"
 
+    [ -f "$W/steps.tsv" ] && cat "$W/steps.tsv" >> "$STEPS"
+
     # The sources, the checkpoints and the final output are the evidence. The
     # build tree is not, and it is 10 MB an iteration.
     rm -rf "$CARGO_TARGET_DIR"
@@ -144,4 +204,5 @@ done
 echo "ROUND COMPLETE" >> "$RESULTS"
 echo
 echo "results:    $RESULTS"
+echo "steps:      $STEPS"
 echo "workspaces: $ROUND/work/<model>/<iteration>  (all kept, including failures)"

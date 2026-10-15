@@ -5,8 +5,13 @@ Written before the round runs, so that the questions are not chosen after the nu
 The fourth run produced two decisions, [ADR-0062](../adr/0062-step-allowance-has-a-floor-not-a-ceiling.md)
 and [ADR-0063](../adr/0063-an-unfinished-slice-is-asked-again.md), and left four things it
 could not say. Both decisions are now in the runtime, which means this round is also the first
-test of them. Six questions, each with the cell that answers it and the result that would say
-the answer is no.
+test of them. Twelve questions, each with the cell that answers it and the result that would
+say the answer is no.
+
+**Q1 to Q6 are what the round is for. Q7 to Q12 are what the same machine time can also
+answer**, at the cost of writing each run's steps down instead of only its totals. They add no
+cells and no hours. They are written here, before the round, for the same reason the first six
+are: a question chosen after the numbers are in is not a question, it is a description.
 
 ---
 
@@ -142,7 +147,18 @@ rather than as one number.
 which means it was fitted to them. A limit chosen to cut nothing in the data that produced it
 will cut nothing in that data. The question is what it cuts in data it has not seen.
 
-**The cell.** Task C, `rank`, n=10, at three floors:
+**Re-aimed to Task D, after cell 2 and before this cell ran.** The questions and the
+falsification criteria below are unchanged; only the task moves, and the reason is on the
+record because changing a cell after seeing data is exactly what this document exists to
+prevent.
+
+Cell 1 measured Task C's slowest green slice at **7 steps**, so a floor of twelve has five steps
+of headroom and a sweep of 8, 12 and 30 would move nothing. Cell 2 measured Task D's slowest
+green slice at **13 steps**, with one slice closing on its last permitted step at twelve. In
+Python the floor is the binding constraint, which is the only condition under which this cell
+can answer anything. See [cell 2](round5-cell2.md).
+
+**The cell.** Task D, `rank`, n=10, at three floors:
 
 | `BENCH_STEPS_FLOOR` | What it tests |
 |---|---|
@@ -152,6 +168,10 @@ will cut nothing in that data. The question is what it cuts in data it has not s
 
 Ceiling, patience and raise_by stay at their defaults throughout, so the only variable is where
 a turn starts.
+
+Cell 2 already showed the growth firing in 4 of 20 Python iterations and rescuing a green slice
+at thirteen steps. This cell asks what the floor costs when it cannot grow fast enough, and what
+it saves when it is lower than the work needs.
 
 **What would say the default is wrong.** Floor 8 losing nothing that floor 12 kept — then
 twelve is generous and the floor should come down. Or floor 12 losing green slices that floor
@@ -183,6 +203,115 @@ the end-of-plan re-probe kept.
 **The cost to record.** Steps spent on slices *after* the first failure, against how often
 those slices closed. That is the price of ADR-0063, and nobody has paid it yet with a number
 attached.
+
+---
+
+---
+
+# The free half
+
+Every run already produces a step-by-step trace and every driver until now discarded it. The
+round writes `steps.tsv`: one row per step, with the iteration, the model, the slice, the role,
+the tool, its identifying argument and the one-line outcome. Three markers in that outcome are
+not reconstructable from the summary rows — `ROLLED BACK` is
+[ADR-0051](../adr/0051-checkpoint-before-every-write.md) firing, `REPEAT` is
+[ADR-0050](../adr/0050-loop-detection-warns-before-it-stops.md) warning, and a `say` step is a
+turn that ended without calling a tool.
+
+The six questions below cost no extra machine time. Each names the mechanism it tests, all of
+which are shipped and none of which has ever been measured.
+
+## Q7 — Is a slice hard, or is it hard for one model?
+
+**Why it matters.** `scaffold.py` is deterministic, so iteration *i* hands both models an
+identical starting state. Every `rank` cell is therefore a **paired** comparison and the fourth
+run did not use it: it reported each model's totals as if the two had been given different
+work. Whether hardness lives in the task or in the model decides where `limits.steps` belongs —
+one number in the project's configuration, or one per model.
+
+**The cell.** Every `rank` cell. No new code: `iteration` and `model` are already columns.
+
+**The comparison.** For each (iteration, slice), did both models reach it, neither, or one. Then
+the step counts of the slices both reached.
+
+**What would say hardness is the task's.** Failures concentrating on the same slices for both
+models. Then one floor serves both and ADR-0062's defaults stay where they are.
+
+**What would say it is the model's.** Failures landing on different slices. Then a single floor
+is an average of two different machines and the allowance has to move into the model's profile.
+
+## Q8 — How often does a turn cost a step and do nothing?
+
+**Why it matters.** A turn that answers without calling a tool spends a dispatch and a step off
+the allowance, and produces nothing but a nudge. `num_predict` is 4096. If this is rare it is
+noise; if it is one step in five then ADR-0062's floor of twelve is really a floor of nine, and
+the output budget is the defect rather than the allowance.
+
+**The cell.** Every cell. Count `say` steps in `steps.tsv` against total steps, split by whether
+the outcome names a spent budget.
+
+**What would say the floor is wrong.** More than about 10% of steps producing nothing. Then the
+floor was measured in units that include waste and the budget has to be raised before the floor
+means anything.
+
+## Q9 — Does ADR-0051's rollback ever fire?
+
+**Why it matters.** Checkpoint-before-every-write, scoring by cases passing, and restoring a
+regression is a shipped mechanism with no measurement behind it at all. It may be protecting
+against something that does not happen at this slice size, in which case it is ceremony. It may
+also be firing often and fighting the model.
+
+**The cell.** Every cell. Count `ROLLED BACK` in `steps.tsv`, by run.
+
+**What would say it is ceremony.** Zero or near-zero firings across the whole round. Then the
+protection is untested rather than proven, and that should be said out loud rather than assumed.
+
+**What would say it is harmful.** Runs that rolled back reaching green less often than runs that
+did not. Then the restore is undoing work the model was in the middle of and the scope of the
+comparison is wrong.
+
+## Q10 — Does warning a looping model work?
+
+**Why it matters.** [ADR-0050](../adr/0050-loop-detection-warns-before-it-stops.md) chose to
+warn at a repeat and stop at six, reversing defect 1, which was stopping at the first. The
+choice cost five extra steps per loop and nobody has measured whether a warned model changes
+course.
+
+**The cell.** Every cell. Of the runs with a `REPEAT` step, how many then reached green, and how
+many went on to `LOOPING` anyway.
+
+**What would say the warning earns its steps.** A meaningful share of warned runs recovering.
+
+**What would say no.** Warned runs reaching `LOOPING` almost always. Then the five steps between
+the first repeat and the sixth are spent watching a model fail, and the threshold should come
+down.
+
+## Q11 — Is an expensive run slow, or just long?
+
+**Why it matters.** The fourth run's stuck runs took 17.5 minutes against 4.5. If that is more
+steps, the allowance is the lever. If it is slower steps, the one-hour cap is cutting runs that
+would have finished and the cap is the lever. These are different fixes and the fourth run
+cannot tell them apart.
+
+**The cell.** Every cell: `seconds` divided by `steps` per slice, grouped by outcome.
+
+**What would say the cap is the problem.** Seconds-per-step rising with the step number inside a
+run. Then the context is growing and the run is getting slower as it goes, which the cap then
+truncates.
+
+## Q12 — Does the window explain the expensive runs?
+
+**Why it matters.** The fourth run's stuck runs carried 93,697 prompt tokens against 18,016 —
+five times as many. Whether that is five times the steps or a window that stopped compacting is
+the difference between a planning problem and a context problem. `num_ctx` is 8192.
+
+**The cell.** Every cell: `prompt` divided by `steps`, grouped by outcome.
+
+**What would say it is the window.** Prompt tokens per step materially higher on the expensive
+runs. Then the window is not holding its budget and the step count is a symptom.
+
+**What would say it is not.** Prompt per step flat across both groups. Then the expensive runs
+are expensive only because they are long, and ADR-0062 already addresses that.
 
 ---
 

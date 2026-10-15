@@ -17,7 +17,7 @@
 //! Reads the step allowance from `BENCH_STEPS_*`.
 
 use corifeu_agent::Window;
-use corifeu_bench::{Task, held_out};
+use corifeu_bench::{Task, held_out, write_steps};
 use corifeu_doer::pair::{Pair, SliceOutcome};
 use corifeu_doer::{Doer, Goal, Limits};
 use corifeu_llamacpp::LlamaCpp;
@@ -99,6 +99,15 @@ fn main() {
     let started = Instant::now();
     let run = pair.work(&slice, &mut workspace);
     let seconds = started.elapsed().as_secs_f64();
+
+    // Both roles, labelled. ADR-0053 turns on who wrote what, and a trace that
+    // did not say which role took the step would be no use for it.
+    let module = &task.at(which).module;
+    for (role, turns) in [("qa", &run.qa), ("coder", &run.coder)] {
+        for turn in turns {
+            write_steps(&root, &iteration, &model, module, role, turn);
+        }
+    }
 
     let outcome = match &run.outcome {
         SliceOutcome::Green { cases } => format!("GREEN:{cases}"),

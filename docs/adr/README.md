@@ -177,3 +177,13 @@ Twenty runs per cell, enough slices to replace two constants with evidence.
 |---|---|---|
 | [0062](0062-step-allowance-has-a-floor-not-a-ceiling.md) | The step allowance has a floor that grows, not a ceiling that is guessed | Accepted |
 | [0063](0063-an-unfinished-slice-is-asked-again.md) | A slice that did not close is asked again at the end of the plan | Accepted |
+
+### Scaling past one language
+Supporting Python cost one declaration per Rust assumption the harness held. That worked and
+does not scale to any language, let alone to image and video. Two decisions about direction,
+taken before the work that would test them, so that the reasoning is not re-derived later.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0064](0064-a-model-writes-the-rule-it-is-not-the-rule.md) | A model writes the rule; a model is not the rule | Accepted, not implemented |
+| [0065](0065-an-oracle-and-a-judge-are-different-contracts.md) | An oracle and a judge are different contracts, and are never mixed | Accepted, not implemented |

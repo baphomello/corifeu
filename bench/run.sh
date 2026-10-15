@@ -83,6 +83,32 @@ if (( ${#VENV_PACKAGES[@]} )); then
   export PATH="$VENV/bin:$PATH"
 fi
 
+# Defect 23: the oracle could not run at all and it looked exactly like red
+# code. A scaffolded crate inside Corifeu's own cargo workspace fails every
+# command with "believes it's in a workspace when it's not", so eight slice
+# runs spent their whole allowance being told that correct code was wrong.
+#
+# This proves the oracle executes before the round starts. The suite's result
+# line is the proof: all-red is a valid result and so is no tests at all, but a
+# tool that never ran prints no result line whatsoever.
+probe() {
+  local dir="$1"
+  python3 -I "$HERE/tasks/scaffold.py" "$dir" --task "$TASK" --mode slices >/dev/null 2>&1 ||
+    { echo "the scaffold failed for $TASK" >&2; return 1; }
+  local out
+  out=$(cd "$dir" && CARGO_TARGET_DIR="$dir/.probe-target" "${SUITE[@]}" 2>&1)
+  if ! grep -qE 'test result: |[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s|no tests ran' <<<"$out"; then
+    echo "the oracle for $TASK does not run where this round writes:" >&2
+    echo "$out" | head -8 >&2
+    return 1
+  fi
+  grep -hoE 'test result: [^\n]*|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' <<<"$out" | tail -1
+}
+PROBE_DIR="$ROUND.probe"
+rm -rf "$PROBE_DIR"
+PROBE=$(probe "$PROBE_DIR") || exit 1
+rm -rf "$PROBE_DIR"
+
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
 ( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
@@ -101,6 +127,7 @@ LOG="$ROUND/log"
   echo "models:  ${MODELS[*]}"
   echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
   echo "suite:   ${SUITE[*]}"
+  echo "oracle:  $PROBE"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"

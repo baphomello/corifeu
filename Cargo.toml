@@ -3,7 +3,7 @@ resolver = "3"
 members = ["crates/*", "bench"]
 # The measurement fixtures are crates a round edits, not crates this workspace
 # builds. They are built by the round, inside the round's own directory.
-exclude = ["bench/tasks"]
+exclude = ["bench/tasks", "bench/rounds"]
 
 # Shared across every crate so metadata cannot drift between them.
 [workspace.package]

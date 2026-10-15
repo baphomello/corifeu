@@ -4,3 +4,7 @@ version = "0.0.0"
 edition = "2021"
 
 [dependencies]
+
+# Defect 23. Without this the crate looks up for a workspace, finds Corifeu's
+# own, is not a member of it, and every cargo command fails before running a
+# single test. A round writing into bench/rounds/ is inside that workspace.

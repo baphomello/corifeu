@@ -28,6 +28,19 @@ OUT="$HERE/rounds/round5-$STAMP"
 mkdir -p "$OUT"
 JOURNAL="$OUT/journal"
 
+# Killed on purpose: stop the children too, then leave. A plain `trap` handler
+# returns and bash carries on with the next cell, so stopping this script took
+# hunting run.sh down by hand the first time it mattered.
+halt() {
+  echo "[$(date +%H:%M:%S)] interrupted; stopping the round" | tee -a "$JOURNAL"
+  pkill -P $$ 2>/dev/null
+  pkill -f "$HERE/run.sh" 2>/dev/null
+  pkill -f "$(cd "$HERE/.." && pwd)/target/debug/rank" 2>/dev/null
+  pkill -f "$(cd "$HERE/.." && pwd)/target/debug/pair" 2>/dev/null
+  stop_server
+  exit 130
+}
+
 stop_server() {
   echo "[$(date +%H:%M:%S)] stopping the router" | tee -a "$JOURNAL"
   local pids
@@ -42,7 +55,8 @@ stop_server() {
   left=$(tasklist.exe /FI "IMAGENAME eq llama.exe" /FO CSV 2>/dev/null | grep -c '"llama.exe"')
   echo "[$(date +%H:%M:%S)] llama.exe still running: $left" | tee -a "$JOURNAL"
 }
-trap stop_server EXIT INT TERM
+trap stop_server EXIT
+trap halt INT TERM
 
 cell() {
   local n=$1 label=$2 mode=$3

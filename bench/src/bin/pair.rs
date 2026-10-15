@@ -20,10 +20,9 @@ use corifeu_agent::Window;
 use corifeu_bench::{Task, held_out};
 use corifeu_doer::pair::{Pair, SliceOutcome};
 use corifeu_doer::{Doer, Goal, Limits};
-use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_provider::Budget;
-use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
+use corifeu_workspace::{Guard, Ownership, Workspace};
 use std::time::Instant;
 
 fn main() {
@@ -36,10 +35,10 @@ fn main() {
 
     let task = Task::read(&root);
     let provider = LlamaCpp::new(format!("http://{host}:9931"));
-    let allow = Allowlist::new([vec!["cargo".into()]]);
+    let allow = task.allowlist();
     let mut workspace = Workspace::open(&root, root.join(".checkpoints")).expect("workspace");
 
-    let classes = Classes::new([Class::new("source", ["src/**"], [] as [&str; 0])]);
+    let classes = task.classes();
     let budget = Budget {
         num_predict: 4096,
         num_ctx: Some(8192),
@@ -77,7 +76,7 @@ fn main() {
             guard: Guard {
                 classes,
                 ownership: Ownership::new("coder", ["source"]),
-                protected: Some(Protected::new("#[test]", ["source"])),
+                protected: task.protected(),
             },
             window: Window::default(),
             limits,
@@ -88,9 +87,9 @@ fn main() {
     let slice = task.slice(
         which,
         format!(
-            "{} Put the tests in `#[cfg(test)] mod {}` at the end of the file.",
+            "{} Put the tests in {}.",
             task.at(which).specify,
-            task.at(which).module
+            task.tests_at(which)
         ),
         // QA's red run sets it (ADR-0057): nobody knows how many cases a slice
         // has until the tests exist.

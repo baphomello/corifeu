@@ -20,3 +20,4 @@ n,run,defect,origin,task,evidence
 19,4,QA writes the implementation it was asked to test,runtime,C slice 1 pair,"11 of 20 pair runs were green before the coder ran, with the check probed red beforehand"
 20,4,A failed run's workspace is overwritten by the next iteration,harness,C slice 1 pair,"the two NoRunnableTest runs cannot be inspected; their test counts came from grep, not from a run"
 21,5,Two crates sharing a cargo target directory swap test binaries,harness,harness smoke test,"`cargo test` in the pair workspace reported 12 failures from the held-out copy's binary; both packages were `pathclass 0.0.0`. Caught before the round ran"
+22,5,A multi-line provider error breaks the results TSV,harness,harness smoke test,"one PROVIDER_FAILED row became 14 lines when the host answered with an HTML 501 page; caught before the round ran"

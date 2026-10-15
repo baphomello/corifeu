@@ -94,6 +94,12 @@ allow = ["AGPL-3.0-or-later"]
 name = "corifeu-planner"
 allow = ["AGPL-3.0-or-later"]
 
+# Not shipped: the measurement harness (bench/). It is a workspace member so
+# that a runtime change breaking it breaks the build.
+[[licenses.exceptions]]
+name = "corifeu-bench"
+allow = ["AGPL-3.0-or-later"]
+
 [sources]
 unknown-registry = "deny"
 unknown-git = "deny"

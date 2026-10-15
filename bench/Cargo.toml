@@ -1,0 +1,19 @@
+[package]
+name = "corifeu-bench"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+corifeu-agent.workspace = true
+corifeu-check.workspace = true
+corifeu-doer.workspace = true
+corifeu-exec.workspace = true
+corifeu-llamacpp.workspace = true
+corifeu-provider.workspace = true
+corifeu-workspace.workspace = true
+serde.workspace = true
+serde_json.workspace = true

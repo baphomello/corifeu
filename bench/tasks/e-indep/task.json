@@ -1,0 +1,41 @@
+{
+  "name": "e-indep",
+  "summary": "Four conversions that have nothing to do with each other. The control for Task C, whose four slices call each other in a chain.",
+  "artefact": "src/lib.rs",
+  "oracle": ["cargo", "test", "--lib", "{module}"],
+  "whole_suite": ["cargo", "test", "--lib"],
+  "slices": [
+    {
+      "module": "slice1_roman",
+      "cases": 6,
+      "signature": "pub fn roman(n: u32) -> String {",
+      "helpers": [],
+      "implement": "`roman` is unimplemented. Implement it so its tests pass. It converts 1 to 3999 into Roman numerals, with the usual subtractive pairs; anything outside that range gives an empty string.",
+      "specify": "`roman(n: u32) -> String` converts 1 to 3999 into Roman numerals, using the subtractive pairs IV, IX, XL, XC, CD and CM. A number outside that range gives an empty string."
+    },
+    {
+      "module": "slice2_wrap",
+      "cases": 7,
+      "signature": "pub fn wrap(text: &str, width: usize) -> Vec<String> {",
+      "helpers": [],
+      "implement": "`wrap` is unimplemented. Implement it so its tests pass. It is a greedy word wrap: words are whatever lies between runs of whitespace, a line never exceeds the width, and a word longer than the width gets a line to itself rather than being split.",
+      "specify": "`wrap(text: &str, width: usize) -> Vec<String>` wraps text greedily. Words are whatever lies between runs of whitespace, a line never exceeds `width` characters, and a word longer than `width` gets a line to itself rather than being split."
+    },
+    {
+      "module": "slice3_base32",
+      "cases": 6,
+      "signature": "pub fn base32(bytes: &[u8]) -> String {",
+      "helpers": [],
+      "implement": "`base32` is unimplemented. Implement it so its tests pass. It is RFC 4648 base32: the alphabet A-Z then 2-7, five bytes to eight characters, padded with '=' to a multiple of eight.",
+      "specify": "`base32(bytes: &[u8]) -> String` encodes bytes as RFC 4648 base32: the alphabet A-Z followed by 2-7, five input bytes to eight output characters, padded with '=' to a multiple of eight."
+    },
+    {
+      "module": "slice4_luhn",
+      "cases": 7,
+      "signature": "pub fn luhn(digits: &str) -> bool {",
+      "helpers": [],
+      "implement": "`luhn` is unimplemented. Implement it so its tests pass. It is the Luhn checksum. Spaces may appear anywhere and are ignored; any other character makes the input invalid, as does fewer than two digits.",
+      "specify": "`luhn(digits: &str) -> bool` is the Luhn checksum. Spaces may appear anywhere and are ignored; any other character makes the input invalid, as does fewer than two digits."
+    }
+  ]
+}

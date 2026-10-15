@@ -1,6 +1,9 @@
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "bench"]
+# The measurement fixtures are crates a round edits, not crates this workspace
+# builds. They are built by the round, inside the round's own directory.
+exclude = ["bench/tasks"]
 
 # Shared across every crate so metadata cannot drift between them.
 [workspace.package]
@@ -32,6 +35,7 @@ corifeu-provider = { path = "crates/corifeu-provider", version = "0.0.0" }
 corifeu-llamacpp = { path = "crates/corifeu-llamacpp", version = "0.0.0" }
 corifeu-doer = { path = "crates/corifeu-doer", version = "0.0.0" }
 corifeu-planner = { path = "crates/corifeu-planner", version = "0.0.0" }
+corifeu-bench = { path = "bench", version = "0.0.0" }
 
 [profile.release]
 strip = true

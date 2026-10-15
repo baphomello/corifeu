@@ -1,7 +1,7 @@
 # 0056 — A slice has exactly one oracle, and the planner emits them all at once
 
 - **Status:** Accepted
-- **Date:** 2026-10-13
+- **Date:** 2026-10-13 (amended 2026-10-14)
 - **Supports:** [ADR-0011](0011-user-defined-granularity.md), [ADR-0019](0019-tie-breaking-and-oracle-precedence.md)
 - **Evidence:** [measurement](../measurement.md)
 
@@ -67,7 +67,12 @@ back to the planner, because that is evidence the decomposition was wrong.
   one is rejected before execution rather than discovered mid-run.
 - Slices are ordered and may depend on each other, so a failure early in the list invalidates
   what follows. The planner is re-consulted with the failure rather than the run being
-  abandoned.
+  abandoned. **Amended 2026-10-14 by [ADR-0063](0063-an-unfinished-slice-is-asked-again.md):**
+  the fourth run measured this and it came out the other way. Carrying on past a failed slice
+  is what produced the complete crate in eight of nineteen runs, and the slice that had not
+  closed was green when asked again at the end. A failure now ends the walk for one reason
+  only — an unreachable provider — and the planner is consulted only about slices still red
+  after the whole plan has run.
 - The one-oracle rule interacts with [ADR-0049](0049-faithful-check-results.md): a slice whose
   check does not terminate is not a failing slice, and should not consume the repair budget as
   though it were.

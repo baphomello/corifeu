@@ -284,6 +284,8 @@ pub struct Limits {
     #[serde(default = "default_rounds")]
     pub rounds_per_pair: u32,
     #[serde(default)]
+    pub steps: Steps,
+    #[serde(default)]
     pub task_budget_tokens: Option<u64>,
     #[serde(default)]
     pub run_budget_tokens: Option<u64>,
@@ -297,10 +299,43 @@ impl Default for Limits {
     fn default() -> Self {
         Self {
             rounds_per_pair: default_rounds(),
+            steps: Steps::default(),
             task_budget_tokens: None,
             run_budget_tokens: None,
             role_timeout_s: default_role_timeout(),
             loop_detection: true,
+        }
+    }
+}
+
+/// How many steps one role gets on one slice, and what makes that grow
+/// (ADR-0062).
+///
+/// A flat ceiling is either too high for work that finishes or a guess about
+/// work nobody has measured. `floor` is what a turn starts with; it grows by
+/// `raise_by`, never past `ceiling`, and only after `patience` turns have spent
+/// every step they had. Anything that reaches its goal puts it back at the
+/// floor.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Steps {
+    #[serde(default = "default_steps_floor")]
+    pub floor: u32,
+    #[serde(default = "default_steps_ceiling")]
+    pub ceiling: u32,
+    #[serde(default = "default_steps_patience")]
+    pub patience: u32,
+    #[serde(default = "default_steps_raise_by")]
+    pub raise_by: u32,
+}
+
+impl Default for Steps {
+    fn default() -> Self {
+        Self {
+            floor: default_steps_floor(),
+            ceiling: default_steps_ceiling(),
+            patience: default_steps_patience(),
+            raise_by: default_steps_raise_by(),
         }
     }
 }
@@ -623,6 +658,25 @@ pub struct Plugin {
 fn yes() -> bool {
     true
 }
+/// Twelve: the slowest of the fourth run's 57 green slices. Thirty-eight of
+/// them closed in one step.
+fn default_steps_floor() -> u32 {
+    12
+}
+
+/// Thirty: what the fourth run ran with, kept as the place growth stops.
+fn default_steps_ceiling() -> u32 {
+    30
+}
+
+fn default_steps_patience() -> u32 {
+    2
+}
+
+fn default_steps_raise_by() -> u32 {
+    6
+}
+
 fn default_rounds() -> u32 {
     3
 }

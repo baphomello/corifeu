@@ -1,7 +1,7 @@
 # 0057 — Oracle integrity is checked by test count, not by file ownership
 
 - **Status:** Accepted
-- **Date:** 2026-10-13
+- **Date:** 2026-10-13 (amended 2026-10-14)
 - **Refines:** [ADR-0049](0049-faithful-check-results.md), [ADR-0051](0051-checkpoint-before-every-write.md), [ADR-0052](0052-write-restriction-in-the-sandbox.md), [ADR-0053](0053-qa-writes-the-tests.md)
 - **Evidence:** [measurement](../measurement.md#the-oracle-passed-on-a-suite-that-no-longer-existed)
 
@@ -47,7 +47,11 @@ is a failure whatever its exit code.**
    `test result: ok. N passed; …`. Plain `go test` prints no count at all, and reports
    `ok  pkg  0.005s [no tests to run]` with exit 0, so under that runner the guard is
    unavailable unless the check runs with `-v`, where one `--- PASS:` line per case can be
-   counted. Corifeu names the runners it can count instead of assuming all of them.
+   counted. `pytest` prints one summary line — `1 failed, 2 passed, 1 skipped in 0.07s` —
+   from which the cases that executed can be read; a summary that also mentions `error` is
+   declined, because a module that failed to import never ran the tests inside it and
+   counting the rest would let this guard pass on a suite that had lost a whole file.
+   Corifeu names the runners it can count instead of assuming all of them.
 2. **`vacuous` is a verdict.** [ADR-0049](0049-faithful-check-results.md) added
    `did-not-terminate` as a third outcome beside pass and fail. This adds a fourth: a check
    that ran fewer cases than the slice declares is `vacuous`, and `vacuous` is a failure.

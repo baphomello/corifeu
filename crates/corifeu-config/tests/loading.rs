@@ -213,3 +213,30 @@ fn sibling_test_files_classify_as_tests() {
     );
     assert_eq!(classes[1].name, "source");
 }
+
+/// ADR-0062: the allowance has to be able both to run and to grow.
+#[test]
+fn a_ceiling_below_the_floor_is_refused() {
+    let cfg = format!("{MINIMAL}limits: {{ steps: {{ floor: 20, ceiling: 12 }} }}\n");
+    let err = load(vec![project(&cfg)]).expect_err("ceiling below floor");
+    assert!(err.to_string().contains("limits.steps.ceiling"), "{err}");
+}
+
+#[test]
+fn an_allowance_that_can_never_grow_warns() {
+    let cfg = format!("{MINIMAL}limits: {{ steps: {{ raise_by: 0 }} }}\n");
+    let loaded = load(vec![project(&cfg)]).expect("it still runs");
+    let warning = loaded
+        .warnings
+        .iter()
+        .find(|p| p.message.contains("limits.steps.raise_by"))
+        .expect("warned");
+    assert!(warning.message.contains("unreachable"), "{warning}");
+}
+
+#[test]
+fn the_step_allowance_defaults_to_the_measured_floor() {
+    let loaded = load(vec![project(MINIMAL)]).expect("valid");
+    assert_eq!(loaded.config.limits.steps.floor, 12);
+    assert_eq!(loaded.config.limits.steps.ceiling, 30);
+}

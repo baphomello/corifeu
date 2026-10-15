@@ -12,7 +12,9 @@
 //!   mask an exit status and a heredoc cannot go around a checkpoint
 //!   (ADR-0037, ADR-0060);
 //! - a write is checkpointed first and refused if it would delete the suite
-//!   (ADR-0051, ADR-0057).
+//!   (ADR-0051, ADR-0057);
+//! - a turn starts at a floor of steps rather than a guessed ceiling, and the
+//!   floor only grows where turns are seen running out (ADR-0062).
 //!
 //! # The runtime runs the oracle, not the model
 //!
@@ -88,9 +90,115 @@ impl Goal {
     }
 }
 
+/// How many steps a turn gets, and what makes that grow (ADR-0062).
+///
+/// The fourth run measured 57 slices that reached green and 12 that did not.
+/// Thirty-eight of the green ones closed in one step and the slowest in twelve;
+/// eleven of the stuck ones ran past twelve and bought nothing. A ceiling set
+/// where the stuck ones die is therefore paid for by every slice that finishes,
+/// and a ceiling set where the green ones finish is a guess about work nobody
+/// has measured yet. So it is not set: a turn starts at the floor, and the
+/// floor is only left behind where it is shown to be too low.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Steps {
+    /// What every turn starts with.
+    pub floor: u32,
+    /// What the allowance may grow to. Never exceeded.
+    pub ceiling: u32,
+    /// Turns cut at the current allowance before it grows. Zero never grows.
+    pub patience: u32,
+    /// What one growth adds.
+    pub raise_by: u32,
+}
+
+impl Default for Steps {
+    fn default() -> Self {
+        Self {
+            floor: 12,
+            ceiling: 30,
+            patience: 2,
+            raise_by: 6,
+        }
+    }
+}
+
+impl Steps {
+    /// One number and no growth, for a caller that wants a flat budget.
+    pub fn fixed(steps: u32) -> Self {
+        Self {
+            floor: steps,
+            ceiling: steps,
+            patience: 0,
+            raise_by: 0,
+        }
+    }
+}
+
+/// The allowance as it stands, and what it has seen. One per run.
+///
+/// Growth is earned by one outcome and no other. A turn that spent every step
+/// it had may have been close to finishing. A turn that went in circles was
+/// never short of steps, and counting it would hand the larger allowance to
+/// exactly the runs that waste it.
+#[derive(Debug, Clone, Copy)]
+pub struct Allowance {
+    steps: Steps,
+    now: u32,
+    cuts: u32,
+}
+
+impl Allowance {
+    pub fn new(steps: Steps) -> Self {
+        Self {
+            now: steps.floor.max(1),
+            cuts: 0,
+            steps,
+        }
+    }
+
+    /// What the next turn gets.
+    pub fn now(&self) -> u32 {
+        self.now
+    }
+
+    /// Whether the floor has been left behind, which is worth reporting: it
+    /// says this workload needs more than the configured default.
+    pub fn raised(&self) -> bool {
+        self.now > self.steps.floor
+    }
+
+    /// Record how a turn ended. Returns the new allowance when it grew.
+    pub fn saw(&mut self, outcome: &Outcome) -> Option<u32> {
+        match outcome {
+            // The floor was enough. Nothing is carried into the next turn.
+            Outcome::Reached => {
+                self.now = self.steps.floor.max(1);
+                self.cuts = 0;
+                None
+            }
+            Outcome::Exhausted { .. } => {
+                self.cuts += 1;
+                if self.steps.patience == 0
+                    || self.cuts < self.steps.patience
+                    || self.now >= self.steps.ceiling
+                {
+                    return None;
+                }
+                self.cuts = 0;
+                self.now = self
+                    .now
+                    .saturating_add(self.steps.raise_by)
+                    .min(self.steps.ceiling);
+                Some(self.now)
+            }
+            Outcome::Looping | Outcome::ProviderFailed { .. } => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Limits {
-    pub max_steps: u32,
+    pub steps: Steps,
     /// Characters of command output a step may carry (ADR-0049 §2).
     pub output_budget: usize,
 }
@@ -98,7 +206,7 @@ pub struct Limits {
 impl Default for Limits {
     fn default() -> Self {
         Self {
-            max_steps: 60,
+            steps: Steps::default(),
             output_budget: 12_000,
         }
     }
@@ -154,14 +262,21 @@ pub struct Doer<'a> {
 }
 
 impl Doer<'_> {
+    /// One turn at the configured floor.
     pub fn work(&self, slice: &Slice, workspace: &mut Workspace) -> Run {
+        self.work_within(slice, self.limits.steps.floor, workspace)
+    }
+
+    /// One turn with the allowance a caller is holding (ADR-0062).
+    pub fn work_within(&self, slice: &Slice, steps: u32, workspace: &mut Workspace) -> Run {
+        let steps = steps.max(1);
         let contract = Contract {
             task: slice.task.clone(),
             acceptance: slice.oracle.describe(),
         };
         let mut state = State::default();
 
-        for number in 1..=self.limits.max_steps {
+        for number in 1..=steps {
             let context = self
                 .window
                 .build(&contract, self.pinned(slice, workspace), &state.trace);
@@ -237,7 +352,7 @@ impl Doer<'_> {
         }
 
         let last = state.last_verdict;
-        state.finish(self.limits.max_steps, Outcome::Exhausted { last })
+        state.finish(steps, Outcome::Exhausted { last })
     }
 
     /// Run a slice's oracle once, without a model, and say whether it passes

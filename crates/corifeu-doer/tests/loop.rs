@@ -7,7 +7,7 @@
 
 use corifeu_agent::Window;
 use corifeu_check::Verdict;
-use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice};
+use corifeu_doer::{Allowance, Doer, Goal, Limits, Oracle, Outcome, Slice, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_provider::{Budget, Error, Message, Provider, Stop, ToolCall, Turn, http};
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
@@ -189,7 +189,7 @@ fn doer<'a>(provider: &'a Replay, max_steps: u32) -> Doer<'a> {
         guard: guard(),
         window: Window::default(),
         limits: Limits {
-            max_steps,
+            steps: Steps::fixed(max_steps),
             output_budget: 4_000,
         },
     }
@@ -563,4 +563,80 @@ fn a_green_slice_is_not_a_regression_from_a_larger_one() {
         "ABC DONE\n",
         "the second slice's work must survive"
     );
+}
+
+// ------------------------------------------------------------- the allowance
+
+/// ADR-0062. Three per-slice outcomes, three different things to do with the
+/// allowance, and only one of them buys more steps.
+fn steps() -> Steps {
+    Steps {
+        floor: 12,
+        ceiling: 30,
+        patience: 2,
+        raise_by: 6,
+    }
+}
+
+#[test]
+fn an_allowance_starts_at_the_floor() {
+    assert_eq!(Allowance::new(steps()).now(), 12);
+}
+
+#[test]
+fn the_allowance_grows_only_once_patience_has_run_out() {
+    let mut allowance = Allowance::new(steps());
+
+    assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), None);
+    assert_eq!(allowance.now(), 12, "one cut is not evidence");
+
+    assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), Some(18));
+    assert_eq!(allowance.now(), 18);
+    assert!(allowance.raised());
+}
+
+/// A turn that went in circles was never short of steps. Counting it would
+/// hand the larger allowance to exactly the runs that waste it.
+#[test]
+fn going_in_circles_never_buys_more_steps() {
+    let mut allowance = Allowance::new(steps());
+
+    for _ in 0..10 {
+        assert_eq!(allowance.saw(&Outcome::Looping), None);
+    }
+    assert_eq!(allowance.now(), 12);
+    assert!(!allowance.raised());
+}
+
+/// The floor was enough, so nothing is carried forward. Without this the
+/// allowance only ever ratchets up, and the ceiling becomes the default.
+#[test]
+fn a_turn_that_reached_its_goal_puts_the_allowance_back_at_the_floor() {
+    let mut allowance = Allowance::new(steps());
+    allowance.saw(&Outcome::Exhausted { last: None });
+    allowance.saw(&Outcome::Exhausted { last: None });
+    assert_eq!(allowance.now(), 18);
+
+    allowance.saw(&Outcome::Reached);
+
+    assert_eq!(allowance.now(), 12);
+    assert!(!allowance.raised());
+}
+
+#[test]
+fn the_allowance_stops_at_the_ceiling() {
+    let mut allowance = Allowance::new(steps());
+    for _ in 0..40 {
+        allowance.saw(&Outcome::Exhausted { last: None });
+    }
+    assert_eq!(allowance.now(), 30);
+}
+
+#[test]
+fn a_fixed_allowance_never_grows() {
+    let mut allowance = Allowance::new(Steps::fixed(7));
+    for _ in 0..10 {
+        assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), None);
+    }
+    assert_eq!(allowance.now(), 7);
 }

@@ -50,6 +50,7 @@ impl Cases {
 pub fn count(output: &str) -> Cases {
     cargo(output)
         .or_else(|| go_verbose(output))
+        .or_else(|| pytest(output))
         .map_or(Cases::Unknown, |(ran, passed)| Cases::Counted {
             ran,
             passed,
@@ -101,6 +102,63 @@ fn go_verbose(output: &str) -> Option<(u32, u32)> {
         .filter(|l| l.starts_with("--- FAIL:"))
         .count() as u32;
     Some((passed + failed, passed))
+}
+
+/// `pytest` prints one summary line, framed in `=` or bare under `-q`.
+///
+/// ```text
+/// ===== 1 failed, 2 passed, 1 skipped, 1 xfailed, 1 xpassed in 0.07s =====
+/// ============================ no tests ran in 0.02s =====================
+/// ```
+///
+/// `skipped` and `deselected` did not execute, so they are left out, exactly as
+/// `cargo`'s ignored and filtered cases are. An unrecognised word declines the
+/// line rather than being ignored: a count that silently drops an outcome is
+/// the wrong count, and the guard this feeds is there to catch a suite that
+/// shrank.
+///
+/// A summary mentioning `error` is declined outright. A module that failed to
+/// import never ran the tests inside it, and counting the ones that did would
+/// let ADR-0057's guard pass on a suite that had quietly lost a whole file.
+/// This is the same answer `cargo` gives a crate that does not compile.
+fn pytest(output: &str) -> Option<(u32, u32)> {
+    output.lines().rev().find_map(pytest_summary)
+}
+
+fn pytest_summary(line: &str) -> Option<(u32, u32)> {
+    let line = line.trim().trim_matches('=').trim();
+    let (counts, duration) = line.rsplit_once(" in ")?;
+    if !is_duration(duration) {
+        return None;
+    }
+    if counts == "no tests ran" {
+        return Some((0, 0));
+    }
+
+    let (mut ran, mut passed) = (0, 0);
+    for part in counts.split(", ") {
+        let (number, word) = part.split_once(' ')?;
+        let n: u32 = number.parse().ok()?;
+        match word {
+            // An expected pass is a pass, and an unexpected one still ran.
+            "passed" | "xpassed" => {
+                ran += n;
+                passed += n;
+            }
+            "failed" | "xfailed" => ran += n,
+            "skipped" | "deselected" | "warning" | "warnings" => {}
+            _ => return None,
+        }
+    }
+    Some((ran, passed))
+}
+
+/// `0.07s`, or `1m 2.30s` once a suite gets slow.
+fn is_duration(text: &str) -> bool {
+    text.ends_with('s')
+        && text
+            .chars()
+            .all(|c| c.is_ascii_digit() || matches!(c, '.' | ' ' | 'h' | 'm' | 's'))
 }
 
 /// Read the number immediately before `word` in `summary`.
@@ -194,6 +252,73 @@ FAIL\tprobe\t0.010s
     #[test]
     fn go_reports_no_tests_to_run_with_no_count() {
         assert_eq!(count(GO_NO_TESTS_TO_RUN), Cases::Unknown);
+    }
+
+    // Captured from pytest 9.1.1.
+    const PYTEST_MIXED: &str = "\
+=========================== short test summary info ============================
+FAILED pyt/test_mixed.py::test_c - assert False
+========= 1 failed, 2 passed, 1 skipped, 1 xfailed, 1 xpassed in 0.07s =========
+";
+    const PYTEST_QUIET: &str = "\
+FAILED pyt/test_mixed.py::test_c - assert False
+1 failed, 2 passed, 1 skipped, 1 xfailed, 1 xpassed in 0.05s
+";
+    const PYTEST_DESELECTED_TO_NOTHING: &str = "\
+============================ 6 deselected in 0.03s =============================
+";
+    const PYTEST_NO_TESTS_RAN: &str = "\
+============================ no tests ran in 0.02s =============================
+";
+    const PYTEST_COLLECTION_ERROR: &str = "\
+ERROR pyt/test_broken.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.18s ===============================
+";
+    const PYTEST_PARTIAL_COLLECTION: &str = "\
+ERROR pyt/test_broken.py
+==== 1 failed, 2 passed, 1 skipped, 1 xfailed, 1 xpassed, 1 error in 0.06s =====
+";
+
+    #[test]
+    fn pytest_counts_what_executed_and_leaves_out_what_did_not() {
+        // 1 failed + 2 passed + 1 xfailed + 1 xpassed ran; skipped did not.
+        assert_eq!(count(PYTEST_MIXED), Cases::Counted { ran: 5, passed: 3 });
+    }
+
+    #[test]
+    fn pytest_quiet_has_no_framing_and_counts_the_same() {
+        assert_eq!(count(PYTEST_QUIET), Cases::Counted { ran: 5, passed: 3 });
+    }
+
+    #[test]
+    fn pytest_deselected_to_nothing_counts_zero_not_unknown() {
+        // ADR-0057 again: this exits non-zero but a filter that matches nothing
+        // must still be distinguishable from a suite that was never attempted.
+        assert_eq!(
+            count(PYTEST_DESELECTED_TO_NOTHING),
+            Cases::Counted { ran: 0, passed: 0 }
+        );
+    }
+
+    #[test]
+    fn pytest_no_tests_ran_counts_zero() {
+        assert_eq!(
+            count(PYTEST_NO_TESTS_RAN),
+            Cases::Counted { ran: 0, passed: 0 }
+        );
+    }
+
+    #[test]
+    fn pytest_collection_error_has_no_count() {
+        assert_eq!(count(PYTEST_COLLECTION_ERROR), Cases::Unknown);
+    }
+
+    /// The dangerous one. Five cases ran and a sixth file never loaded, so the
+    /// honest answer is that the count is unknown — not five.
+    #[test]
+    fn pytest_declines_when_a_module_failed_to_load() {
+        assert_eq!(count(PYTEST_PARTIAL_COLLECTION), Cases::Unknown);
     }
 
     #[test]

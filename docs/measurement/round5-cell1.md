@@ -101,6 +101,9 @@ measured. It is now.
 the allowance and four were stopped as loops. Of the sixty-three that never repeated, sixty-two
 succeeded.
 
+[Cell 2](round5-cell2.md) qualifies this: in Python two of twelve warned slices did recover, so
+the rescue rate across both cells is 2 of 29 rather than zero.
+
 The price: **111 of the cell's 289 steps — 38% — were spent after a first repeat**, and they
 bought nothing.
 

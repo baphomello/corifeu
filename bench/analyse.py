@@ -14,6 +14,7 @@ it cannot answer rather than printing a zero.
 
 import collections
 import csv
+import re
 import sys
 from pathlib import Path
 
@@ -48,9 +49,16 @@ def pct(n, of):
     return f"{100 * n / of:.0f}%" if of else "-"
 
 
+def settled(final):
+    """The crate's final state, without the duration that makes two identical
+    results look like two different ones. pytest prints `26 passed in 0.10s`,
+    and counting that verbatim turned nine complete crates into six rows."""
+    return re.sub(r"\s+in \d+\.\d+s$", "", final.strip()).rstrip(";")
+
+
 def delivery(c):
     print("  the crate at the end")
-    for what, n in collections.Counter(r[3] for r in c["finals"]).most_common():
+    for what, n in collections.Counter(settled(r[3]) for r in c["finals"]).most_common():
         print(f"    {n:>3}  {what}")
     closed = sum(1 for r in c["slices"] if outcome(r) == "GREEN")
     early = sum(1 for r in c["slices"] if outcome(r) == "DELIVERED_EARLY")
@@ -63,6 +71,14 @@ def delivery(c):
     for module in sorted(by):
         counts = ", ".join(f"{k.lower()} {v}" for k, v in by[module].most_common())
         print(f"    {module:<16} {counts}")
+
+
+def complete(final):
+    """Every case passing, in either language's wording."""
+    f = settled(final)
+    return f.startswith("test result: ok") or (
+        "passed" in f and "failed" not in f and "did not build" not in f
+    )
 
 
 def q6(c):
@@ -78,7 +94,7 @@ def q6(c):
           f"not missing)")
     # A red re-probe is work that is actually absent. Whether those runs still
     # delivered is the question ADR-0063 turns on.
-    delivered = {k for k, v in c["final"].items() if v.startswith("test result: ok")}
+    delivered = {k for k, v in c["final"].items() if complete(v)}
     red_runs = {(r[1], r[2]) for r in rows if r[4] == "RED"}
     both = sorted(red_runs & delivered)
     print(f"    runs holding a red re-probe: {len(red_runs)}, of which delivered: {len(both)}")

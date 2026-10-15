@@ -14,11 +14,25 @@
 use corifeu_agent::Window;
 use corifeu_bench::Task;
 use corifeu_doer::{Allowance, Doer, Goal, Limits, Outcome};
-use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_provider::Budget;
-use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
+use corifeu_workspace::{Guard, Ownership, Workspace};
 use std::time::Instant;
+
+/// One row is one line.
+///
+/// A provider error carries whatever the server said, and a server that is not
+/// the one expected says it in HTML. A newline inside a field turns
+/// `results.tsv` into something no reader can parse, which is defect 22 and was
+/// found by the harness smoke test rather than by a round.
+fn one_line(text: &str) -> String {
+    text.split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .chars()
+        .take(200)
+        .collect()
+}
 
 fn main() {
     let mut args = std::env::args().skip(1);
@@ -29,7 +43,7 @@ fn main() {
 
     let task = Task::read(&root);
     let provider = LlamaCpp::new(format!("http://{host}:9931"));
-    let allow = Allowlist::new([vec!["cargo".into()]]);
+    let allow = task.allowlist();
     let mut workspace = Workspace::open(&root, root.join(".checkpoints")).expect("workspace");
 
     let doer = Doer {
@@ -43,9 +57,9 @@ fn main() {
         },
         allowlist: allow.clone(),
         guard: Guard {
-            classes: Classes::new([Class::new("source", ["src/**"], [] as [&str; 0])]),
+            classes: task.classes(),
             ownership: Ownership::new("coder", ["source"]),
-            protected: Some(Protected::new("#[test]", ["source"])),
+            protected: task.protected(),
         },
         window: Window::default(),
         limits: Limits {
@@ -102,7 +116,7 @@ fn main() {
                 Outcome::Reached => "GREEN".to_string(),
                 Outcome::Exhausted { .. } => "EXHAUSTED".to_string(),
                 Outcome::Looping => "LOOPING".to_string(),
-                Outcome::ProviderFailed { why } => format!("PROVIDER_FAILED {why}"),
+                Outcome::ProviderFailed { why } => format!("PROVIDER_FAILED {}", one_line(why)),
             },
             run.steps,
             run.prompt_tokens,

@@ -8,6 +8,8 @@
 # Python
 __pycache__/
 *.pyc
+# The test runner a Python task pins; bench/run.sh provisions it.
+bench/.venv/
 
 # Measurement rounds. The harness is committed; what a round produced is not —
 # the summary goes to docs/measurement.md and the raw rows to

@@ -48,6 +48,41 @@ CAP=${BENCH_TIMEOUT:-3600}
 SLICE=${BENCH_SLICE:-1}
 TASK=${BENCH_TASK:-c-glob}
 
+# The fourth run's lesson, cheaply: a round against a router that is not there
+# produces N rows of PROVIDER_FAILED and takes the full timeout to do it. Any
+# HTTP response at all is enough — this probes reachability, not routes.
+# `-w` prints a code even when the connection is refused, so there is no `||`
+# fallback here: adding one made this read "000000" and never match.
+code=$(curl -s --max-time 5 -o /dev/null -w '%{http_code}' "http://$HOST:9931/health")
+if [ -z "$code" ] || [ "$code" = "000" ]; then
+  echo "no llama.cpp router answering at $HOST:9931 — start it before the round" >&2
+  exit 1
+fi
+
+# What the task says about itself. The harness reads these rather than assuming
+# cargo, so that adding a language is a task directory and not a patch to this
+# script. Null-separated and read into an array, so that an argument with a
+# space in it survives and nothing here needs an eval.
+MANIFEST="$HERE/tasks/$TASK/task.json"
+field() { python3 -I -c '
+import json, sys
+for part in json.load(open(sys.argv[1])).get(sys.argv[2], []):
+    sys.stdout.write(part + "\0")
+' "$MANIFEST" "$1"; }
+mapfile -t -d "" SUITE < <(field whole_suite) || exit 1
+mapfile -t -d "" VENV_PACKAGES < <(field venv) || exit 1
+(( ${#SUITE[@]} )) || { echo "$MANIFEST declares no whole_suite" >&2; exit 1; }
+
+# A Python task needs an interpreter with its test runner on it, and the one a
+# round runs against has to be pinned: `corifeu-check` counts pytest's summary
+# line, and that line is a captured sample, not a guess.
+if (( ${#VENV_PACKAGES[@]} )); then
+  VENV="$HERE/.venv"
+  [ -x "$VENV/bin/python" ] || python3 -m venv "$VENV" || exit 1
+  "$VENV/bin/python" -m pip install -q "${VENV_PACKAGES[@]}" || exit 1
+  export PATH="$VENV/bin:$PATH"
+fi
+
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
 ( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
@@ -64,6 +99,7 @@ LOG="$ROUND/log"
   echo "host:    $HOST"
   echo "models:  ${MODELS[*]}"
   echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
+  echo "suite:   ${SUITE[*]}"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
@@ -95,8 +131,8 @@ for i in $(seq 1 "$N"); do
     # Measured here, not in the driver, so that a round killed at the cap still
     # says what the crate ended up as. This is how the fourth run kept its
     # FINAL rows when an iteration hit the one-hour limit.
-    ( cd "$W" && cargo test --lib ) > "$W/final.txt" 2>&1
-    FINAL=$(grep -hoE 'test result: [a-zA-Z]+\. [0-9]+ passed; [0-9]+ failed' "$W/final.txt" | tail -1)
+    ( cd "$W" && "${SUITE[@]}" ) > "$W/final.txt" 2>&1
+    FINAL=$(grep -hoE 'test result: [a-zA-Z]+\. [0-9]+ passed; [0-9]+ failed|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' "$W/final.txt" | tail -1)
     printf 'FINAL\t%s\t%s\t%s\n' "$i" "$M" "${FINAL:-did not build}" >> "$RESULTS"
 
     # The sources, the checkpoints and the final output are the evidence. The

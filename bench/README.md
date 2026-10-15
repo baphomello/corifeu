@@ -14,11 +14,14 @@ bench/run.sh rank 10 qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
 bench/run.sh pair 10 ornith1.5-9b-Q5_K_M
 BENCH_SLICE=3 bench/run.sh pair 10 ornith1.5-9b-Q5_K_M   # the expensive slice
 BENCH_TASK=e-indep bench/run.sh rank 10 ornith1.5-9b-Q5_K_M
+BENCH_TASK=d-glob-py bench/run.sh rank 10 ornith1.5-9b-Q5_K_M
 ```
 
 You need a llama.cpp server in router mode on port 9931 that can load the models you name.
 `run.sh` finds the host from the default route, which is right under WSL; set `BENCH_HOST`
-otherwise.
+otherwise. It probes that port before anything else and refuses to start without an answer:
+a round against a router that is not there produces one `PROVIDER_FAILED` row per iteration
+and spends a connect timeout on each one.
 
 A round writes to `bench/rounds/<stamp>-<mode>/`, which is not committed:
 
@@ -51,6 +54,10 @@ matters.
 
 ### The held-out suite
 
+Rust only, for now. The judging copy appends the hidden cases to `src/lib.rs` and runs
+`cargo test`, because a Rust unit test has to live in the file it tests. A `rank` round works
+in any language; a `pair` round does not, and a task with no `held-out.rs` scores `-`.
+
 `pair` finishes by running `tasks/c-glob/held-out/slice<n>.rs` against the crate the round
 produced, in a copy, under a different package name. There are twelve cases for
 [slice 1](tasks/c-glob/held-out/slice1.rs) and thirteen for
@@ -66,19 +73,48 @@ fails would be measuring the suite, not the work.
 
 ## The tasks
 
-A task is a directory under `tasks/` holding `task.json`, the complete crate it describes, and
-one held-out suite per slice that a pair can work. The crate is green before a round touches
-it. `task.json` carries everything else — the artefact, the oracle, and per slice its case
-count, the signature to stub, the helpers to delete with it, and the two wordings a doer and a
-pair are given. The drivers read it from the workspace rather than carrying a copy in Rust, so
-adding a task is a directory and a JSON file.
+A task is a directory under `tasks/` holding `task.json`, the complete project it describes,
+and one held-out suite per slice that a pair can work. The project is green before a round
+touches it.
 
-| | `c-glob` | `e-indep` |
-|---|---|---|
-| What | a glob matcher and a path classifier | Roman numerals, word wrap, base32, Luhn |
-| Slices | 4, each calling the one before it | 4, calling nothing at all |
-| Cases | 26 | 26 |
-| Held-out suites | slices 1 and 3 | none yet; `rank` only |
+`task.json` carries everything else, and that includes everything about the language. Nothing
+in `run.sh` or in either driver names `cargo`:
+
+| Field | What it decides |
+|---|---|
+| `artefact` | the one file every slice edits |
+| `oracle` | the per-slice check, with `{module}` standing in for the slice |
+| `whole_suite` | the command `run.sh` runs for the `FINAL` row |
+| `tools` | argv prefixes a doer may run — the allowlist |
+| `owned` | globs for the one file class the doers own |
+| `protected` | a marker the coder may not remove ([ADR-0059](../docs/adr/0059-a-test-is-unvalidated-until-green.md)) |
+| `tests_at` | where a pair's QA is told to put the tests |
+| `language` | which cutter `scaffold.py` uses: braces or indentation |
+| `copy` | files copied into the workspace beside the artefact |
+| `venv` | pinned test-runner packages `run.sh` provisions into `bench/.venv` |
+
+Per slice it carries the case count, the signature to stub, the helpers to delete with it, and
+the two wordings a doer and a pair are given. The drivers read the file from the workspace
+rather than carrying a copy in Rust, so adding a task is a directory and a JSON file.
+
+| | `c-glob` | `e-indep` | `d-glob-py` |
+|---|---|---|---|
+| Language | Rust | Rust | Python, pytest 9.1.1 |
+| What | a glob matcher and a path classifier | Roman numerals, word wrap, base32, Luhn | `c-glob`, ported |
+| Slices | 4, each calling the one before it | 4, calling nothing at all | 4, each calling the one before it |
+| Cases | 26 | 26 | 26 — the same 4-8-9-5 split |
+| Held-out suites | slices 1 and 3 | none yet; `rank` only | none yet; `rank` only |
+
+`d-glob-py` is the other control. ADR-0062's floor of twelve steps was measured against 57
+green slices that were all Rust, where a large part of the work was done by compiler errors — a
+precise, immediate, free oracle that most languages do not have. `d-glob-py` is a port and not
+a rewrite, so that the only difference between the two cells is the language.
+
+Its test runner is pinned. `corifeu-check` counts pytest's summary line from captured samples,
+not from a guess, so `run.sh` installs `pytest==9.1.1` into `bench/.venv` and puts it on PATH.
+Its oracle is `pytest -q pathclass.py -k <module>`, which is why the cases are top-level
+functions named `test_<module>_...` rather than classes: `-k` then selects a slice's cases the
+way `cargo test --lib <module>` does, and the two cells differ in nothing but the language.
 
 `e-indep` is the control. Every observation of a coder overflowing its slice
 ([ADR-0058](../docs/adr/0058-slice-boundaries-are-observed.md)) came from `c-glob`, where
@@ -89,16 +125,19 @@ deliberately unlike one another: a lookup table, a string loop, bit packing, and
 `tasks/scaffold.py` cuts the hole a round starts from.
 
 ```sh
-python3 tasks/scaffold.py /tmp/w --mode slices                 # 4 stubs, 26 tests
-python3 tasks/scaffold.py /tmp/w --mode pair --slice 1         # 1 stub, 0 tests, 12 held out
-python3 tasks/scaffold.py /tmp/w --mode pair --slice 3         # 1 stub, 0 tests, 13 held out
-python3 tasks/scaffold.py /tmp/w --task e-indep --mode slices  # 4 stubs, 26 tests
+python3 tasks/scaffold.py /tmp/w --mode slices                   # 4 stubs, 26 tests
+python3 tasks/scaffold.py /tmp/w --mode pair --slice 1           # 1 stub, 0 tests, 12 held out
+python3 tasks/scaffold.py /tmp/w --mode pair --slice 3           # 1 stub, 0 tests, 13 held out
+python3 tasks/scaffold.py /tmp/w --task e-indep --mode slices    # 4 stubs, 26 tests
+python3 tasks/scaffold.py /tmp/w --task d-glob-py --mode slices  # 4 stubs, 26 tests
 ```
 
 `--mode pair` also deletes the private helpers that exist only to serve the stubbed function.
-Leaving `glob_match_suffix` in place while `glob_match` is a `todo!()` would hand the coder
-the recursion it was asked to write, and the round would be measuring reading rather than
-work.
+Leaving `glob_match_suffix` in place while `glob_match` is a stub would hand the coder the
+recursion it was asked to write, and the round would be measuring reading rather than work.
+
+A Rust block ends at a brace and a Python block ends when the indentation comes back, so the
+cutting differs by language and nothing else does. `task.json`'s `language` picks the cutter.
 
 It prints what it produced. Read that line before a round: it is the only description of the
 starting state anyone will have afterwards.

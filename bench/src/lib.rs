@@ -10,6 +10,7 @@ use corifeu_check::{Cases, Check, Verdict};
 use corifeu_doer::Steps;
 use corifeu_doer::{Oracle, Slice};
 use corifeu_exec::{Allowlist, Command};
+use corifeu_workspace::{Class, Classes, Protected};
 use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -29,6 +30,20 @@ pub struct Task {
     pub oracle: Vec<String>,
     /// Every case the task has, for the row measured after a round is scored.
     pub whole_suite: Vec<String>,
+    /// Argv prefixes a doer may run. `[["cargo"]]` for a crate,
+    /// `[["python3", "-m", "pytest"]]` for a Python task — a prefix rather than
+    /// the bare program, because `python3` alone also runs `-c`.
+    pub tools: Vec<Vec<String>>,
+    /// Globs for the one file class the doers own. A task whose artefact is not
+    /// under `src/` would otherwise have every write refused.
+    pub owned: Vec<String>,
+    /// A marker the coder may not remove. None for a task that has no syntax
+    /// identifying a test.
+    pub protected: Option<String>,
+    /// Where a pair's QA is told to put the tests, with `{module}` standing in
+    /// for the slice's module. Rust wants a `#[cfg(test)] mod`; pytest wants
+    /// functions with a prefix. Neither belongs in a driver.
+    pub tests_at: String,
     pub slices: Vec<TaskSlice>,
 }
 
@@ -48,6 +63,31 @@ impl Task {
         let text = std::fs::read_to_string(work.join("task.json"))
             .unwrap_or_else(|e| panic!("no task.json in {}: {e}", work.display()));
         serde_json::from_str(&text).unwrap_or_else(|e| panic!("task.json: {e}"))
+    }
+
+    /// What the doers may run. Everything else goes through the allowlist's
+    /// denial path, which is the point: a round where the model shells out is a
+    /// round measuring something else.
+    pub fn allowlist(&self) -> Allowlist {
+        Allowlist::new(self.tools.clone())
+    }
+
+    /// The one file class. Both roles own it — Rust keeps a unit test inside
+    /// the file it tests, so file-class ownership cannot separate them (defect
+    /// 14), and a task that *could* separate them would still be comparing
+    /// against Task C if it did.
+    pub fn classes(&self) -> Classes {
+        Classes::new([Class::new("source", self.owned.clone(), [] as [&str; 0])])
+    }
+
+    pub fn protected(&self) -> Option<Protected> {
+        self.protected
+            .as_ref()
+            .map(|marker| Protected::new(marker, ["source"]))
+    }
+
+    pub fn tests_at(&self, which: usize) -> String {
+        self.tests_at.replace("{module}", &self.at(which).module)
     }
 
     pub fn at(&self, which: usize) -> &TaskSlice {
@@ -129,6 +169,11 @@ impl std::fmt::Display for HeldOut {
 ///
 /// Judged in a copy. Appending the hidden cases to the crate would change the
 /// artefact the round produced, and that artefact is the evidence.
+///
+/// This is the one part of the harness that is still Rust-only: it appends to
+/// `src/lib.rs` and runs `cargo test`. Rank rounds read the task's own fields
+/// and work in any language; a pair round does not, and `NotAsked` is what a
+/// task without `held-out.rs` gets.
 pub fn held_out(work: &Path, allow: &Allowlist) -> HeldOut {
     let Ok(cases) = std::fs::read_to_string(work.join("held-out.rs")) else {
         return HeldOut::NotAsked;

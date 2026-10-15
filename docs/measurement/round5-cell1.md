@@ -8,6 +8,8 @@ they came from is closed. Cells 2 to 7 are separate questions and are not in her
 - **Commit:** `28af2b4`. **Ran:** 2026-10-15 02:31 to 06:27, 235 minutes, 20 iterations.
 - **Oracle, proved before the round:** `test result: FAILED. 0 passed; 26 failed`.
 - Raw rows: `results.tsv` and, for the first time, `steps.tsv` — one row per step.
+- Every number below is printed by `bench/analyse.py`, which exists because the first draft of
+  this page carried two numbers typed by hand and both were wrong.
 
 This cell exists to be the baseline the other `rank` cells are compared against, and it is the
 first measurement of [ADR-0062](../adr/0062-step-allowance-has-a-floor-not-a-ceiling.md) and
@@ -26,9 +28,12 @@ The fourth run delivered 19 of 20 under a flat 30-step ceiling. 17 of 20 under a
 not a distinguishable difference at this sample size, and the three decisions taken since are
 not refuted by it.
 
-**Every slice in every delivered run either closed or was overtaken.** No run finished with work
-that was simply missing, which is ADR-0063's claim and now its measurement: 52 slices closed
-under their own role and 8 were overtaken by an adjacent slice's coder.
+Of the 80 slice runs: **49 closed** under their own oracle, **13 were already green** when the
+slice was first probed, **12 were green on the end-of-plan re-probe**, and **6 were genuinely
+missing**. Those six sit in three runs, and all three are runs that did not deliver.
+
+**Every one of the 17 delivered runs had each slice either closed, already green, or green on
+the re-probe.** No delivered run finished holding work that was simply absent.
 
 | Slice | Green | Delivered early | Exhausted | Looping |
 |---|---:|---:|---:|---:|
@@ -36,6 +41,26 @@ under their own role and 8 were overtaken by an adjacent slice's coder.
 | 2 `match_seg` | 10 | 3 | 4 | 3 |
 | 3 `glob_match` | 12 | 3 | 5 | 0 |
 | 4 `classify` | 11 | 7 | 2 | 0 |
+
+## Q6 — asking again is right two times in three
+
+[ADR-0063](../adr/0063-an-unfinished-slice-is-asked-again.md) claims that a slice which did not
+close is often green once the rest of the plan has run, and that carrying on is cheaper than
+re-planning. The first half is now measured on data collected for the purpose rather than
+re-read from a round that was not asking.
+
+| The 18 slices that did not close | |
+|---|---:|
+| Green on the re-probe — late, not missing | **12** |
+| Red — the work is actually absent | 6 |
+
+Two thirds were late. [round5.md](round5.md) registered the falsification as "`AGAIN` rows
+coming back `RED` most of the time"; they did not.
+
+The six red ones concentrate in three runs, and those are exactly the three runs that failed to
+deliver. So a red re-probe is not noise — it is the signal that a run is in trouble, and under
+ADR-0056 each of those would have gone back to the planner on the strength of a slice whose work
+was, in two cases out of three, already written.
 
 ## Q8 — two steps in three produce nothing
 

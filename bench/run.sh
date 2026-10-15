@@ -115,7 +115,7 @@ fi
 # One row per step, every iteration appended. The drivers write it beside each
 # workspace; this is the whole round in one file, which is what any analysis
 # actually wants.
-printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\toutcome\n' > "$STEPS"
+printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\tflags\toutcome\n' > "$STEPS"
 
 for i in $(seq 1 "$N"); do
   for M in "${MODELS[@]}"; do

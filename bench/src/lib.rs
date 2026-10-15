@@ -162,11 +162,11 @@ pub fn one_line(text: &str) -> String {
 /// of when it started, which for an eighteen-hour round is the difference
 /// between a verdict and a dataset.
 ///
-/// Three things in here are not reconstructable from the summary rows:
-/// `ROLLED BACK` in an outcome is [ADR-0051](../../docs/adr/0051-checkpoint-before-every-write.md)
-/// firing, `REPEAT` is [ADR-0050](../../docs/adr/0050-loop-detection-warns-before-it-stops.md)
-/// warning, and a `say` step is a turn that spent its output budget without
-/// calling a tool — a step off the allowance that produced nothing.
+/// The `flags` column is read from the step's whole result, not from its
+/// outcome. `Step::outcome` keeps the first non-empty line and the runtime
+/// appends its rollback note after a blank line, so a flag taken from the
+/// outcome would have reported no rollbacks ever and Q9 would have come back
+/// as a confident zero.
 pub fn write_steps(work: &Path, iteration: &str, model: &str, module: &str, role: &str, run: &Run) {
     let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
@@ -178,12 +178,40 @@ pub fn write_steps(work: &Path, iteration: &str, model: &str, module: &str, role
     for step in &run.trace {
         let _ = writeln!(
             file,
-            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}",
+            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}\t{}",
             step.number,
             step.action.tool,
             one_line(&step.action.argument),
+            flags(&step.result),
             one_line(&step.outcome),
         );
+    }
+}
+
+/// Which shipped mechanism this step tripped, if any.
+///
+/// Each marker is written by the runtime and each belongs to a decision that
+/// has never been measured: a restore to [ADR-0051](../../docs/adr/0051-checkpoint-before-every-write.md),
+/// a repeat warning to [ADR-0050](../../docs/adr/0050-loop-detection-warns-before-it-stops.md),
+/// and a turn that ended without a tool call to ADR-0048's output budget.
+fn flags(result: &str) -> String {
+    let mut found = Vec::new();
+    if result.contains("ROLLED BACK") {
+        found.push("rollback");
+    }
+    if result.contains("REPEAT:") {
+        found.push("repeat");
+    }
+    if result.contains("was cut off at") {
+        found.push("budget");
+    }
+    if result.contains("without calling a tool") {
+        found.push("no-tool");
+    }
+    if found.is_empty() {
+        "-".to_string()
+    } else {
+        found.join("+")
     }
 }
 

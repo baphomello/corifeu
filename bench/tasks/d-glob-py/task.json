@@ -1,0 +1,48 @@
+{
+  "name": "d-glob-py",
+  "summary": "Task C in Python, function for function and case for case. The control for ADR-0062's floor of twelve, which was measured entirely against a Rust compiler.",
+  "artefact": "pathclass.py",
+  "oracle": ["python3", "-m", "pytest", "-q", "pathclass.py", "-k", "{module}"],
+  "whole_suite": ["python3", "-m", "pytest", "-q", "pathclass.py"],
+  "tools": [["python3", "-m", "pytest"]],
+  "owned": ["*.py"],
+  "protected": "def test_",
+  "tests_at": "top-level functions named `test_{module}_<what it checks>` at the end of the file",
+  "language": "python",
+  "copy": [],
+  "venv": ["pytest==9.1.1"],
+  "slices": [
+    {
+      "module": "slice1_segs",
+      "cases": 4,
+      "signature": "def split_segs(path: str) -> list[str]:",
+      "helpers": [],
+      "implement": "`split_segs` is unimplemented. Implement it so its tests pass.",
+      "specify": "`split_segs(path) -> list[str]` splits a path on '/' and drops empty components, so \"a//b\" and \"/a/b/\" both give [\"a\", \"b\"] and \"\" gives []."
+    },
+    {
+      "module": "slice2_seg",
+      "cases": 8,
+      "signature": "def match_seg(pattern: str, component: str) -> bool:",
+      "helpers": ["def _match_seg_impl(pattern: str, component: str) -> bool:"],
+      "implement": "`match_seg` is unimplemented. Implement it so its tests pass. It matches ONE path component against one pattern segment, where `*` is any run of characters and `?` is exactly one.",
+      "specify": "`match_seg(pattern, component) -> bool` matches ONE path component against one pattern segment. `*` matches any run of characters, including none; `?` matches exactly one. Neither matches a '/'."
+    },
+    {
+      "module": "slice3_glob",
+      "cases": 9,
+      "signature": "def glob_match(pattern: str, path: str) -> bool:",
+      "helpers": ["def _glob_match_suffix(pattern: list[str], path: list[str]) -> bool:"],
+      "implement": "`glob_match` is unimplemented. Implement it so its tests pass. `**` crosses `/`, `*` and `?` do not.",
+      "specify": "`glob_match(pattern, path) -> bool` matches a whole glob pattern against a whole path. `**` matches any number of path components including none; `*` and `?` stay inside one component, where `*` is any run of characters and `?` is exactly one."
+    },
+    {
+      "module": "slice4_classify",
+      "cases": 5,
+      "signature": "def classify(classes: list[FileClass], path: str) -> str | None:",
+      "helpers": [],
+      "implement": "`classify` is unimplemented. Implement it so its tests pass. The first class whose include globs match wins.",
+      "specify": "`classify(classes, path) -> str | None` returns the name of the first class in the list whose include globs match the path, or None."
+    }
+  ]
+}

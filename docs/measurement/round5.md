@@ -87,9 +87,21 @@ work was done by compiler errors — a precise, immediate, free oracle that most
 not have. A floor measured on a language with that feedback is not obviously a floor anywhere
 else.
 
-**The cell.** **Task D**: Task C ported to Python, same four functions, same case counts,
-`pytest` as the oracle. `bench/run.sh rank 10 <model>` against it, with the step allowance left
-at its defaults.
+**The cell.** [`bench/tasks/d-glob-py`](../../bench/tasks/d-glob-py): Task C ported to Python,
+same four functions, same helper chain, the same 4-8-9-5 split of the 26 cases, `pytest` as the
+oracle. A port and not a rewrite, so that the only difference between this cell and Q5's is the
+language.
+
+```sh
+BENCH_TASK=d-glob-py bench/run.sh rank 10 <model>
+```
+
+The step allowance stays at its defaults, because what is being tested is whether those
+defaults travel.
+
+Verified before the round: the reference passes 26 of 26; the scaffold leaves four stubs and 26
+cases, all red; and each slice's oracle selects exactly the count `task.json` declares — 4, 8, 9
+and 5, with the other slices' cases deselected rather than counted.
 
 **What would say no.** Green slices on Task D routinely taking more than twelve steps. Then
 twelve is a Rust number, the floor belongs in the per-project configuration rather than in the

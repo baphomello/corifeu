@@ -270,6 +270,11 @@ FAILED pyt/test_mixed.py::test_c - assert False
     const PYTEST_NO_TESTS_RAN: &str = "\
 ============================ no tests ran in 0.02s =============================
 ";
+    // `-k <module>` is how a slice's oracle selects its own cases, so this is
+    // the shape every Python round actually produces. The deselected 18 are the
+    // other slices' cases and must not reach ADR-0057's count.
+    const PYTEST_FILTERED_GREEN: &str = "8 passed, 18 deselected in 0.01s\n";
+    const PYTEST_FILTERED_RED: &str = "8 failed, 18 deselected in 0.12s\n";
     const PYTEST_COLLECTION_ERROR: &str = "\
 ERROR pyt/test_broken.py
 !!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
@@ -306,6 +311,18 @@ ERROR pyt/test_broken.py
         assert_eq!(
             count(PYTEST_NO_TESTS_RAN),
             Cases::Counted { ran: 0, passed: 0 }
+        );
+    }
+
+    #[test]
+    fn pytest_counts_only_the_selected_slice() {
+        assert_eq!(
+            count(PYTEST_FILTERED_GREEN),
+            Cases::Counted { ran: 8, passed: 8 }
+        );
+        assert_eq!(
+            count(PYTEST_FILTERED_RED),
+            Cases::Counted { ran: 8, passed: 0 }
         );
     }
 

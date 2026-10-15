@@ -28,13 +28,16 @@ OUT="$HERE/rounds/round5-$STAMP"
 mkdir -p "$OUT"
 JOURNAL="$OUT/journal"
 
-# Killed on purpose: stop the children too, then leave. A plain `trap` handler
-# returns and bash carries on with the next cell, so stopping this script took
-# hunting run.sh down by hand the first time it mattered.
+# A cell runs in the background and this script waits on it, because bash defers
+# a trap until the current foreground command returns — with a cell in the
+# foreground, a TERM would sit in the queue for hours. `wait` is interruptible,
+# which is the whole reason for the `&`.
+CHILD=
 halt() {
   echo "[$(date +%H:%M:%S)] interrupted; stopping the round" | tee -a "$JOURNAL"
-  pkill -P $$ 2>/dev/null
+  [ -n "$CHILD" ] && kill -- "-$CHILD" 2>/dev/null
   pkill -f "$HERE/run.sh" 2>/dev/null
+  pkill -f "$(cd "$HERE/.." && pwd)/target/debug/(rank|pair)" 2>/dev/null
   pkill -f "$(cd "$HERE/.." && pwd)/target/debug/rank" 2>/dev/null
   pkill -f "$(cd "$HERE/.." && pwd)/target/debug/pair" 2>/dev/null
   stop_server
@@ -64,9 +67,14 @@ cell() {
   local dir="$OUT/$n-$label"
   echo "[$(date +%H:%M:%S)] cell $n: $label" | tee -a "$JOURNAL"
   local started=$SECONDS
+  set -m
   env "$@" BENCH_ROUND="$dir" "$HERE/run.sh" "$mode" "$N" "${MODELS[@]}" \
-    >>"$JOURNAL" 2>&1
+    >>"$JOURNAL" 2>&1 &
+  CHILD=$!
+  set +m
+  wait "$CHILD"
   local status=$?
+  CHILD=
   printf '[%s] cell %s: %s after %d min, exit %d\n' \
     "$(date +%H:%M:%S)" "$n" "$label" $(((SECONDS - started) / 60)) "$status" |
     tee -a "$JOURNAL"

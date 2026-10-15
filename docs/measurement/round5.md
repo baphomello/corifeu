@@ -147,7 +147,18 @@ rather than as one number.
 which means it was fitted to them. A limit chosen to cut nothing in the data that produced it
 will cut nothing in that data. The question is what it cuts in data it has not seen.
 
-**The cell.** Task C, `rank`, n=10, at three floors:
+**Re-aimed to Task D, after cell 2 and before this cell ran.** The questions and the
+falsification criteria below are unchanged; only the task moves, and the reason is on the
+record because changing a cell after seeing data is exactly what this document exists to
+prevent.
+
+Cell 1 measured Task C's slowest green slice at **7 steps**, so a floor of twelve has five steps
+of headroom and a sweep of 8, 12 and 30 would move nothing. Cell 2 measured Task D's slowest
+green slice at **13 steps**, with one slice closing on its last permitted step at twelve. In
+Python the floor is the binding constraint, which is the only condition under which this cell
+can answer anything. See [cell 2](round5-cell2.md).
+
+**The cell.** Task D, `rank`, n=10, at three floors:
 
 | `BENCH_STEPS_FLOOR` | What it tests |
 |---|---|
@@ -157,6 +168,10 @@ will cut nothing in that data. The question is what it cuts in data it has not s
 
 Ceiling, patience and raise_by stay at their defaults throughout, so the only variable is where
 a turn starts.
+
+Cell 2 already showed the growth firing in 4 of 20 Python iterations and rescuing a green slice
+at thirteen steps. This cell asks what the floor costs when it cannot grow fast enough, and what
+it saves when it is lower than the work needs.
 
 **What would say the default is wrong.** Floor 8 losing nothing that floor 12 kept — then
 twelve is generous and the floor should come down. Or floor 12 losing green slices that floor

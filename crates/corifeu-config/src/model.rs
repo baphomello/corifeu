@@ -337,6 +337,14 @@ pub struct Limits {
     /// [ADR-0066]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0066-a-round-is-replayable-or-it-is-an-anecdote.md
     #[serde(default)]
     pub seed: Option<u64>,
+    /// How far the sampler may wander, or None to let the runtime decide.
+    ///
+    /// llama.cpp defaults to 0.80, which is reasonable for prose and high for
+    /// code: prose survives a word chosen second-best and code does not
+    /// compile. Declared here so that a project whose deliverable is code can
+    /// say so once rather than per run.
+    #[serde(default)]
+    pub temperature: Option<f32>,
 }
 
 impl Default for Limits {
@@ -350,6 +358,7 @@ impl Default for Limits {
             loop_detection: true,
             repeats: default_repeats(),
             seed: None,
+            temperature: None,
         }
     }
 }

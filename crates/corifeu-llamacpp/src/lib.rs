@@ -73,31 +73,18 @@ impl Provider for LlamaCpp {
         tools: &[Value],
         budget: &Budget,
     ) -> Result<Turn, Error> {
-        let mut request = json!({
-            "model": model,
-            "messages": messages,
-            "stream": false,
-            "max_tokens": budget.num_predict,
-        });
-        if !tools.is_empty() {
-            request["tools"] = json!(tools);
-        }
-        // Defect 26: a round that cannot be replayed cannot be checked.
-        if let Some(seed) = budget.seed {
-            request["seed"] = json!(seed);
-        }
-        // The server decides whether to emit thought tags; asking for none is
-        // how a transcription role keeps its whole budget for the file.
-        if !budget.think {
-            request["reasoning_format"] = json!("none");
-        }
+        // Defect 36: this built its own copy of the request for a while, beside
+        // the `body` the tests assert against. Two constructions of the same
+        // thing drift, and this pair already had: the temperature reached the
+        // copy that ships and not the one under test.
+        let request = body(model, messages, tools, budget);
 
-        let body = http::post_json(
+        let reply = http::post_json(
             &format!("{}/v1/chat/completions", self.base),
             &request.to_string(),
             self.timeout,
         )?;
-        parse(&body, budget.num_predict)
+        parse(&reply, budget.num_predict)
     }
 }
 
@@ -124,6 +111,10 @@ pub fn body(model: &str, messages: &[Message], tools: &[Value], budget: &Budget)
     // Defect 26: a round that cannot be replayed cannot be checked.
     if let Some(seed) = budget.seed {
         request["seed"] = json!(seed);
+    }
+    // Its sibling: a number that moves the result and that nobody wrote down.
+    if let Some(temperature) = budget.temperature {
+        request["temperature"] = json!(temperature);
     }
     request
 }
@@ -225,6 +216,7 @@ mod tests {
             num_ctx: Some(8192),
             think: false,
             seed: None,
+            temperature: None,
         }
     }
 
@@ -232,6 +224,28 @@ mod tests {
     fn no_seed_sends_no_seed() {
         // The runtime picks one, which is what every round before defect 26 did.
         assert!(body("m", &[], &[], &budget()).get("seed").is_none());
+    }
+
+    #[test]
+    fn a_temperature_reaches_the_wire() {
+        let budget = Budget {
+            temperature: Some(0.2),
+            ..budget()
+        };
+        // Compared with a tolerance: an f32 widened to the f64 serde_json
+        // stores is 0.20000000298, and asserting equality would be asserting
+        // something about IEEE 754 rather than about the request.
+        let sent = body("m", &[], &[], &budget)["temperature"]
+            .as_f64()
+            .expect("a number");
+        assert!((sent - 0.2).abs() < 1e-6, "{sent}");
+    }
+
+    /// Unset means llama.cpp's own 0.80, which is what every round before this
+    /// ran at. Sending nothing is how a product run keeps that behaviour.
+    #[test]
+    fn no_temperature_sends_no_temperature() {
+        assert!(body("m", &[], &[], &budget()).get("temperature").is_none());
     }
 
     #[test]

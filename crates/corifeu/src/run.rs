@@ -56,6 +56,7 @@ impl FromConfig {
             limits,
             budget: Budget {
                 seed: config.limits.seed,
+                temperature: config.limits.temperature,
                 ..Budget::doer()
             },
             classes: Classes::new(
@@ -293,6 +294,13 @@ mod tests {
 
     /// Absent is the right default for a product run: an unseeded run is how
     /// the thing behaves when nobody is measuring it (ADR-0066).
+    #[test]
+    fn the_temperature_in_the_file_reaches_the_runtime() {
+        let from = FromConfig::read(&config("limits: { temperature: 0.2 }\n"));
+        assert_eq!(from.budget.temperature, Some(0.2));
+        assert_eq!(FromConfig::read(&config("")).budget.temperature, None);
+    }
+
     #[test]
     fn no_seed_in_the_file_means_no_seed_on_the_wire() {
         assert_eq!(FromConfig::read(&config("")).budget.seed, None);

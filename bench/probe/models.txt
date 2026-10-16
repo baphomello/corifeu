@@ -10,28 +10,19 @@
 # likely thing to need correcting. Run `sweep.sh list` once the downloads are
 # done and paste what it prints.
 
-# The anchor. Six rounds of measurement are in Ornith, and keeping one measured
-# model is what stops every new number from being unanchored. Q4 rather than the
-# Q5 that was measured: 6.19 GB left 149 MiB of VRAM spare, and Q4 buys room.
-ornith-ai/Ornith-1.5-9B-GGUF:Q4_K_M
-
-# Known quantity, measured at 4.36 GB, fits with room to spare.
-Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q4_K_M
-
-# The candidate. Check for an mmproj file in the repo: if there is one it is
-# multimodal, and it is paying VRAM for a vision tower that writes no code.
-unsloth/Qwen3.5-9B-GGUF:Q4_K_M
-
-# Multi-token prediction. Not a rival to the line above but the same weights
-# with a drafting head, so it belongs in `sweep.sh mtp`, which runs it with
-# `--spec-type draft-mtp` and without. It appears here too so that pass one
-# shows what it does at the baseline, where the head is present and unused.
+# Chosen 2026-10-16: the best quality that fits, and it only fits with the KV
+# cache at q8_0.
 #
-# Needs ggml-org/llama.cpp#22673, merged 2026-05-16. This build has it: the
-# `--spec-type` help lists `draft-mtp`.
-unsloth/Qwen3.5-9B-MTP-GGUF:Q4_K_M
-
-# The experiment, not a candidate for work. ~7 GB of weights against ~7 GB of
-# usable VRAM, so this is the one that answers whether partial offload is worth
-# having on this card. QAT means its q4_0 is better than q4_0 usually is.
-google/gemma-4-12B-it-qat-q4_0-gguf:Q4_0
+#   weights                     6.14 GB = 6287 MiB
+#   available (8192 - desktop)           ~7209 MiB
+#   overhead, KV f16 at 8k, measured     ~1000 MiB  -> 80 MiB short
+#   overhead, KV q8_0 at 8k, estimated    ~700 MiB  -> ~220 MiB spare
+#
+# Two things are not in that arithmetic and both can take the margin: the q8
+# figure is an estimate from one f16 measurement, and the MTP drafting head and
+# its draft cache are unaccounted for. 16k context with q8 puts the KV back to
+# roughly where f16 at 8k was, so it is a thing to measure rather than assume.
+#
+# Multimodal: the repository carries an mmproj of about 920 MB. --no-mmproj is
+# in every config here, which is why that GB is not in the sums above.
+unsloth/Qwen3.5-9B-MTP-GGUF:UD-Q4_K_XL

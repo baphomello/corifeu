@@ -52,6 +52,9 @@ impl Provider for Ollama {
         if let Some(seed) = budget.seed {
             options["seed"] = json!(seed);
         }
+        if let Some(temperature) = budget.temperature {
+            options["temperature"] = json!(temperature);
+        }
         if let Some(num_ctx) = budget.num_ctx {
             options["num_ctx"] = json!(num_ctx);
         }

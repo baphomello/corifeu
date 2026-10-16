@@ -44,6 +44,7 @@ fn main() {
         num_ctx: Some(8192),
         think: false,
         seed: corifeu_bench::seed(&iteration),
+        temperature: corifeu_bench::temperature(),
     };
     let limits = Limits {
         steps: corifeu_bench::steps(),

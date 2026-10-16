@@ -302,6 +302,7 @@ fn tool_call(provider: &dyn Provider, model: &str, report: &mut Report) {
         think: false,
         // A reachability probe, not a measurement. Whatever the runtime picks.
         seed: None,
+        temperature: None,
     };
 
     let started = Instant::now();

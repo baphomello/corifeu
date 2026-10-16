@@ -95,6 +95,11 @@ def main() -> int:
     # a truncated answer scores near zero — which measures the budget rather
     # than the model. The reply is kept, so truncation stays visible.
     parser.add_argument("--max-tokens", type=int, default=6144)
+    # llama.cpp defaults to 0.80, which is high for code: prose survives a word
+    # chosen second-best and code does not compile. The first sweep watched one
+    # model score 5 of 10 and then 10 of 10 under identical flags, and that was
+    # read as the model's variance when it may have been the sampler's.
+    parser.add_argument("--temp", type=float, default=0.2)
     args = parser.parse_args()
 
     body = json.dumps(
@@ -104,6 +109,7 @@ def main() -> int:
             "max_tokens": args.max_tokens,
             "stream": False,
             "reasoning_format": "none",
+            "temperature": args.temp,
         }
     ).encode()
 

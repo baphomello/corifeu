@@ -158,6 +158,18 @@ pub fn repeats() -> u32 {
     number("BENCH_REPEATS", Limits::default().repeats)
 }
 
+/// How far the sampler may wander (`BENCH_TEMP`).
+///
+/// Unset means the runtime's own default, which for llama.cpp is 0.80 — high
+/// for code, and what every round up to this one ran at without recording it.
+/// `off` restores that, for comparing against them.
+pub fn temperature() -> Option<f32> {
+    match std::env::var("BENCH_TEMP").ok().as_deref() {
+        None | Some("off") => None,
+        Some(text) => text.parse().ok(),
+    }
+}
+
 fn number(name: &str, fallback: u32) -> u32 {
     std::env::var(name)
         .ok()

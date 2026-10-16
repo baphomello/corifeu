@@ -87,6 +87,8 @@ def score(work: Path, code: str) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    # Host and port together. A bare address built `http://10.0.0.1/v1/...`,
+    # which is port 80, and the refusal that followed read as a dead server.
     parser.add_argument("--host", required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--prompt", required=True, type=Path)
@@ -104,6 +106,9 @@ def main() -> int:
     # which one a doer can afford is the question Corifeu actually has.
     parser.add_argument("--think", action="store_true")
     args = parser.parse_args()
+    if ":" not in args.host:
+        parser.error("--host needs a port, as in 192.168.32.1:9931")
+    args.out.mkdir(parents=True, exist_ok=True)
 
     body = json.dumps(
         {

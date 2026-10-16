@@ -189,3 +189,67 @@ about edge cases is untested, and the honest expectation is that they help less.
 - **Nothing replicable.** No seed was set on these runs.
 - **One task.** Ten traps in one function. A model can be good at CPF and bad at everything
   else.
+
+## The context ceiling, measured rather than projected
+
+The card has 8,192 MiB and the desktop holds 560 to 983 of them depending on what is open,
+so the ceiling moves. These three were each loaded with `-ngl 99`, which offloads everything
+or fails, and the tokens per second is what says which happened: a context that does not fit
+puts layers in system RAM, and every token then crosses PCIe.
+
+| Context | Free while loaded | tok/s | Fits |
+|---|---:|---:|---|
+| 32,768 | 381 MiB | ~100 | yes |
+| **49,152** | **321 MiB** | **96 – 112** | **yes** |
+| 65,536 | — | 27 | no |
+
+**48k is the ceiling that holds.** 64k was projected to fit and did not, because the
+arithmetic left out the MTP draft context — the load log announces it
+(`creating MTP draft context against the target model`) and it is not free.
+
+Two further measurements, each of which had been assumed:
+
+- **The first request after a load is slower.** 88 tok/s against 96 to 112 for every request
+  after it, three times out of three. A benchmark that takes one sample per server start
+  measures the warm-up.
+- **An alias costs nothing.** `--alias qwen3.5-9b` replaces the Hugging Face snapshot path as
+  the model id, and the answer was token-identical: 343 tokens, 10 of 10. Worth having because
+  a config pinned to a snapshot hash breaks when the model is fetched again.
+
+## Temperature decides more than the context does
+
+Same server, same prompt, 49,152 of context. Six samples.
+
+| Temperature | Scores | Tokens |
+|---|---|---|
+| **0.0** | **10, 10, 10** | 343, 343, 343 |
+| 0.6 (the card's) | 10, 9, 3 | 370, 433, 451 |
+
+The 3 is the one worth reading. It was not a near miss — the model wrote a scope error:
+
+```ts
+for (let i = 1; i < digits.length; i++) {
+  if (digits[i] !== firstDigit) break;
+}
+if (i === 11) return false;   // i does not exist here
+```
+
+That is a different failure from missing a trap, and it is the failure temperature buys. The
+card recommends 0.6 for precise coding and this probe measures the opposite on this task, so
+the honest reading is narrow: **for a single-function answer scored by a suite, 0.0 with the
+rigour prompt is reproducible and 0.6 is not.** Whether that holds for work where the model
+must choose between designs is untested, and that is where a temperature above zero earns its
+keep.
+
+## The configuration this settles on
+
+```
+llama serve -m Qwen3.5-9B-UD-Q4_K_XL.gguf --alias qwen3.5-9b \
+  -c 49152 -fa on -ctk q8_0 -ctv q8_0 -ngl 99 -t 6 \
+  --no-mmproj --parallel 1 --spec-type draft-mtp --spec-draft-n-max 6 \
+  --temp 0.0 --jinja --host 0.0.0.0 --port 9931
+```
+
+Thinking stays off, asked for per request by `chat_template_kwargs`, because at a context this
+card can hold it produces no answer two times in three. The orchestrator carries the work
+thinking would have done.

@@ -6,7 +6,7 @@
 //! count ADR-0057 needs is real too.
 
 use corifeu_agent::Window;
-use corifeu_doer::pair::{Pair, SliceOutcome};
+use corifeu_doer::pair::{Carry, Pair, SliceOutcome};
 use corifeu_doer::{Doer, Goal, Limits, Oracle, Slice, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_planner::{Plan, PlannedSlice};
@@ -484,4 +484,88 @@ fn work_that_existed_before_qa_started_is_still_delivered_early() {
 
     assert_eq!(run.outcome, SliceOutcome::DeliveredEarly { cases: 3 });
     assert!(!run.self_tested());
+}
+
+// ------------------------------------------------ D3: the carry-on policy
+
+/// The default is ADR-0063 as measured: a slice that does not close must not
+/// stop the walk, because the fourth run showed that carrying on is what
+/// produced the complete crate in eight of nineteen runs.
+#[test]
+fn the_default_policy_works_every_slice() {
+    assert_eq!(Carry::default(), Carry::Always);
+}
+
+/// `Never` is the behaviour ADR-0063 replaced. It stays a value rather than a
+/// deleted branch so the reversal can be re-measured instead of re-argued.
+#[test]
+fn never_stops_at_the_first_slice_that_does_not_close() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let qa = Replay(RefCell::new(vec![write("tests.txt", "A\nB\n")]));
+    let coder = Replay(RefCell::new(vec![]));
+    let plan = Plan {
+        slices: vec![planned("First."), planned("Second.")],
+    };
+
+    let walked =
+        pair(&qa, &coder, 1).walk_with(&plan, Carry::Never, Duration::from_secs(60), &mut ws);
+
+    assert!(!walked.slices[0].1.is_done(), "the first slice failed");
+    assert_eq!(walked.slices.len(), 1, "and that ended the walk");
+    assert!(walked.abandoned());
+}
+
+/// With no overlap ever observed, patience decides. This pins the mechanism; it
+/// does not endorse the number, which the fifth round's data cannot settle.
+#[test]
+fn until_overlap_stops_once_patience_runs_out() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let qa = Replay(RefCell::new(vec![write("tests.txt", "A\nB\n")]));
+    let coder = Replay(RefCell::new(vec![]));
+    let plan = Plan {
+        slices: vec![planned("First."), planned("Second."), planned("Third.")],
+    };
+
+    let walked = pair(&qa, &coder, 1).walk_with(
+        &plan,
+        Carry::UntilOverlap { patience: 2 },
+        Duration::from_secs(60),
+        &mut ws,
+    );
+
+    assert_eq!(
+        walked.slices.len(),
+        2,
+        "two failures in a row with no overlap seen"
+    );
+}
+
+/// And the policy must not fire while the plan is going well, or it would stop
+/// a walk that is simply slow.
+#[test]
+fn until_overlap_does_not_fire_on_a_plan_that_closes() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let qa = Replay(RefCell::new(vec![
+        write("tests.txt", "A\nB\n"),
+        write("tests.txt", "A\nB\n"),
+    ]));
+    let coder = Replay(RefCell::new(vec![
+        write("artefact.txt", "A and B\n"),
+        write("artefact.txt", "A and B\n"),
+    ]));
+    let plan = Plan {
+        slices: vec![planned("First."), planned("Second.")],
+    };
+
+    let walked = pair(&qa, &coder, 1).walk_with(
+        &plan,
+        Carry::UntilOverlap { patience: 1 },
+        Duration::from_secs(60),
+        &mut ws,
+    );
+
+    assert_eq!(walked.slices.len(), 2, "both slices were worked");
 }

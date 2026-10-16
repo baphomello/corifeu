@@ -345,9 +345,15 @@ impl Doer<'_> {
                           tool."
                         .to_string(),
                 };
+                // The outcome carries the model's own words and the result
+                // carries the nudge, so the trace records what was said while
+                // the next step's context does not pay to read it back. Defect
+                // 27: without this a wasted step is indistinguishable from any
+                // other wasted step, and a prompt cannot be designed against
+                // "nothing happened" five hundred times.
                 state.trace.push(
                     Step::new(number, Action::new("say", ""), nudge)
-                        .with_outcome("no tool call; nothing happened"),
+                        .with_outcome(format!("no tool call; said: {}", said(&turn.content))),
                 );
                 continue;
             };
@@ -631,13 +637,14 @@ impl Doer<'_> {
              Task: {}\n\
              Done when this passes: {}\n\n\
              Rules:\n\
+             - Every answer is a tool call. Prose is discarded unread and the step is spent, \
+             so explaining what you will do costs you the step you would have done it in.\n\
              - `run` takes an argument vector. There is no shell: no pipes, no `&&`, no \
              redirection, no globs.\n\
              - `write_file` replaces the whole file. Send all of it, never a patch.\n\
              - The file you are changing is included below in full on every step, read fresh \
              from disk. You never need to read it.\n\
-             - The command above is run for you after every write. You do not have to run it.\n\
-             - Answer with a tool call, not with prose.",
+             - The command above is run for you after every write. You do not have to run it.",
             context.contract.task, context.contract.acceptance
         ))];
 
@@ -662,6 +669,23 @@ impl Doer<'_> {
             messages.push(Message::tool(step.result.clone()));
         }
         messages
+    }
+}
+
+/// The model's own words, flattened to one line and cut to a sample.
+///
+/// Enough to tell one kind of wasted step from another — a refusal, a plan, a
+/// diff in prose, a repetition of the task — and short enough that a trace of
+/// a thousand steps stays a file someone opens.
+fn said(content: &str) -> String {
+    let flat = content.split_whitespace().collect::<Vec<_>>().join(" ");
+    let cut: String = flat.chars().take(160).collect();
+    if cut.is_empty() {
+        "(nothing at all)".to_string()
+    } else if flat.chars().count() > 160 {
+        format!("{cut}…")
+    } else {
+        cut
     }
 }
 

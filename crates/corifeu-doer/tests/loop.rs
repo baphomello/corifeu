@@ -711,3 +711,48 @@ fn an_unfinished_slice_is_not_mistaken_for_a_broken_check() {
     );
     assert!(run.steps > 0, "the slice must have been worked");
 }
+
+// ------------------------------- defect 27: a wasted step must say what it was
+
+/// Five hundred and seventy-eight wasted steps in round five all read "no tool
+/// call; nothing happened", so nothing in the data could say what the model had
+/// been doing instead, and D6's prompt change had to be designed blind.
+#[test]
+fn a_step_with_no_tool_call_records_what_the_model_said() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let provider = Replay::of(vec![says(
+        "Let me think about how to approach this problem carefully.",
+    )]);
+
+    let run = doer(&provider, 1).work(&slice(), &mut ws);
+
+    let step = run.trace.first().expect("the wasted step is in the trace");
+    assert!(
+        step.outcome.contains("Let me think about how to approach"),
+        "{}",
+        step.outcome
+    );
+    assert!(
+        step.result.contains("Call a tool"),
+        "the model still reads the nudge, not its own words: {}",
+        step.result
+    );
+}
+
+/// A turn that says nothing at all is a different failure from a turn that
+/// argues with the task, and the trace has to tell them apart.
+#[test]
+fn an_empty_answer_is_recorded_as_empty() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let provider = Replay::of(vec![says("")]);
+
+    let run = doer(&provider, 1).work(&slice(), &mut ws);
+
+    assert!(
+        run.trace[0].outcome.contains("(nothing at all)"),
+        "{}",
+        run.trace[0].outcome
+    );
+}

@@ -25,20 +25,35 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 
+def without_thinking(reply: str) -> str:
+    """The answer, with the model's reasoning removed.
+
+    A thinking model writes its working into `content` whatever
+    `reasoning_format` asks for, and that working is full of fenced drafts. The
+    first version of this scored a draft from inside `<think>` instead of the
+    answer after it, which measured the drafting rather than the answer.
+
+    An unclosed tag means the reply was cut off mid-thought, so everything from
+    the tag onwards is working and there is no answer to find.
+    """
+    closed = re.sub(r"<think>.*?</think>", "", reply, flags=re.S | re.I)
+    return re.sub(r"<think>.*$", "", closed, flags=re.S | re.I)
+
+
 def code_from(reply: str) -> str:
     """The TypeScript in a reply, however the model chose to wrap it.
 
-    Fenced blocks first, since that is what every instruction-tuned model does.
-    A reply with no fence at all is taken whole: refusing to score it would
+    The *last* fenced block rather than the longest: a model that shows an
+    attempt and then corrects it means the correction, and a longest-block rule
+    would score whichever draft happened to be wordiest.
+
+    A reply with no fence at all is taken whole. Refusing to score it would
     reward the models that ignore the format over the ones that get the answer
-    wrong, and both are failures of a different kind.
+    wrong, and those are different failures.
     """
-    fences = re.findall(r"```(?:ts|typescript|javascript|js)?\s*\n(.*?)```", reply, re.S)
-    if fences:
-        # The longest block, because a model often shows the signature first and
-        # the implementation after.
-        return max(fences, key=len)
-    return reply
+    answer = without_thinking(reply)
+    fences = re.findall(r"```(?:ts|typescript|javascript|js)?\s*\n(.*?)```", answer, re.S)
+    return fences[-1] if fences else answer
 
 
 def score(work: Path, code: str) -> int:
@@ -76,7 +91,10 @@ def main() -> int:
     parser.add_argument("--model", required=True)
     parser.add_argument("--prompt", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--max-tokens", type=int, default=2048)
+    # A thinking model spends most of its budget before it writes anything, and
+    # a truncated answer scores near zero — which measures the budget rather
+    # than the model. The reply is kept, so truncation stays visible.
+    parser.add_argument("--max-tokens", type=int, default=6144)
     args = parser.parse_args()
 
     body = json.dumps(

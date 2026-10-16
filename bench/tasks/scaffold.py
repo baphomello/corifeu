@@ -77,6 +77,45 @@ class Rust:
         return src[:start] + src[cls.closing_brace(src, start) + 2 :]
 
 
+class TypeScript:
+    """Blocks delimited by braces, like Rust, and tests grouped by `describe`.
+
+    A `describe("<module>", ...)` block is what `vitest run -t <module>`
+    selects, which is how a slice's oracle picks out its own cases — the same
+    shape as `cargo test --lib <module>` and `pytest -k <module>`.
+    """
+
+    stub = "Error("
+    test = "test("
+    comment = "//"
+
+    @classmethod
+    def stub_body(cls, src, signature, label):
+        at = src.index(signature)
+        brace = at + len(signature) - 1
+        return (
+            src[: brace + 1]
+            + f'\n  throw new Error("{label}");\n'
+            + src[Rust.closing_brace(src, brace) :]
+        )
+
+    @classmethod
+    def delete_fn(cls, src, signature):
+        at = src.index(signature)
+        return (
+            src[: comment_above(src, at, "//")]
+            + src[past_line_end(src, Rust.closing_brace(src, at)) :]
+        )
+
+    @classmethod
+    def cut_tests(cls, src, module):
+        at = src.index(f'describe("{module}"')
+        start = comment_above(src, at, "//")
+        # The block ends `});`, not `}`, so the line has to be finished rather
+        # than the brace counted and two characters assumed.
+        return tidy(src[:start] + src[past_line_end(src, Rust.closing_brace(src, at)) :])
+
+
 class Python:
     """Blocks delimited by indentation.
 
@@ -146,7 +185,7 @@ class Python:
             src = "\n".join(lines[:start] + lines[cls.last_line(lines, found) + 1 :])
 
 
-LANGUAGES = {"rust": Rust, "python": Python}
+LANGUAGES = {"rust": Rust, "python": Python, "typescript": TypeScript}
 
 
 def comment_above(src, at, prefix):
@@ -157,6 +196,12 @@ def comment_above(src, at, prefix):
             break
         start -= len(line) + 1
     return start
+
+
+def past_line_end(src, at):
+    """Index just after the newline that ends the line containing `at`."""
+    end = src.find("\n", at)
+    return len(src) if end == -1 else end + 1
 
 
 def tidy(src):
@@ -228,6 +273,14 @@ def main():
     os.makedirs(f"{args.dest}/{os.path.dirname(task['artefact'])}", exist_ok=True)
     for name in task["copy"] + ["task.json"]:
         shutil.copy(f"{task['dir']}/{name}", f"{args.dest}/{name}")
+    # Symlinked rather than copied: a node_modules is tens of thousands of files
+    # and every iteration gets its own workspace. The round never writes to it.
+    for name in task.get("link", []):
+        source = os.path.abspath(f"{task['dir']}/{name}")
+        if not os.path.exists(source):
+            parser_error = f"{task['name']} declares link {name!r} but {source} does not exist"
+            raise SystemExit(f"scaffold.py: error: {parser_error}")
+        os.symlink(source, f"{args.dest}/{name}")
     with open(f"{args.dest}/{task['artefact']}", "w", encoding="utf-8") as out:
         out.write(src)
 

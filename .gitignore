@@ -15,3 +15,6 @@ bench/.venv/
 # the summary goes to docs/measurement.md and the raw rows to
 # docs/measurement/.
 bench/rounds/
+
+# Installed once per task by bench/run.sh, not committed.
+bench/tasks/*/node_modules/

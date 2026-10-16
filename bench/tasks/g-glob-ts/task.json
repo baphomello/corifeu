@@ -1,0 +1,50 @@
+{
+  "name": "g-glob-ts",
+  "summary": "Task C in TypeScript, function for function and case for case. With d-glob-py this makes one decomposition measurable in three languages.",
+  "artefact": "src/pathclass.ts",
+  "oracle": ["npx", "vitest", "run", "-t", "{module}"],
+  "whole_suite": ["npx", "vitest", "run"],
+  "tools": [["npx", "vitest", "run"]],
+  "owned": ["src/**"],
+  "protected": "test(",
+  "tests_at": "a `describe(\"{module}\", ...)` block at the end of the file",
+  "language": "typescript",
+  "copy": ["package.json", "vitest.config.ts"],
+  "link": ["node_modules"],
+  "setup": ["npm", "install", "--no-audit", "--no-fund"],
+  "setup_marker": "node_modules",
+  "slices": [
+    {
+      "module": "slice1_segs",
+      "cases": 4,
+      "signature": "function splitSegs(path: string): string[] {",
+      "helpers": [],
+      "implement": "`splitSegs` is unimplemented. Implement it so its tests pass.",
+      "specify": "`splitSegs(path): string[]` splits a path on '/' and drops empty components, so \"a//b\" and \"/a/b/\" both give [\"a\", \"b\"] and \"\" gives []."
+    },
+    {
+      "module": "slice2_seg",
+      "cases": 8,
+      "signature": "function matchSeg(pattern: string, component: string): boolean {",
+      "helpers": ["function matchSegImpl(pattern: string, component: string): boolean {"],
+      "implement": "`matchSeg` is unimplemented. Implement it so its tests pass. It matches ONE path component against one pattern segment, where `*` is any run of characters and `?` is exactly one.",
+      "specify": "`matchSeg(pattern, component): boolean` matches ONE path component against one pattern segment. `*` matches any run of characters, including none; `?` matches exactly one. Neither matches a '/'."
+    },
+    {
+      "module": "slice3_glob",
+      "cases": 9,
+      "signature": "function globMatch(pattern: string, path: string): boolean {",
+      "helpers": ["function globMatchSuffix(pattern: string[], path: string[]): boolean {"],
+      "implement": "`globMatch` is unimplemented. Implement it so its tests pass. `**` crosses `/`, `*` and `?` do not.",
+      "specify": "`globMatch(pattern, path): boolean` matches a whole glob pattern against a whole path. `**` matches any number of path components including none; `*` and `?` stay inside one component."
+    },
+    {
+      "module": "slice4_classify",
+      "cases": 5,
+      "signature": "export function classify(classes: FileClass[], path: string): string | null {",
+      "helpers": [],
+      "implement": "`classify` is unimplemented. Implement it so its tests pass. The first class whose include globs match wins.",
+      "specify": "`classify(classes, path): string | null` returns the name of the first class in the list whose include globs match the path, or null."
+    }
+  ]
+}

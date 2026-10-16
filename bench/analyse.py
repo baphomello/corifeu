@@ -74,8 +74,18 @@ def delivery(c):
 
 
 def complete(final):
-    """Every case passing, in either language's wording."""
+    """Every case passing.
+
+    Two forms. Rounds up to five recorded a per-language result line, which
+    said `test result: ok. 26 passed` in Rust and `26 passed` in Python and
+    would have said neither in TypeScript. From round six the row is counted by
+    the runtime's own parser and reads `ran/passed`, which means the same thing
+    everywhere. Both are read here because the earlier rows are committed.
+    """
     f = settled(final)
+    if "/" in f and f.replace("/", "").isdigit():
+        ran, passed = (int(n) for n in f.split("/"))
+        return ran > 0 and ran == passed
     return f.startswith("test result: ok") or (
         "passed" in f and "failed" not in f and "did not build" not in f
     )

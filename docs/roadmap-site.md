@@ -30,7 +30,7 @@ reading the output.
 
 | Stage | What it unlocks | Criteria |
 |---|---|---:|
-| S1 · Corifeu can read a Node repo | everything after it | 4 |
+| S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
 | S2 · `corifeu run`, one file | the first real use | 5 |
 | S3 · Measured on TypeScript | whether the plan survives | 3 |
 | S4 · A slice that touches several files | a feature instead of a function | 4 |
@@ -39,7 +39,7 @@ reading the output.
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 0 of 24.**
+**Today: 4 of 24** — S1 complete.
 
 ---
 
@@ -53,12 +53,21 @@ is what stops a doer quietly deleting tests.
 
 **Deliverable.** A vitest adapter in `corifeu-check`, and a TypeScript measurement task.
 
+**Done**, 2026-10-16. The samples were captured from vitest 3.2.4 on node 24.15.0 rather than
+written from memory, and capturing them found the case that matters: a file which fails to
+import contributes **nothing** to the `Tests` line while the files that loaded report normally,
+so counting the rest would let ADR-0057's guard pass on a suite that had lost a whole file.
+`vitest` announces it as `Failed Suites`, and that is what the parser declines on.
+
+Building the task also caught two defects in the harness itself — 32 and 33 — both of the same
+shape: a per-language lookalike where the real parser should have been asked.
+
 **Acceptance.**
 1. `corifeu-check` counts cases from **captured vitest output**, including the filtered form a
    per-slice oracle produces, with the samples in the test file.
 2. A deliberately broken suite — a file that fails to import — returns `Cases::Unknown` rather
    than a count, as it does for `cargo` and `pytest`.
-3. `bench/tasks/g-ts` exists: TypeScript, vitest oracle, the reference passing every case, and
+3. `bench/tasks/g-glob-ts` exists: TypeScript, vitest oracle, the reference passing every case, and
    each slice's oracle selecting the count its manifest declares.
 4. `bench/run.sh` runs a cell against it end to end, with the oracle preflight passing.
 

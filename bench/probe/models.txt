@@ -1,0 +1,33 @@
+# One model per line, as the router names it. Lines starting with # are ignored.
+#
+# After `llama cli -hf <repo>:<QUANT>` the router offers the model under the
+# alias `<repo>:<QUANT>`; a file dropped in the models directory is offered
+# under its file name without the extension. `sweep.sh` checks every name here
+# against what the router actually offers before it runs anything, because a
+# misspelled alias otherwise looks exactly like a model that cannot answer.
+#
+# The quant tags below are a guess at each repo's naming and are the most
+# likely thing to need correcting. Run `sweep.sh list` once the downloads are
+# done and paste what it prints.
+
+# The anchor. Six rounds of measurement are in Ornith, and keeping one measured
+# model is what stops every new number from being unanchored. Q4 rather than the
+# Q5 that was measured: 6.19 GB left 149 MiB of VRAM spare, and Q4 buys room.
+ornith-ai/Ornith-1.5-9B-GGUF:Q4_K_M
+
+# Known quantity, measured at 4.36 GB, fits with room to spare.
+Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q4_K_M
+
+# The candidate. Check for an mmproj file in the repo: if there is one it is
+# multimodal, and it is paying VRAM for a vision tower that writes no code.
+unsloth/Qwen3.5-9B-GGUF:Q4_K_M
+
+# Multi-token prediction. The only thing on this list that attacks speed
+# through the architecture rather than through a flag. Whether llama.cpp uses
+# the MTP head for this architecture shows up in the load log.
+unsloth/Qwen3.5-9B-MTP-GGUF:Q4_K_M
+
+# The experiment, not a candidate for work. ~7 GB of weights against ~7 GB of
+# usable VRAM, so this is the one that answers whether partial offload is worth
+# having on this card. QAT means its q4_0 is better than q4_0 usually is.
+google/gemma-4-12B-it-qat-q4_0-gguf:Q4_0

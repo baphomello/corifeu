@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Which model, under which runtime flags, gets ten out of ten fastest.
 #
+#   bench/probe/sweep.sh list        what the router offers, against models.txt
 #   bench/probe/sweep.sh models      one baseline config, every model
-#   bench/probe/sweep.sh flags       every flag combination, the models that scored
+#   bench/probe/sweep.sh flags       every flag combination, on one model
 #   bench/probe/sweep.sh all
+#
+# The models are named in models.txt rather than here, because the quant tag in
+# a Hugging Face alias is the thing most likely to need correcting and nobody
+# should edit bash to fix a typo.
 #
 # A probe, not a measurement round. A round asks how a doer behaves over many
 # steps against an oracle it cannot see; this asks a single question once and
@@ -26,17 +31,16 @@ LLAMA='C:\Users\Mello\AppData\Local\Microsoft\WindowsApps\llama.exe'
 MODELS_DIR='C:\Users\Mello\models'
 HOST=${PROBE_HOST:-$(ip route show default | awk '{print $3}')}
 PORT=9931
-SAMPLES=${PROBE_SAMPLES:-3}
+# Five rather than three. The first sweep had one model score 5 of 10 and then
+# 10 of 10 under the same flags, so a rank built on three samples would be a
+# rank of the draw.
+SAMPLES=${PROBE_SAMPLES:-5}
 OUT=${PROBE_OUT:-$HERE/runs/$(date +%Y%m%d-%H%M%S)}
 mkdir -p "$OUT"
 RESULTS="$OUT/results.tsv"
 
-MODELS=(
-  ornith1.5-9b-Q5_K_M
-  qwen2.5-coder-7b-Q4_K_M
-  qwopus3.5-9b-coder-Q4_K_M
-  "yuxinlu1/gemma-4-12B-agentic-fable5-composer2.5-v2-3.5x-tau2-GGUF:Q4_K_M"
-)
+mapfile -t MODELS < <(grep -vE '^\s*(#|$)' "$HERE/models.txt")
+(( ${#MODELS[@]} )) || { echo "models.txt names nothing" >&2; exit 2; }
 
 stop_router() {
   local pids
@@ -121,19 +125,45 @@ echo
 
 WHICH=${1:-all}
 
+# What the router offers, against what models.txt names. A misspelled alias
+# otherwise looks exactly like a model that cannot answer, and the difference
+# matters more than anything else this script measures.
+if [ "$WHICH" = list ]; then
+  start_router -c 8192 || { echo "the router never answered"; exit 1; }
+  echo "=== offered by the router ==="
+  curl -s --max-time 20 "http://$HOST:$PORT/v1/models" |
+    python3 -I -c 'import json,sys; [print("  "+m["id"]) for m in json.load(sys.stdin)["data"]]'
+  echo "=== named in models.txt ==="
+  offered=$(curl -s --max-time 20 "http://$HOST:$PORT/v1/models" |
+    python3 -I -c 'import json,sys; [print(m["id"]) for m in json.load(sys.stdin)["data"]]')
+  for m in "${MODELS[@]}"; do
+    if grep -qxF "$m" <<<"$offered"; then echo "  ok      $m"; else echo "  MISSING $m"; fi
+  done
+  stop_router
+  exit 0
+fi
+
 # Pass one. One configuration, every model, so the question "which of these can
 # answer at all" is settled before any flag is swept.
+#
+# The baseline does not name -ngl. Setting it aborts llama.cpp's own
+# fit-to-free-VRAM pass — the load log says "n_gpu_layers already set by user to
+# 99, abort" — and a 12B model against 7 GB of usable VRAM would simply fail to
+# load, which measures the card rather than the model. Letting the runtime
+# choose offloads everything for the models that fit and as much as fits for the
+# one that does not, which is what a person would actually do.
 if [ "$WHICH" = models ] || [ "$WHICH" = all ]; then
-  echo "=== pass one: every model at the baseline ==="
+  echo "=== pass one: every model at the baseline ($SAMPLES samples each) ==="
   for m in "${MODELS[@]}"; do
-    config "base-$(basename "$m" | cut -c1-20)" "$m" -ngl 99 -c 8192 -fa on
+    short=$(sed 's#.*/##; s/-GGUF//; s/:.*//' <<<"$m" | cut -c1-24)
+    config "base-$short" "$m" -c 8192 -fa on
   done
 fi
 
 # Pass two. The flags, on one model, so the effect of each is visible rather
 # than tangled with a model change. PROBE_MODEL picks which.
 if [ "$WHICH" = flags ] || [ "$WHICH" = all ]; then
-  M=${PROBE_MODEL:-ornith1.5-9b-Q5_K_M}
+  M=${PROBE_MODEL:-${MODELS[0]}}
   echo "=== pass two: the flags, on $M ==="
   config "ctx8k-f16"      "$M" -ngl 99 -c 8192  -fa on
   config "ctx16k-f16"     "$M" -ngl 99 -c 16384 -fa on

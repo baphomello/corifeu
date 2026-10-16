@@ -360,3 +360,27 @@ mod tests {
         assert!(renamed.contains("version = \"0.0.0\""), "{renamed}");
     }
 }
+
+#[cfg(test)]
+mod defaults_agree {
+    //! The configuration and the runtime each carry their own defaults and
+    //! nothing converts one into the other yet: `limits.steps` is declared in
+    //! `corifeu-config` and consumed nowhere. Until that path exists, the real
+    //! hazard is the two drifting apart, so that a project file saying `floor:
+    //! 12` and a runtime defaulting to something else would both look right.
+    //!
+    //! This crate is the only one that depends on both, which is why the
+    //! assertion lives in the measurement harness rather than in the product.
+
+    #[test]
+    fn the_config_and_the_runtime_describe_the_same_limits() {
+        let config = corifeu_config::model::Limits::default();
+        let runtime = corifeu_doer::Limits::default();
+
+        assert_eq!(config.steps.floor, runtime.steps.floor, "floor");
+        assert_eq!(config.steps.ceiling, runtime.steps.ceiling, "ceiling");
+        assert_eq!(config.steps.patience, runtime.steps.patience, "patience");
+        assert_eq!(config.steps.raise_by, runtime.steps.raise_by, "raise_by");
+        assert_eq!(config.repeats, runtime.repeats, "repeats");
+    }
+}

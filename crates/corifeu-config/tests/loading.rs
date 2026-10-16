@@ -240,3 +240,41 @@ fn the_step_allowance_defaults_to_the_measured_floor() {
     assert_eq!(loaded.config.limits.steps.floor, 12);
     assert_eq!(loaded.config.limits.steps.ceiling, 30);
 }
+
+// -------------------------------------------- ADR-0050's threshold, as a number
+
+/// D2. Six is what three rounds ran with, and the fifth round priced it, so the
+/// default has to be the measured one or every reader inherits a guess.
+#[test]
+fn the_repeat_limit_defaults_to_the_measured_six() {
+    let loaded = load(vec![project(MINIMAL)]).expect("valid");
+    assert_eq!(loaded.config.limits.repeats, 6);
+}
+
+#[test]
+fn stopping_at_the_first_repeat_is_a_legal_choice() {
+    let cfg = format!("{MINIMAL}limits: {{ repeats: 1 }}\n");
+    let loaded = load(vec![project(&cfg)]).expect("one is deliberate, not a mistake");
+    assert_eq!(loaded.config.limits.repeats, 1);
+}
+
+#[test]
+fn a_repeat_limit_of_zero_is_refused() {
+    let cfg = format!("{MINIMAL}limits: {{ repeats: 0 }}\n");
+    let err = load(vec![project(&cfg)]).expect_err("zero says nothing on purpose");
+    assert!(err.to_string().contains("limits.repeats"), "{err}");
+}
+
+/// Setting a threshold on a detector that is switched off is not an error, but
+/// it is almost certainly not what someone meant.
+#[test]
+fn a_repeat_limit_with_detection_off_warns() {
+    let cfg = format!("{MINIMAL}limits: {{ loop_detection: false, repeats: 2 }}\n");
+    let loaded = load(vec![project(&cfg)]).expect("it still runs");
+    let warning = loaded
+        .warnings
+        .iter()
+        .find(|p| p.message.contains("limits.repeats"))
+        .expect("warned");
+    assert!(warning.message.contains("no effect"), "{warning}");
+}

@@ -10,6 +10,7 @@ publish = false
 [dependencies]
 corifeu-agent.workspace = true
 corifeu-check.workspace = true
+corifeu-config.workspace = true
 corifeu-doer.workspace = true
 corifeu-exec.workspace = true
 corifeu-llamacpp.workspace = true

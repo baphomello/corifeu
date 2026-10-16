@@ -113,6 +113,46 @@ argument for Corifeu rather than against this model: the oracle decides, not the
 model that is right one time in five with a check is more useful than one that is right four
 times in five without one.
 
+## The prompt was the lever, not the model
+
+Three cells of three samples, with the server unchanged.
+
+| | Temperature | Prompt | Scores | Tokens |
+|---|---|---|---|---|
+| A | 0.0 | original | **6, 6, 6** | 266 each |
+| B | 0.2 | asks for rigour | **10, 10, 10** | 327 – 354 |
+| C | 0.0 | asks for rigour | **10, 10, 10** | 354 each |
+
+**Two sentences took it from six out of ten to ten out of ten, three times out of three.**
+Neither sentence names a trap:
+
+> Be exhaustive about the specification. Inputs that are malformed in ways a naive
+> implementation would accept must still be rejected, and valid inputs that a naive
+> implementation would reject must still be accepted.
+
+Naming the traps would have measured the prompt rather than the model, which is the mistake the
+held-out suites exist to avoid. Asking for rigour in general is what a careful engineer writes,
+and it is what a doer's system prompt is for.
+
+**Greedy sampling alone made it worse.** Cell A locked onto the naive answer every time, which
+means the 10 and the 9 seen earlier at temperature 0.2 were lucky draws on a weak prompt. Five
+runs had been read as the model's quality varying. They were the sampler's.
+
+Cell C is the configuration to use: ten out of ten, three identical 354-token answers, three
+seconds, around 100 tok/s, and reproducible.
+
+Against what thinking bought:
+
+| | thinking | two sentences |
+|---|---|---|
+| Seconds | 55 – 132 | **3 – 4** |
+| Produced an answer | 2 of 5 | **3 of 3** |
+| Best score | 6 | **10** |
+
+**The caveat.** Three samples a cell and one task, and that task is a validator, where asking
+for edge cases is unusually well aimed. Whether the same two sentences help on work that is not
+about edge cases is untested, and the honest expectation is that they help less.
+
 ## What this does not say
 
 - **Nothing about other models.** One model, one quant, one set of flags. The sweep in

@@ -63,9 +63,45 @@ backwards. Defect 39: the runtime asked for `reasoning_format: "none"`, whose ow
 "leaves thoughts unparsed in `message.content`", so the model thought anyway and wrote the
 thinking into the answer.
 
+## Context was never the limit, and more budget does not rescue thinking
+
+The runs above exhausted their **generation** budget, which is `max_tokens`, not the context
+window. The prompt is about two hundred tokens and the context was 12,288, so less than half of
+it was ever used. Raising the context would not have changed anything, and the question was
+worth asking because the two limits are easy to confuse.
+
+Raising the context to 32,768 was done anyway, for a different reason that matters to Corifeu:
+a real slice pins the whole artefact into every step, and round five's prompts averaged 3,800
+tokens against files of about a hundred lines. It fits.
+
+| | 12,288 | 32,768 |
+|---|---:|---:|
+| KV with `q8_0`, plus buffers | ~400 MiB | **~800 MiB** |
+| Free while loaded | 761 MiB | **381 MiB** |
+
+2.7 times the context for twice the cache, because part of the figure is a fixed buffer. 381 MiB
+of headroom is enough to measure with and tight to work alongside.
+
+**Thinking still does not converge with four times the budget.** At `max_tokens` 24,000 two runs
+spent 12,180 tokens and 33,000 to 36,000 characters of reasoning and produced no answer at all.
+A third, run separately, stopped at 5,435 tokens and did produce one. So the budget was never
+the constraint: `finish_reason` is `stop`, which is the model ending its turn — sometimes after
+writing an answer and sometimes not.
+
+| | thinking off | thinking on |
+|---|---:|---:|
+| Tokens to an answer | 266 – 346 | 5,435 – none at 12,180 |
+| Seconds | 3 – 4 | 55 – 132 |
+| Produced an answer | 8 of 8 | 2 of 5 |
+
 ## Quality: fast, and not trustworthy alone
 
-Scores across five runs with thinking off: **10, 9, 6, 6, 6**.
+Scores across five runs with thinking off at 12k: **10, 9, 6, 6, 6**. Three more at 32k: **9, 9,
+9**.
+
+The three at 32k were more consistent, and that is not attributed to the context here: a reply
+using one per cent of the window has no mechanism by which the window could change it. What the
+eight runs do show is that the short answers are the bad ones.
 
 The pattern is clean. A 266-token answer scores 6 and a 346-token answer scores 9 or 10, because
 the short ones are the naive implementation — they miss both traps the challenge exists to

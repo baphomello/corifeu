@@ -135,7 +135,15 @@ def main() -> int:
         return 0
     seconds = time.monotonic() - started
 
-    message = reply["choices"][0]["message"]
+    choice = reply["choices"][0]
+    message = choice["message"]
+    # Recorded because its absence hid the answer twice. A run that produced
+    # nothing after twelve thousand tokens looks like a budget that ran out and
+    # was in fact the model ending its turn, and only `finish_reason` tells
+    # those apart.
+    (args.out / "finish.txt").write_text(
+        f"{choice.get('finish_reason')}\n", encoding="utf-8"
+    )
     content = message.get("content") or ""
     # Kept because not keeping it hid where 6144 tokens had gone: the content
     # was empty and the budget was spent, and nothing on disk said why.

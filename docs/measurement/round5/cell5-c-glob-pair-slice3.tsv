@@ -1,0 +1,42 @@
+iteration	model	slice	outcome	qa_rounds	qa_steps	coder_rounds	coder_steps	prompt	seconds	held_out
+1	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	2	2	24	98253	643	11/13
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 8 passed; 7 failed
+1	ornith1.5-9b-Q5_K_M	3	NOT_PASSED	2	12	2	24	102779	1885	13/13
+FINAL	1	ornith1.5-9b-Q5_K_M	test result: FAILED. 2 passed; 3 failed
+2	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	2	2	24	82050	669	10/13
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 1 passed; 3 failed
+2	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	43986	571	did-not-build
+FINAL	2	ornith1.5-9b-Q5_K_M	did not build
+3	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	13	2	24	167827	1356	4/13
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 0 passed; 32 failed
+3	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	36394	580	did-not-build
+FINAL	3	ornith1.5-9b-Q5_K_M	did not build
+4	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	4	2	24	88834	793	11/13
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 3 passed; 5 failed
+4	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	2	15	1	12	72117	1633	did-not-build
+FINAL	4	ornith1.5-9b-Q5_K_M	did not build
+5	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	10	2	24	116832	1151	10/13
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 6 passed; 8 failed
+5	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	29825	820	did-not-build
+FINAL	5	ornith1.5-9b-Q5_K_M	did not build
+6	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	13	2	24	166787	1130	10/13
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 5 passed; 11 failed
+6	ornith1.5-9b-Q5_K_M	3	NOT_PASSED	2	4	2	24	84040	1609	13/13
+FINAL	6	ornith1.5-9b-Q5_K_M	test result: FAILED. 6 passed; 1 failed
+7	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	4	2	24	106141	858	11/13
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 10 passed; 3 failed
+7	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	39284	716	did-not-build
+FINAL	7	ornith1.5-9b-Q5_K_M	did not build
+8	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	4	2	24	81194	868	7/13
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 4 passed; 6 failed
+8	ornith1.5-9b-Q5_K_M	3	NOT_PASSED	2	8	2	24	96183	1602	did-not-build
+FINAL	8	ornith1.5-9b-Q5_K_M	did not build
+9	qwopus3.5-9b-coder-Q4_K_M	3	NOT_PASSED	2	2	2	24	96915	744	4/13
+FINAL	9	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 0 passed; 9 failed
+9	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	18848	728	did-not-build
+FINAL	9	ornith1.5-9b-Q5_K_M	did not build
+10	qwopus3.5-9b-coder-Q4_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	59007	336	did-not-build
+FINAL	10	qwopus3.5-9b-coder-Q4_K_M	did not build
+10	ornith1.5-9b-Q5_K_M	3	NO_RUNNABLE_TEST	1	12	0	0	36232	652	did-not-build
+FINAL	10	ornith1.5-9b-Q5_K_M	did not build
+ROUND COMPLETE

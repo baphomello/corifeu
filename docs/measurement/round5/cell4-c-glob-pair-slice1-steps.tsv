@@ -1,0 +1,109 @@
+iteration	model	module	role	step	tool	argument	flags	outcome
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4847 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4882 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	4	write_file	src/lib.rs	-	wrote 4995 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	5	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	6	write_file	src/lib.rs	-	wrote 4882 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	7	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	8	write_file	src/lib.rs	-	wrote 4901 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4573 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4605 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 4640 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5613 bytes to src/lib.rs
+2	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4662 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4897 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4937 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	4	write_file	src/lib.rs	-	wrote 4948 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	5	write_file	src/lib.rs	-	wrote 4937 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	6	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	7	write_file	src/lib.rs	-	wrote 4948 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	8	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	9	write_file	src/lib.rs	-	wrote 4937 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	10	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	11	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	12	write_file	src/lib.rs	-	wrote 4949 bytes to src/lib.rs
+3	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5147 bytes to src/lib.rs
+3	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+3	ornith1.5-9b-Q5_K_M	slice1_segs	qa	3	write_file	src/lib.rs	-	wrote 5134 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5192 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 5634 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4363 bytes to src/lib.rs
+4	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	ornith1.5-9b-Q5_K_M	slice1_segs	qa	3	write_file	src/lib.rs	-	wrote 4353 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5149 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 5173 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 5208 bytes to src/lib.rs
+5	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 5034 bytes to src/lib.rs
+5	ornith1.5-9b-Q5_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 5069 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5585 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 5648 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4923 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4962 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice1_segs	qa	3	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice1_segs	qa	4	write_file	src/lib.rs	-	wrote 4994 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4902 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4937 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	4	say		no-tool	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	5	write_file	src/lib.rs	-	wrote 4970 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4702 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	run	run cargo test --lib slice1_segs	-	run cargo test --lib slice1_segs is not permitted. Permitted: cargo.
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	3	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	5	write_file	src/lib.rs	-	wrote 4656 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	6	write_file	src/lib.rs	-	wrote 4668 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	7	say		no-tool	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	8	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	9	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	10	say		no-tool	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	11	write_file	src/lib.rs	-	wrote 4668 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice1_segs	qa	12	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4689 bytes to src/lib.rs
+8	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 4724 bytes to src/lib.rs
+8	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4642 bytes to src/lib.rs
+8	ornith1.5-9b-Q5_K_M	slice1_segs	coder	1	write_file	src/lib.rs	-	wrote 4681 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4543 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	say		no-tool	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	write_file	src/lib.rs	-	wrote 4636 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	4	write_file	src/lib.rs	-	wrote 4675 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	5	write_file	src/lib.rs	-	wrote 4696 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	6	write_file	src/lib.rs	-	wrote 4675 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	7	write_file	src/lib.rs	-	wrote 4666 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	8	say		no-tool	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	9	write_file	src/lib.rs	-	wrote 4711 bytes to src/lib.rs
+9	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 4527 bytes to src/lib.rs
+9	ornith1.5-9b-Q5_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 4687 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5391 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	write_file	src/lib.rs	-	wrote 5800 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	1	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	2	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	qa	3	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	1	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	2	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	3	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	4	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	5	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	6	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	7	write_file	src/lib.rs	-	wrote 5981 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	8	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	9	write_file	src/lib.rs	-	wrote 5981 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	10	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	11	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	12	write_file	src/lib.rs	-	wrote 5981 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	1	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	2	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	3	write_file	src/lib.rs	-	wrote 5981 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	4	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	5	run	say	-	say is not permitted. Permitted: cargo.
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	6	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	7	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	8	write_file	src/lib.rs	-	wrote 5981 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	9	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	10	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	11	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	coder	12	run	cargo test --lib slice1_segs	-	$ cargo test --lib slice1_segs
+10	ornith1.5-9b-Q5_K_M	slice1_segs	qa	1	write_file	src/lib.rs	-	wrote 5205 bytes to src/lib.rs

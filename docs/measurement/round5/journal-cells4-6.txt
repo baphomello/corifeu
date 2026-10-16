@@ -1,0 +1,79 @@
+round five
+started: 2026-10-15T23:24:35-03:00
+commit:  b5fd0eb
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+n:       10
+cells:   4 5 6 7
+[23:24:35] cell 4: c-glob-pair-slice1
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261015-232435
+mode:    pair
+task:    c-glob
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  b5fd0eb
+suite:   cargo test --lib
+oracle:  test result: FAILED. 0 passed; 26 failed; 0 ig
+slice:   1
+steps:   floor=default ceiling=default
+         patience=default raise_by=default
+
+results:    /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/4-c-glob-pair-slice1/results.tsv
+steps:      /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/4-c-glob-pair-slice1/steps.tsv
+workspaces: /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/4-c-glob-pair-slice1/work/<model>/<iteration>  (all kept, including failures)
+[00:24:42] cell 4: c-glob-pair-slice1 after 60 min, exit 0
+[00:24:42] cell 5: c-glob-pair-slice3
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261016-002442
+mode:    pair
+task:    c-glob
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  ca19506
+suite:   cargo test --lib
+oracle:  test result: FAILED. 0 passed; 26 failed; 0 ig
+slice:   3
+steps:   floor=default ceiling=default
+         patience=default raise_by=default
+
+results:    /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/5-c-glob-pair-slice3/results.tsv
+steps:      /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/5-c-glob-pair-slice3/steps.tsv
+workspaces: /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/5-c-glob-pair-slice3/work/<model>/<iteration>  (all kept, including failures)
+[06:17:54] cell 5: c-glob-pair-slice3 after 353 min, exit 0
+[06:17:54] cell 6: d-glob-py-rank-floor8
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261016-061755
+mode:    rank
+task:    d-glob-py
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  ca19506
+suite:   python3 -m pytest -q pathclass.py
+oracle:  26 failed in 1.06s
+steps:   floor=8 ceiling=default
+         patience=default raise_by=default
+
+results:    /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/6-d-glob-py-rank-floor8/results.tsv
+steps:      /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/6-d-glob-py-rank-floor8/steps.tsv
+workspaces: /home/mello/github/baphomello/corifeu-round5/bench/rounds/round5-20261015-232435/6-d-glob-py-rank-floor8/work/<model>/<iteration>  (all kept, including failures)
+[10:48:52] cell 6: d-glob-py-rank-floor8 after 270 min, exit 0
+[10:48:52] cell 7: d-glob-py-rank-floor30
+warm:    ornith1.5-9b-Q5_K_M
+warm:    qwopus3.5-9b-coder-Q4_K_M
+round:   20261016-104852
+mode:    rank
+task:    d-glob-py
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  ca19506
+suite:   python3 -m pytest -q pathclass.py
+oracle:  26 failed in 1.06s
+steps:   floor=30 ceiling=default
+         patience=default raise_by=default
+[10:55:15] cell 7: d-glob-py-rank-floor30 after 6 min, exit 137
+[10:55:15] every requested cell finished
+[10:55:15] stopping the router
+[10:55:19] llama.exe still running: 0

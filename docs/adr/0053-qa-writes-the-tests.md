@@ -5,6 +5,9 @@
 - **Refines:** [ADR-0042](0042-test-authorship.md)
 - **Evidence:** [measurement](../measurement.md)
 
+- **Amended:** 2026-10-15. The question this ADR turns on has a measurement for the first time,
+  and it did not come out the way the ADR assumed.
+
 ## Context
 [ADR-0042](0042-test-authorship.md) leaves test authorship to the user and warns when one
 role writes both the code and the tests that judge it. That remains right: forbidding the
@@ -62,3 +65,36 @@ the `test` file class, and `coder`, which owns `source`.**
 - `corifeu doctor` should report whether the coder's writable set actually excludes the test
   class, since on a platform without per-role sandboxing it may not
   ([ADR-0052](0052-write-restriction-in-the-sandbox.md)).
+
+## What round five measured (amendment, 2026-10-15)
+This ADR separates QA from the coder on the argument that two readings of a specification have
+different blind spots. The fourth run found QA writing the implementation as well as the test in
+**11 of 20** pairs — one reading, not two — and could not say whether the resulting code was any
+worse, because the only cases it had were the ones QA wrote and passes by construction.
+
+Round five judged the crates against twelve cases no run is ever shown
+([cell 4](../measurement/round5-cells4-6.md#q1--selftested-code-is-not-worse-not-in-a-single-run)):
+
+| | Runs | Crates judged | Held-out score |
+|---|---:|---:|---:|
+| `GREEN` — QA and coder separate | 6 | 6 | **12.0 / 12** |
+| `SELF_TESTED` — QA wrote both | 11 | 11 | **12.0 / 12** |
+
+Seventeen of seventeen scored full marks. The `SELF_TESTED` rate also reproduced the fourth
+run's 11 of 20 exactly.
+
+**The caveat is part of the finding.** Twelve cases against a four-line function may be a
+ceiling: where everything scores full marks, "the separation does not matter" and "the suite
+does not discriminate" are indistinguishable. [Cell 5](../measurement/round5-cells4-6.md#q4--on-the-expensive-slice-the-pair-does-not-merely-self-test-it-collapses)
+makes the ceiling reading more likely, because on a harder slice the same style of suite spread
+its scores from 4 to 13.
+
+Cell 5 also removed the other leg this ADR stood on. On slice 3 — recursive, nine cases — **no
+run closed the slice at all**: zero `GREEN`, zero `SELF_TESTED`, and eight of twenty could not
+produce a test that runs. So the pair's behaviour cannot be stated as one number; two rounds
+measured it on four lines of code and that number does not travel.
+
+**Nothing is changed here yet.** The decision stands, and what would change it is now specific:
+a held-out suite that discriminates on a slice the pair can actually finish. Until that exists,
+the third option this ADR records — one doer with two contracts — has evidence for it and no
+evidence against it, which is not the same as being right.

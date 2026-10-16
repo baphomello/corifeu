@@ -180,6 +180,7 @@ fn doer<'a>(provider: &'a dyn Provider, goal: Goal, role: &str, owns: &str) -> D
         limits: Limits {
             steps: Steps::fixed(6),
             output_budget: 4_000,
+            repeats: Limits::default().repeats,
         },
     }
 }

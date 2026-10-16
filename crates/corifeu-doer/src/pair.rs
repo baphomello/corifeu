@@ -273,8 +273,9 @@ impl Walked {
         self.slices.len() == self.planned && self.asked_again.is_empty()
     }
 
-    /// The walk did not reach the end of the plan. One thing causes it, and
-    /// it is not a verdict on the work: the provider went away.
+    /// The walk did not reach the end of the plan. Two things cause it, and
+    /// neither is a verdict on the work: the provider went away, or the
+    /// project's own check cannot run.
     pub fn abandoned(&self) -> bool {
         self.slices.len() != self.planned
     }
@@ -327,9 +328,9 @@ impl Pair<'_> {
 
         for planned in &plan.slices {
             let run = self.work_within(&from_plan(planned, timeout), &mut allowance, workspace);
-            let gone = provider_gone(&run);
+            let stop = pointless_to_continue(&run);
             slices.push((planned.clone(), run));
-            if gone {
+            if stop {
                 break;
             }
         }
@@ -355,13 +356,22 @@ impl Pair<'_> {
     }
 }
 
-/// The one failure that makes the rest of the plan pointless.
-fn provider_gone(run: &SliceRun) -> bool {
+/// The failures that make the rest of the plan pointless.
+///
+/// An absent provider is the obvious one: nothing after it can succeed. An
+/// unusable oracle is the same shape and was not noticed until defect 24 — the
+/// slices of one plan share a project and therefore a test command, so a check
+/// that cannot be counted for one slice will not be countable for the next, and
+/// carrying on spends every remaining allowance to learn it again.
+fn pointless_to_continue(run: &SliceRun) -> bool {
     let why = match &run.outcome {
         SliceOutcome::NoRunnableTest { why } | SliceOutcome::NotPassed { why, .. } => why,
         _ => return false,
     };
-    matches!(why, Outcome::ProviderFailed { .. })
+    matches!(
+        why,
+        Outcome::ProviderFailed { .. } | Outcome::OracleUnusable { .. }
+    )
 }
 
 fn from_plan(planned: &PlannedSlice, timeout: Duration) -> Slice {

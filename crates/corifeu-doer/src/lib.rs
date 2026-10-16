@@ -191,7 +191,12 @@ impl Allowance {
                     .min(self.steps.ceiling);
                 Some(self.now)
             }
-            Outcome::Looping | Outcome::ProviderFailed { .. } => None,
+            // Neither says the allowance was too small. A loop is the model
+            // going in circles inside it, and an unusable oracle or an absent
+            // provider means the slice never got to use it.
+            Outcome::Looping | Outcome::ProviderFailed { .. } | Outcome::OracleUnusable { .. } => {
+                None
+            }
         }
     }
 }
@@ -201,6 +206,15 @@ pub struct Limits {
     pub steps: Steps,
     /// Characters of command output a step may carry (ADR-0049 §2).
     pub output_budget: usize,
+    /// Consecutive repeats of one action before the turn stops (ADR-0050).
+    ///
+    /// Six is what three measurement rounds ran with, and the fifth round
+    /// priced it: across three cells and two languages, 54 slices repeated an
+    /// action and 2 reached green, while the steps spent after a first repeat
+    /// were 30% of everything the round spent. Whether the right number is two
+    /// or six is a measurement, not an argument, so it is a number here rather
+    /// than a constant in the detector.
+    pub repeats: u32,
 }
 
 impl Default for Limits {
@@ -208,6 +222,9 @@ impl Default for Limits {
         Self {
             steps: Steps::default(),
             output_budget: 12_000,
+            // ADR-0050's measured default, kept so that changing the limit is
+            // a decision someone takes rather than one they inherit.
+            repeats: 6,
         }
     }
 }
@@ -222,6 +239,16 @@ pub enum Outcome {
     Looping,
     /// The provider could not be reached, or answered something unusable.
     ProviderFailed { why: String },
+    /// The slice's own check could not be counted before any step was spent.
+    ///
+    /// Defect 24. A check that cannot execute looks exactly like a check that
+    /// failed, so a doer repairs correct code against a verdict that was never
+    /// about the code. In one measurement cell eight slices spent their whole
+    /// allowance this way: `cargo` was answering "current package believes it's
+    /// in a workspace when it's not" and the doer read it as red.
+    ///
+    /// `Report::unguarded` has always said this and nothing acted on it.
+    OracleUnusable { detail: String },
 }
 
 #[derive(Debug, Clone)]
@@ -270,11 +297,18 @@ impl Doer<'_> {
     /// One turn with the allowance a caller is holding (ADR-0062).
     pub fn work_within(&self, slice: &Slice, steps: u32, workspace: &mut Workspace) -> Run {
         let steps = steps.max(1);
+        // Defect 24, before the first dispatch: a slice that declares a case
+        // count and whose check cannot produce one is not red, it is unrunnable.
+        // A stubbed artefact still runs its cases and fails them, so this does
+        // not fire on work that is merely unfinished.
+        if let Some(detail) = self.oracle_unusable(slice, workspace) {
+            return State::for_limits(&self.limits).finish(0, Outcome::OracleUnusable { detail });
+        }
         let contract = Contract {
             task: slice.task.clone(),
             acceptance: slice.oracle.describe(),
         };
-        let mut state = State::default();
+        let mut state = State::for_limits(&self.limits);
 
         for number in 1..=steps {
             let context = self
@@ -376,6 +410,39 @@ impl Doer<'_> {
         }
         .judge(observed);
         report.verdict.is_green() && report.cases.ran().is_some_and(|ran| ran > 0)
+    }
+
+    /// Why this slice's check cannot be trusted to judge anything, if so.
+    ///
+    /// Only asked of a slice that declares a case count. Where nobody has said
+    /// how many cases to expect — QA writing a test that does not exist yet —
+    /// there is nothing to compare against and the question is meaningless.
+    fn oracle_unusable(&self, slice: &Slice, workspace: &Workspace) -> Option<String> {
+        let expect_cases = slice.oracle.expect_cases?;
+        let Some(command) = Command::from_argv(&slice.oracle.argv) else {
+            return Some("the slice's oracle names no program".to_string());
+        };
+        let observed = match corifeu_exec::run(
+            &command,
+            workspace.root(),
+            slice.oracle.timeout,
+            &self.allowlist,
+        ) {
+            Ok(observed) => observed,
+            Err(error) => return Some(format!("the oracle could not run: {error}")),
+        };
+        let report = Check {
+            expect_cases: Some(expect_cases),
+            output_budget: self.limits.output_budget,
+        }
+        .judge(observed);
+        report.unguarded.then(|| {
+            format!(
+                "`{}` produced no case count, so it cannot say whether the {expect_cases} cases \
+                 this slice declares passed. The check itself is broken, not the code under it.",
+                slice.oracle.describe()
+            )
+        })
     }
 
     fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Option<Artefact> {
@@ -631,6 +698,13 @@ struct State {
 }
 
 impl State {
+    fn for_limits(limits: &Limits) -> Self {
+        Self {
+            detector: Detector::with_strikes(limits.repeats),
+            ..Self::default()
+        }
+    }
+
     fn finish(self, steps: u32, outcome: Outcome) -> Run {
         Run {
             outcome,

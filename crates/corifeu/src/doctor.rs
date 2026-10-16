@@ -300,6 +300,8 @@ fn tool_call(provider: &dyn Provider, model: &str, report: &mut Report) {
         num_predict: 512,
         num_ctx: Some(4096),
         think: false,
+        // A reachability probe, not a measurement. Whatever the runtime picks.
+        seed: None,
     };
 
     let started = Instant::now();

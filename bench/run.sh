@@ -10,6 +10,9 @@
 #   BENCH_TIMEOUT         seconds per iteration (default: 3600)
 #   BENCH_SLICE           which slice the pair works, 1-4 (default: 1)
 #   BENCH_TASK            a directory under bench/tasks/ (default: c-glob)
+#   BENCH_SEED            sampler seed base, varied by iteration (default: 1).
+#                         'off' leaves it unset, which is how rounds one to five
+#                         ran and the reason none of them can be replayed.
 #   BENCH_STEPS_FLOOR     \
 #   BENCH_STEPS_CEILING    |  the step allowance, ADR-0062. Unset means the
 #   BENCH_STEPS_PATIENCE   |  runtime's own defaults, which is what a round
@@ -154,6 +157,8 @@ LOG="$ROUND/log"
   echo "suite:   ${SUITE[*]}"
   echo "oracle:  $PROBE"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"
+  echo "seed:    base=${BENCH_SEED:-1} (per iteration; 'off' reproduces rounds 1-5)"
+  echo "repeats: ${BENCH_REPEATS:-default}"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
 } | tee "$ROUND/round.txt"

@@ -7,7 +7,7 @@
 //! round.
 
 use corifeu_check::{Cases, Check, Verdict};
-use corifeu_doer::Steps;
+use corifeu_doer::{Limits, Steps};
 use corifeu_doer::{Oracle, Run, Slice};
 use corifeu_exec::{Allowlist, Command};
 use corifeu_workspace::{Class, Classes, Protected};
@@ -130,6 +130,32 @@ pub fn steps() -> Steps {
         patience: number("BENCH_STEPS_PATIENCE", fallback.patience),
         raise_by: number("BENCH_STEPS_RAISE_BY", fallback.raise_by),
     }
+}
+
+/// The seed this iteration runs with (defect 26).
+///
+/// Derived from the iteration so that one iteration can be replayed on its own:
+/// `BENCH_SEED=<base>` fixes the base and the iteration number varies it, which
+/// keeps the twenty runs of a cell from being twenty copies of each other while
+/// leaving each one reproducible. `BENCH_SEED=off` restores the unseeded
+/// sampling that rounds one to five used, for comparing against them.
+pub fn seed(iteration: &str) -> Option<u64> {
+    let base = std::env::var("BENCH_SEED").unwrap_or_else(|_| "1".into());
+    if base == "off" {
+        return None;
+    }
+    let base: u64 = base.parse().unwrap_or(1);
+    let n: u64 = iteration.parse().unwrap_or(0);
+    Some(base.wrapping_mul(1_000).wrapping_add(n))
+}
+
+/// Consecutive repeats before a turn stops (ADR-0050, D2).
+///
+/// Unset means the runtime's own default, which is what a round measuring the
+/// default should use. The fifth round priced the default at 30% of its steps
+/// for a 3.7% rescue rate, so the sixth should sweep it.
+pub fn repeats() -> u32 {
+    number("BENCH_REPEATS", Limits::default().repeats)
 }
 
 fn number(name: &str, fallback: u32) -> u32 {

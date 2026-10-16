@@ -182,6 +182,13 @@ DRIVER=$(nvidia-smi.exe --query-gpu=driver_version --format=csv,noheader 2>/dev/
   tr -d '\r' | head -1)
 DRIVER=${DRIVER:-$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)}
 
+# Defect 38, and the same lesson as the driver one directly above. The runtime
+# decides what a model does with a prompt, it updates itself — `llama update`
+# has no help page and simply runs — and until now no round said which build
+# produced its numbers.
+RUNTIME=$(llama.exe --version 2>/dev/null | tr -d '\r' | head -1)
+RUNTIME=${RUNTIME:-$(llama --version 2>/dev/null | head -1)}
+
 mkdir -p "$ROUND"
 RESULTS="$ROUND/results.tsv"
 STEPS="$ROUND/steps.tsv"
@@ -200,6 +207,7 @@ LOG="$ROUND/log"
   echo "seed:    base=${BENCH_SEED:-1} (per iteration; 'off' reproduces rounds 1-5)"
   echo "block:   $BLOCK iteration(s) per model before switching"
   echo "driver:  ${DRIVER:-unknown}"
+  echo "runtime: ${RUNTIME:-unknown}"
   echo "repeats: ${BENCH_REPEATS:-default}"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"

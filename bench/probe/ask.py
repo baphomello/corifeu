@@ -100,6 +100,9 @@ def main() -> int:
     # model score 5 of 10 and then 10 of 10 under identical flags, and that was
     # read as the model's variance when it may have been the sampler's.
     parser.add_argument("--temp", type=float, default=0.2)
+    # A thinking model answers better and slower. Both are worth measuring, and
+    # which one a doer can afford is the question Corifeu actually has.
+    parser.add_argument("--think", action="store_true")
     args = parser.parse_args()
 
     body = json.dumps(
@@ -108,7 +111,11 @@ def main() -> int:
             "messages": [{"role": "user", "content": args.prompt.read_text(encoding="utf-8")}],
             "max_tokens": args.max_tokens,
             "stream": False,
-            "reasoning_format": "none",
+            # Defect 39. Asking for `none` is what put `<think>` in the
+            # content and made the first run score zero: the flag means "leave
+            # thoughts unparsed in message.content", not "do not think".
+            "chat_template_kwargs": {"enable_thinking": args.think},
+            "reasoning_format": "deepseek",
             "temperature": args.temp,
         }
     ).encode()
@@ -128,9 +135,15 @@ def main() -> int:
         return 0
     seconds = time.monotonic() - started
 
-    content = reply["choices"][0]["message"].get("content") or ""
+    message = reply["choices"][0]["message"]
+    content = message.get("content") or ""
+    # Kept because not keeping it hid where 6144 tokens had gone: the content
+    # was empty and the budget was spent, and nothing on disk said why.
+    reasoning = message.get("reasoning_content") or ""
     generated = int(reply.get("usage", {}).get("completion_tokens", 0))
     (args.out / "reply.txt").write_text(content, encoding="utf-8")
+    if reasoning:
+        (args.out / "reasoning.txt").write_text(reasoning, encoding="utf-8")
 
     passed = score(args.out, code_from(content))
     rate = generated / seconds if seconds > 0 else 0

@@ -121,6 +121,7 @@ printf 'config\tmodel\tpassed\ttok_s\tgen_tokens\tseconds\tvram_mib\tram_gb\n' >
   echo "host:    $HOST:$PORT"
   echo "samples: $SAMPLES per configuration"
   echo "driver:  $(nvidia-smi.exe --query-gpu=driver_version --format=csv,noheader 2>/dev/null | tr -d '\r' | head -1)"
+  echo "runtime: $(llama.exe --version 2>/dev/null | tr -d '\r' | head -1)"
 } | tee "$OUT/probe.txt"
 echo
 

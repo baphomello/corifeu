@@ -103,10 +103,20 @@ pub fn body(model: &str, messages: &[Message], tools: &[Value], budget: &Budget)
     if !tools.is_empty() {
         request["tools"] = json!(tools);
     }
-    // The server decides whether to emit thought tags; asking for none is how a
-    // transcription role keeps its whole budget for the file.
+    // Defect 39. This used to send `reasoning_format: "none"`, and the flag's
+    // own help says what that does: "leaves thoughts unparsed in
+    // message.content". The intent was "do not think". The effect was "think,
+    // and write the thinking into your answer" — spending the output budget and
+    // putting prose where a tool call belongs.
+    //
+    // Two things are asked for instead. The template is told not to think,
+    // which is what actually stops it and costs two tokens where the thinking
+    // cost 175. And the format is `deepseek`, so that a model whose template
+    // ignores the first still puts its thoughts in `reasoning_content` where
+    // they are separate from the answer rather than inside it.
     if !budget.think {
-        request["reasoning_format"] = json!("none");
+        request["chat_template_kwargs"] = json!({ "enable_thinking": false });
+        request["reasoning_format"] = json!("deepseek");
     }
     // Defect 26: a round that cannot be replayed cannot be checked.
     if let Some(seed) = budget.seed {
@@ -266,16 +276,22 @@ mod tests {
     }
 
     #[test]
-    fn a_transcription_role_asks_for_no_reasoning() {
-        assert_eq!(body("m", &[], &[], &budget())["reasoning_format"], "none");
+    fn a_transcription_role_asks_the_template_not_to_think() {
+        let request = body("m", &[], &[], &budget());
+        assert_eq!(request["chat_template_kwargs"]["enable_thinking"], false);
+        // And if the template ignores that, the thoughts still go somewhere
+        // other than the answer.
+        assert_eq!(request["reasoning_format"], "deepseek");
+    }
+
+    #[test]
+    fn a_judging_role_is_left_alone() {
         let judging = Budget {
             think: true,
             ..budget()
         };
-        assert!(
-            body("m", &[], &[], &judging)
-                .get("reasoning_format")
-                .is_none()
-        );
+        let request = body("m", &[], &[], &judging);
+        assert!(request.get("chat_template_kwargs").is_none());
+        assert!(request.get("reasoning_format").is_none());
     }
 }

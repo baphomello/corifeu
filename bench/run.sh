@@ -10,6 +10,12 @@
 #   BENCH_TIMEOUT         seconds per iteration (default: 3600)
 #   BENCH_SLICE           which slice the pair works, 1-4 (default: 1)
 #   BENCH_TASK            a directory under bench/tasks/ (default: c-glob)
+#   BENCH_BLOCK           consecutive iterations one model runs before the
+#                         other takes a turn (default: 1, which alternates).
+#                         Defect 28: alternating reloads the model every
+#                         iteration under --models-max 1, and round five did it
+#                         122 times. Raising this cuts reloads and costs a
+#                         confound; the comment on the loop has the numbers.
 #   BENCH_SEED            sampler seed base, varied by iteration (default: 1).
 #                         'off' leaves it unset, which is how rounds one to five
 #                         ran and the reason none of them can be replayed.
@@ -50,6 +56,8 @@ HOST=${BENCH_HOST:-$(ip route show default | awk '{print $3}')}
 CAP=${BENCH_TIMEOUT:-3600}
 SLICE=${BENCH_SLICE:-1}
 TASK=${BENCH_TASK:-c-glob}
+BLOCK=${BENCH_BLOCK:-1}
+[[ "$BLOCK" =~ ^[1-9][0-9]*$ ]] || { echo "BENCH_BLOCK must be a positive number" >&2; exit 2; }
 
 # The fourth run's lesson, cheaply: a round against a router that is not there
 # produces N rows of PROVIDER_FAILED and takes the full timeout to do it. Any
@@ -137,6 +145,14 @@ rm -rf "$PROBE_DIR"
 PROBE=$(probe "$PROBE_DIR") || exit 1
 rm -rf "$PROBE_DIR"
 
+# Defect 31. The GPU driver decides what the runtime does with a model and it
+# changed under us between rounds without appearing in any record, which is the
+# same class of mistake as the missing seed: an environment variable that moves
+# the result and that nobody wrote down.
+DRIVER=$(nvidia-smi.exe --query-gpu=driver_version --format=csv,noheader 2>/dev/null |
+  tr -d '\r' | head -1)
+DRIVER=${DRIVER:-$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)}
+
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
 ( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
@@ -158,6 +174,8 @@ LOG="$ROUND/log"
   echo "oracle:  $PROBE"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"
   echo "seed:    base=${BENCH_SEED:-1} (per iteration; 'off' reproduces rounds 1-5)"
+  echo "block:   $BLOCK iteration(s) per model before switching"
+  echo "driver:  ${DRIVER:-unknown}"
   echo "repeats: ${BENCH_REPEATS:-default}"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
@@ -174,8 +192,24 @@ fi
 # actually wants.
 printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\tflags\toutcome\n' > "$STEPS"
 
-for i in $(seq 1 "$N"); do
+# Defect 28. Under `--models-max 1` the router holds one model, so every switch
+# is a full reload: 6 GB off disk and onto the card, several cores for the best
+# part of a minute. Round five alternated on every iteration and reloaded 122
+# times.
+#
+# Grouping is not free, and the default is 1 because of what the round measured
+# rather than because it is the old behaviour. Comparing the first half of each
+# cell against the second: slices reaching green went 67% to 87% in Task C, 80%
+# to 60% in Task D and 45% to 23% in Task E, in both directions and by twenty
+# points. With a block as large as the cell, one model would sit entirely in one
+# of those halves and a swing of that size would read as a difference between
+# models. Alternating spends reloads to buy that protection.
+#
+# A seed (ADR-0066) is what makes a larger block safe, and nothing has yet
+# measured how much of the swing it removes.
+for (( start = 1; start <= N; start += BLOCK )); do
   for M in "${MODELS[@]}"; do
+   for (( i = start; i < start + BLOCK && i <= N; i++ )); do
     W="$ROUND/work/$M/$i"
     if [ "$MODE" = rank ]; then SCAFFOLD=(--mode slices); else SCAFFOLD=(--mode pair --slice "$SLICE"); fi
     if ! python3 -I "$HERE/tasks/scaffold.py" "$W" --task "$TASK" "${SCAFFOLD[@]}" >>"$LOG" 2>&1; then
@@ -203,6 +237,7 @@ for i in $(seq 1 "$N"); do
     # The sources, the checkpoints and the final output are the evidence. The
     # build tree is not, and it is 10 MB an iteration.
     rm -rf "$CARGO_TARGET_DIR"
+   done
   done
 done
 

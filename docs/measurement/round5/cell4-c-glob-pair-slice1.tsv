@@ -1,0 +1,42 @@
+iteration	model	slice	outcome	qa_rounds	qa_steps	coder_rounds	coder_steps	prompt	seconds	held_out
+1	qwopus3.5-9b-coder-Q4_K_M	1	SELF_TESTED:9	1	8	0	0	28370	155	12/12
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 9 passed; 0 failed
+1	ornith1.5-9b-Q5_K_M	1	GREEN:6	1	2	1	1	6270	108	12/12
+FINAL	1	ornith1.5-9b-Q5_K_M	test result: ok. 6 passed; 0 failed
+2	qwopus3.5-9b-coder-Q4_K_M	1	SELF_TESTED:14	1	1	0	0	1791	52	12/12
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 14 passed; 0 failed
+2	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:7	1	1	0	0	1791	83	12/12
+FINAL	2	ornith1.5-9b-Q5_K_M	test result: ok. 7 passed; 0 failed
+3	qwopus3.5-9b-coder-Q4_K_M	1	SELF_TESTED:9	1	12	0	0	34389	297	12/12
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 9 passed; 0 failed
+3	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:11	1	3	0	0	6828	91	12/12
+FINAL	3	ornith1.5-9b-Q5_K_M	test result: ok. 11 passed; 0 failed
+4	qwopus3.5-9b-coder-Q4_K_M	1	NO_RUNNABLE_TEST	1	3	0	0	12579	76	did-not-build
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	did not build
+4	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:3	1	3	0	0	7285	85	12/12
+FINAL	4	ornith1.5-9b-Q5_K_M	test result: ok. 3 passed; 0 failed
+5	qwopus3.5-9b-coder-Q4_K_M	1	GREEN:11	1	2	1	1	6679	110	12/12
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 11 passed; 0 failed
+5	ornith1.5-9b-Q5_K_M	1	GREEN:10	1	2	1	1	5786	165	12/12
+FINAL	5	ornith1.5-9b-Q5_K_M	test result: ok. 10 passed; 0 failed
+6	qwopus3.5-9b-coder-Q4_K_M	1	GREEN:8	1	1	1	1	4142	75	12/12
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 8 passed; 0 failed
+6	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:9	1	4	0	0	10498	206	12/12
+FINAL	6	ornith1.5-9b-Q5_K_M	test result: ok. 9 passed; 0 failed
+7	qwopus3.5-9b-coder-Q4_K_M	1	SELF_TESTED:8	1	5	0	0	15978	106	12/12
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 8 passed; 0 failed
+7	ornith1.5-9b-Q5_K_M	1	NO_RUNNABLE_TEST	1	12	0	0	41922	164	did-not-build
+FINAL	7	ornith1.5-9b-Q5_K_M	did not build
+8	qwopus3.5-9b-coder-Q4_K_M	1	GREEN:7	1	1	1	1	3832	88	12/12
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 7 passed; 0 failed
+8	ornith1.5-9b-Q5_K_M	1	GREEN:7	1	1	1	1	3825	71	12/12
+FINAL	8	ornith1.5-9b-Q5_K_M	test result: ok. 7 passed; 0 failed
+9	qwopus3.5-9b-coder-Q4_K_M	1	SELF_TESTED:1	1	9	0	0	23953	212	12/12
+FINAL	9	qwopus3.5-9b-coder-Q4_K_M	test result: ok. 1 passed; 0 failed
+9	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:6	1	2	0	0	4269	91	12/12
+FINAL	9	ornith1.5-9b-Q5_K_M	test result: ok. 6 passed; 0 failed
+10	qwopus3.5-9b-coder-Q4_K_M	1	NOT_PASSED	2	5	2	24	110165	950	9/12
+FINAL	10	qwopus3.5-9b-coder-Q4_K_M	test result: FAILED. 5 passed; 9 failed
+10	ornith1.5-9b-Q5_K_M	1	SELF_TESTED:12	1	1	0	0	1791	56	12/12
+FINAL	10	ornith1.5-9b-Q5_K_M	test result: ok. 12 passed; 0 failed
+ROUND COMPLETE

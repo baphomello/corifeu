@@ -1,0 +1,155 @@
+iteration	model	slice	outcome	steps	prompt	output	checks	seconds	allowed
+1	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2202	1	41	8
+1	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	2	5023	6212	1	113	8
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	2	4949	7156	1	130	8
+1	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2472	3270	1	61	8
+TOTAL	1	qwopus3.5-9b-coder-Q4_K_M	closed=4/4	overtaken=0	free=0	steps=6	prompt=14886	output=18840	checks=4	floor_left=false	minutes=5.9
+FINAL	1	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.12s
+1	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2442	2111	1	49	8
+1	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2472	2122	1	45	8
+1	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	3	9967	8875	2	182	8
+1	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2783	2336	1	49	8
+TOTAL	1	ornith1.5-9b-Q5_K_M	closed=4/4	overtaken=0	free=0	steps=6	prompt=17664	output=15444	checks=5	floor_left=false	minutes=5.5
+FINAL	1	ornith1.5-9b-Q5_K_M	26 passed in 0.09s
+2	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	EXHAUSTED	8	21293	8697	0	161	8
+2	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	1	2467	2404	1	45	8
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	2	7269	5270	2	100	8
+2	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0	0
+AGAIN	2	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN
+TOTAL	2	qwopus3.5-9b-coder-Q4_K_M	closed=3/4	overtaken=1	free=1	steps=11	prompt=31029	output=16371	checks=3	floor_left=false	minutes=5.2
+FINAL	2	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.11s
+2	ornith1.5-9b-Q5_K_M	slice1_segs	LOOPING	7	18909	14213	0	285	8
+2	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2467	1861	1	39	8
+2	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	2	7303	6137	2	127	8
+2	ornith1.5-9b-Q5_K_M	slice4_classify	LOOPING	8	21967	12456	0	246	8
+AGAIN	2	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN
+AGAIN	2	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	2	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=1	free=0	steps=18	prompt=50646	output=34667	checks=3	floor_left=false	minutes=11.8
+FINAL	2	ornith1.5-9b-Q5_K_M	5 failed, 21 passed in 0.30s
+3	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2366	1	49	8
+3	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	EXHAUSTED	8	21731	12913	0	230	8
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	4	10114	10127	1	181	8
+3	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0	0
+AGAIN	3	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN
+TOTAL	3	qwopus3.5-9b-coder-Q4_K_M	closed=3/4	overtaken=1	free=1	steps=13	prompt=34287	output=25406	checks=2	floor_left=false	minutes=7.8
+FINAL	3	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.09s
+3	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2442	2276	1	51	8
+3	ornith1.5-9b-Q5_K_M	slice2_seg	EXHAUSTED	8	26425	8351	1	169	8
+3	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	6	30907	10032	3	210	8
+3	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	1	2497	2046	1	43	8
+AGAIN	3	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN
+TOTAL	3	ornith1.5-9b-Q5_K_M	closed=3/4	overtaken=1	free=0	steps=16	prompt=62271	output=22705	checks=6	floor_left=false	minutes=8.0
+FINAL	3	ornith1.5-9b-Q5_K_M	26 passed in 0.09s
+4	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2207	1	46	8
+4	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	1	2482	2478	1	46	8
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	EXHAUSTED	8	21769	24945	0	445	8
+4	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2588	2542	1	48	8
+AGAIN	4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN
+TOTAL	4	qwopus3.5-9b-coder-Q4_K_M	closed=3/4	overtaken=1	free=0	steps=11	prompt=29281	output=32172	checks=3	floor_left=false	minutes=9.9
+FINAL	4	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.11s
+4	ornith1.5-9b-Q5_K_M	slice1_segs	EXHAUSTED	8	22492	11163	1	227	8
+4	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2467	1967	1	40	8
+4	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	8	21769	14038	0	276	8
+4	ornith1.5-9b-Q5_K_M	slice4_classify	EXHAUSTED	8	29278	21739	2	437	8
+AGAIN	4	ornith1.5-9b-Q5_K_M	slice1_segs	RED
+AGAIN	4	ornith1.5-9b-Q5_K_M	slice3_glob	RED
+AGAIN	4	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	4	ornith1.5-9b-Q5_K_M	closed=1/4	overtaken=0	free=0	steps=25	prompt=76006	output=48907	checks=4	floor_left=true	minutes=16.5
+FINAL	4	ornith1.5-9b-Q5_K_M	17 failed, 9 passed in 0.67s
+5	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	2	4933	6210	1	117	8
+5	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	4	10228	7242	1	132	8
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	EXHAUSTED	8	26925	14496	3	267	8
+5	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	EXHAUSTED	8	33431	11790	1	218	8
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	RED
+AGAIN	5	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	RED
+TOTAL	5	qwopus3.5-9b-coder-Q4_K_M	closed=2/4	overtaken=0	free=0	steps=22	prompt=75517	output=39738	checks=6	floor_left=true	minutes=12.4
+FINAL	5	qwopus3.5-9b-coder-Q4_K_M	3 failed, 23 passed in 0.24s
+5	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2442	2156	1	49	8
+5	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2472	2800	1	57	8
+5	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	8	23602	18401	2	371	8
+5	ornith1.5-9b-Q5_K_M	slice4_classify	EXHAUSTED	8	21805	10622	0	211	8
+AGAIN	5	ornith1.5-9b-Q5_K_M	slice3_glob	RED
+AGAIN	5	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	5	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=0	free=0	steps=18	prompt=50321	output=33979	checks=4	floor_left=true	minutes=11.6
+FINAL	5	ornith1.5-9b-Q5_K_M	11 failed, 15 passed in 0.47s
+6	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2182	1	46	8
+6	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	3	9020	6592	1	121	8
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	4	10630	14430	1	260	8
+6	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2606	2393	1	45	8
+TOTAL	6	qwopus3.5-9b-coder-Q4_K_M	closed=4/4	overtaken=0	free=0	steps=9	prompt=24698	output=25597	checks=4	floor_left=false	minutes=8.0
+FINAL	6	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.13s
+6	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	1	2442	2433	1	55	8
+6	ornith1.5-9b-Q5_K_M	slice2_seg	LOOPING	7	19125	14169	0	280	8
+6	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN	2	7407	5825	2	121	8
+6	ornith1.5-9b-Q5_K_M	slice4_classify	EXHAUSTED	8	21805	10582	0	208	8
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN
+AGAIN	6	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	6	ornith1.5-9b-Q5_K_M	closed=2/4	overtaken=1	free=0	steps=18	prompt=50779	output=33009	checks=3	floor_left=false	minutes=11.2
+FINAL	6	ornith1.5-9b-Q5_K_M	5 failed, 21 passed in 0.32s
+7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	EXHAUSTED	8	21465	10324	0	188	8
+7	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	EXHAUSTED	8	21503	15404	0	275	8
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	6	29763	11830	3	227	14
+7	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	EXHAUSTED	8	27869	17047	3	314	8
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	RED
+AGAIN	7	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	RED
+TOTAL	7	qwopus3.5-9b-coder-Q4_K_M	closed=1/4	overtaken=1	free=0	steps=30	prompt=100600	output=54605	checks=6	floor_left=false	minutes=16.9
+FINAL	7	qwopus3.5-9b-coder-Q4_K_M	6 failed, 20 passed in 0.32s
+7	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	2	5664	2454	2	59	8
+7	ornith1.5-9b-Q5_K_M	slice2_seg	EXHAUSTED	8	26443	12559	1	255	8
+7	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	8	21335	26763	0	528	8
+7	ornith1.5-9b-Q5_K_M	slice4_classify	LOOPING	8	22011	16417	0	325	14
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice2_seg	RED
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice3_glob	RED
+AGAIN	7	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	7	ornith1.5-9b-Q5_K_M	closed=1/4	overtaken=0	free=0	steps=26	prompt=75453	output=58193	checks=3	floor_left=true	minutes=19.6
+FINAL	7	ornith1.5-9b-Q5_K_M	22 failed, 4 passed in 0.70s
+8	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	EXHAUSTED	8	22212	4289	0	83	8
+8	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	2	4972	5223	1	95	8
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	7	21334	20919	2	379	8
+8	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	GREEN	1	2685	2588	1	49	8
+AGAIN	8	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	RED
+TOTAL	8	qwopus3.5-9b-coder-Q4_K_M	closed=3/4	overtaken=0	free=0	steps=18	prompt=51203	output=33019	checks=4	floor_left=false	minutes=10.2
+FINAL	8	qwopus3.5-9b-coder-Q4_K_M	1 failed, 25 passed in 0.20s
+8	ornith1.5-9b-Q5_K_M	slice1_segs	EXHAUSTED	8	21783	11556	0	233	8
+8	ornith1.5-9b-Q5_K_M	slice2_seg	EXHAUSTED	8	24544	10547	1	210	8
+8	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	14	62507	33439	3	679	14
+8	ornith1.5-9b-Q5_K_M	slice4_classify	EXHAUSTED	14	40029	22498	0	444	14
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice1_segs	RED
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice2_seg	RED
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice3_glob	RED
+AGAIN	8	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	8	ornith1.5-9b-Q5_K_M	closed=0/4	overtaken=0	free=0	steps=44	prompt=148863	output=78040	checks=4	floor_left=true	minutes=26.3
+FINAL	8	ornith1.5-9b-Q5_K_M	26 failed in 0.91s
+9	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2292	1	49	8
+9	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN	2	5013	5952	1	110	8
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	GREEN	6	17175	14218	2	258	8
+9	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	DELIVERED_EARLY	0	0	0	0	0	0
+TOTAL	9	qwopus3.5-9b-coder-Q4_K_M	closed=4/4	overtaken=0	free=1	steps=9	prompt=24630	output=22462	checks=4	floor_left=false	minutes=7.1
+FINAL	9	qwopus3.5-9b-coder-Q4_K_M	26 passed in 0.13s
+9	ornith1.5-9b-Q5_K_M	slice1_segs	LOOPING	7	18909	13610	0	275	8
+9	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2467	2415	1	50	8
+9	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	8	21307	22262	0	442	8
+9	ornith1.5-9b-Q5_K_M	slice4_classify	LOOPING	8	21859	16788	0	340	8
+AGAIN	9	ornith1.5-9b-Q5_K_M	slice1_segs	RED
+AGAIN	9	ornith1.5-9b-Q5_K_M	slice3_glob	RED
+AGAIN	9	ornith1.5-9b-Q5_K_M	slice4_classify	RED
+TOTAL	9	ornith1.5-9b-Q5_K_M	closed=1/4	overtaken=0	free=0	steps=24	prompt=64542	output=55075	checks=1	floor_left=false	minutes=18.7
+FINAL	9	ornith1.5-9b-Q5_K_M	18 failed, 8 passed in 0.66s
+10	qwopus3.5-9b-coder-Q4_K_M	slice1_segs	GREEN	1	2442	2186	1	49	8
+10	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	EXHAUSTED	8	21668	16320	0	301	8
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	EXHAUSTED	8	26161	20335	1	377	8
+10	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	EXHAUSTED	14	43196	33002	2	613	14
+AGAIN	10	qwopus3.5-9b-coder-Q4_K_M	slice2_seg	GREEN
+AGAIN	10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	RED
+AGAIN	10	qwopus3.5-9b-coder-Q4_K_M	slice4_classify	RED
+TOTAL	10	qwopus3.5-9b-coder-Q4_K_M	closed=1/4	overtaken=1	free=0	steps=31	prompt=93467	output=71843	checks=4	floor_left=true	minutes=22.5
+FINAL	10	qwopus3.5-9b-coder-Q4_K_M	8 failed, 18 passed in 0.29s
+10	ornith1.5-9b-Q5_K_M	slice1_segs	GREEN	2	5095	2238	1	58	8
+10	ornith1.5-9b-Q5_K_M	slice2_seg	GREEN	1	2472	2153	1	49	8
+10	ornith1.5-9b-Q5_K_M	slice3_glob	EXHAUSTED	8	27962	18450	1	403	8
+10	ornith1.5-9b-Q5_K_M	slice4_classify	GREEN	3	10322	9153	2	201	8
+AGAIN	10	ornith1.5-9b-Q5_K_M	slice3_glob	GREEN
+TOTAL	10	ornith1.5-9b-Q5_K_M	closed=3/4	overtaken=1	free=0	steps=14	prompt=45851	output=31994	checks=5	floor_left=false	minutes=12.0
+FINAL	10	ornith1.5-9b-Q5_K_M	26 passed in 0.12s
+ROUND COMPLETE

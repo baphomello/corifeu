@@ -1,0 +1,10 @@
+round:   20261016-061755
+mode:    rank
+task:    d-glob-py
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  ca19506
+suite:   python3 -m pytest -q pathclass.py
+oracle:  26 failed in 1.06s
+steps:   floor=8 ceiling=default
+         patience=default raise_by=default

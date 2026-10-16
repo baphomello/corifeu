@@ -17,6 +17,13 @@ BENCH_TASK=e-indep bench/run.sh rank 10 ornith1.5-9b-Q5_K_M
 BENCH_TASK=d-glob-py bench/run.sh rank 10 ornith1.5-9b-Q5_K_M
 ```
 
+**The round wants the machine.** On the hardware these rounds were measured on — an RTX 3070
+with 8 GB — a 9B model at Q5 with 8192 of context leaves about **150 MiB of VRAM spare**, and a
+desktop browser or a game launcher will take that. What does not fit spills to shared memory,
+which is system RAM over PCIe and is slower by orders of magnitude, so a round sharing a card
+measures the sharing. The model also holds around 7 GB of system RAM while it is loaded (defect
+29, cause unconfirmed), on top of what WSL uses.
+
 You need a llama.cpp server in router mode on port 9931 that can load the models you name.
 `run.sh` finds the host from the default route, which is right under WSL; set `BENCH_HOST`
 otherwise. It probes that port before anything else and refuses to start without an answer:
@@ -26,7 +33,7 @@ and spends a connect timeout on each one.
 A round writes to `bench/rounds/<stamp>-<mode>/`, which is not committed:
 
 ```
-round.txt        what was run, against which commit, allowance, seed and oracle
+round.txt        what was run: commit, allowance, seed, block, GPU driver, oracle
 results.tsv      one row per slice, plus the rows below
 steps.tsv        one row per step: tool, argument, flags, outcome
 log              timestamps, scaffold output, anything the driver put on stderr
@@ -173,6 +180,16 @@ BENCH_SEED=off  bench/run.sh rank 10 <model>   # unseeded, as rounds 1-5 ran
 
 `BENCH_REPEATS` is the number of consecutive repeats before a turn stops. Round five priced the
 default of six at 30% of its steps for a 3.7% rescue rate, which is why it is a number now.
+
+`BENCH_BLOCK` is how many iterations one model runs before the other takes a turn. It defaults
+to 1, which alternates, and that default is a measurement rather than inertia: under
+`--models-max 1` every switch is a full reload — round five did 122 of them — but comparing each
+cell's first half against its second showed slices reaching green moving 67% to 87% in Task C,
+80% to 60% in Task D and 45% to 23% in Task E. A block as large as the cell would put one model
+entirely inside one of those halves, and a twenty-point swing would read as a difference between
+models. Alternating spends reloads to buy that protection; a seed
+([ADR-0066](../docs/adr/0066-a-round-is-replayable-or-it-is-an-anecdote.md)) is what should make
+a larger block safe, and nothing has measured how much of the swing it removes.
 
 `BENCH_SEED` is a base, varied by the iteration, so one iteration can be replayed on its own.
 It defaults to 1. `off` leaves the sampler unseeded, which is how rounds one to five ran and the

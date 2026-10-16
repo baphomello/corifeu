@@ -1,0 +1,478 @@
+iteration	model	module	role	step	tool	argument	flags	outcome
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 5607 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	say	-	say is not permitted. Permitted: cargo.
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 8471 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	write_file	src/lib.rs	-	wrote 8473 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	write_file	src/lib.rs	-	wrote 8473 bytes to src/lib.rs
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	run	say	-	say is not permitted. Permitted: cargo.
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		no-tool	no tool call; nothing happened
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		no-tool	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 4526 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	run	say hi	-	say hi is not permitted. Permitted: cargo.
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	write_file	src/lib.rs	-	wrote 4531 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 4530 bytes to src/lib.rs
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	run	cat -A src/lib.rs	-	cat -A src/lib.rs is not permitted. Permitted: cargo.
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	say		no-tool	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+1	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 4782 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 7221 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	-	wrote 7223 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	write_file	src/lib.rs	-	wrote 7208 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 7208 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	say		budget	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	write_file	src/lib.rs	-	wrote 7209 bytes to src/lib.rs
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		no-tool	no tool call; nothing happened
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	say	-	say is not permitted. Permitted: cargo.
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+2	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	say	repeat	REPEAT: you already ran `run say` and nothing has changed since, so the result would be identical and this call was not…
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 6702 bytes to src/lib.rs
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	write_file	src/lib.rs	-	wrote 6531 bytes to src/lib.rs
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	say		no-tool	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+2	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	run	say	-	say is not permitted. Permitted: cargo.
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 11320 bytes to src/lib.rs
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	4	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	5	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	7	run	echo hello	-	echo hello is not permitted. Permitted: cargo.
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	9	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	say	-	say is not permitted. Permitted: cargo.
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	say	-	say is not permitted. Permitted: cargo.
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		no-tool	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+3	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	run cargo test --lib slice3_glob	-	run cargo test --lib slice3_glob is not permitted. Permitted: cargo.
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 6375 bytes to src/lib.rs
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	say		budget	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		no-tool	no tool call; nothing happened
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+3	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 3992 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	say		no-tool	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	say	-	say is not permitted. Permitted: cargo.
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	write_file	src/lib.rs	-	wrote 6010 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	write_file	src/lib.rs	-	wrote 6002 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	-	wrote 5997 bytes to src/lib.rs
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	say	-	say is not permitted. Permitted: cargo.
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	say	repeat	REPEAT: you already ran `run say` and nothing has changed since, so the result would be identical and this call was not…
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		no-tool	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		no-tool	no tool call; nothing happened
+4	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 3616 bytes to src/lib.rs
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 4459 bytes to src/lib.rs
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	write_file	/tmp/repro.rs	-	REFUSED: /tmp/repro.rs escapes the workspace root
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	run	run cat -A src/lib.rs | sed -n '80,110p'	-	run cat -A src/lib.rs | sed -n '80,110p' is not permitted. Permitted: cargo.
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	write_file	src/lib.rs	-	wrote 4306 bytes to src/lib.rs
+4	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	run	say	-	say is not permitted. Permitted: cargo.
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	4	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	5	say		no-tool	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	7	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	8	write_file	src/lib.rs	-	wrote 4765 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	write_file	src/lib.rs	-	wrote 7509 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	say		no-tool	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	write_file	src/lib.rs	-	wrote 7511 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	write_file	src/lib.rs	-	wrote 7511 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	write_file	src/lib.rs	-	wrote 7509 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	rollback	wrote 7589 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	write_file	src/lib.rs	rollback	wrote 6491 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		no-tool	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	echo I ran: say	-	echo I ran: say is not permitted. Permitted: cargo.
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	write_file	src/lib.rs	rollback	wrote 8598 bytes to src/lib.rs
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		no-tool	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		no-tool	no tool call; nothing happened
+5	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	write_file	src/lib.rs	-	wrote 4066 bytes to src/lib.rs
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	say		no-tool	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	say		budget	no tool call; nothing happened
+5	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	run	say	-	say is not permitted. Permitted: cargo.
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 12165 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	5	write_file	src/lib.rs	-	wrote 12165 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	6	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	9	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	10	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	11	write_file	src/lib.rs	-	wrote 12180 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	write_file	src/lib.rs	-	wrote 12134 bytes to src/lib.rs
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	cargo test --lib slice3_glob --nocapture	-	$ cargo test --lib slice3_glob
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	say	-	say is not permitted. Permitted: cargo.
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob --nocapture	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob --nocapture` and nothing has changed since, so the result woul…
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		no-tool	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		no-tool	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	run	run cargo test --lib slice3_glob	-	run cargo test --lib slice3_glob is not permitted. Permitted: cargo.
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		no-tool	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		no-tool	no tool call; nothing happened
+6	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+6	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 4270 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	write_file	src/lib.rs	-	wrote 4883 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	write_file	src/lib.rs	rollback	wrote 5024 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	run	sed -i s/other => match_seg(other, paths\[0\]) && match_glob(&pats\[1..\], &paths\[1..\]),/other => !paths.is_empty()\n && match_seg(other, paths[0])\n && match_glob(&pats[1..], &paths[1..]),/ src/lib	-	sed -i s/other => match_seg(other, paths\[0\]) && match_glob(&pats\[1..\], &paths\[1..\]),/other => !paths.is_empty()\n…
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 4928 bytes to src/lib.rs
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+6	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 4979 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 6127 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		no-tool	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	say hello world	-	say hello world is not permitted. Permitted: cargo.
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	write_file	src/lib.rs	-	wrote 6125 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	write_file	src/lib.rs	-	wrote 6126 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		no-tool	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	write_file	src/lib.rs	-	wrote 6126 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		no-tool	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 6127 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		no-tool	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	write_file	src/lib.rs	-	wrote 6210 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	write_file	src/lib.rs	-	wrote 6210 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	-	wrote 6103 bytes to src/lib.rs
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+7	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	write_file	src/lib.rs	-	wrote 5000 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 5004 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	write_file	src/lib.rs	-	wrote 4683 bytes to src/lib.rs
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+7	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 3568 bytes to src/lib.rs
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 4665 bytes to src/lib.rs
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	cat src/lib.rs	-	cat src/lib.rs is not permitted. Permitted: cargo.
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	-	wrote 4654 bytes to src/lib.rs
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 4655 bytes to src/lib.rs
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	run	cat src/lib.rs	-	cat src/lib.rs is not permitted. Permitted: cargo.
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	run	say	-	say is not permitted. Permitted: cargo.
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		no-tool	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	say	repeat	REPEAT: you already ran `run say` and nothing has changed since, so the result would be identical and this call was not…
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+8	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 5442 bytes to src/lib.rs
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	run	say done	-	say done is not permitted. Permitted: cargo.
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	say		no-tool	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	2	run	grep -n glob_match src/lib.rs	-	grep -n glob_match src/lib.rs is not permitted. Permitted: cargo.
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	3	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	4	write_file	src/lib.rs	-	wrote 6720 bytes to src/lib.rs
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	7	say		no-tool	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	9	say		no-tool	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	10	run	run cargo test --lib slice3_glob	-	run cargo test --lib slice3_glob is not permitted. Permitted: cargo.
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	11	say		budget	no tool call; nothing happened
+8	ornith1.5-9b-Q5_K_M	slice3_glob	coder	12	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 4513 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	write_file	src/lib.rs	-	wrote 5718 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	run	say	-	say is not permitted. Permitted: cargo.
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	write_file	src/lib.rs	-	wrote 5719 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	write_file	src/lib.rs	-	wrote 5714 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		no-tool	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	write_file	src/lib.rs	-	wrote 5644 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	write_file	src/lib.rs	-	wrote 5644 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	write_file	src/lib.rs	-	wrote 5533 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	write_file	src/lib.rs	-	wrote 5533 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	write_file	src/lib.rs	-	wrote 5533 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	1	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	2	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	3	write_file	src/lib.rs	-	wrote 5533 bytes to src/lib.rs
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	4	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	5	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	6	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	7	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	8	say		budget	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	9	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	10	say		no-tool	no tool call; nothing happened
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	11	run	cargo test --lib slice3_glob	repeat	REPEAT: you already ran `run cargo test --lib slice3_glob` and nothing has changed since, so the result would be identic…
+9	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	coder	12	run	run cargo test --lib slice3_glob	-	run cargo test --lib slice3_glob is not permitted. Permitted: cargo.
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	run	cargo build 2>&1 head -80	-	failed
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	run	cargo build	-	failed
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	run	cargo build 2>&1 head -80	repeat	REPEAT: you already ran `run cargo build 2>&1 head -80` and nothing has changed since, so the result would be identical…
+9	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	run	cargo build 2>&1 head -80	repeat	REPEAT: you already ran `run cargo build 2>&1 head -80` and nothing has changed since, so the result would be identical…
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	1	write_file	src/lib.rs	-	wrote 4516 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	2	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	3	write_file	src/lib.rs	-	wrote 4516 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	4	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	5	say		no-tool	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	8	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	9	write_file	src/lib.rs	-	wrote 6203 bytes to src/lib.rs
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	10	run	cat src/lib.rs	-	cat src/lib.rs is not permitted. Permitted: cargo.
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	11	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+10	qwopus3.5-9b-coder-Q4_K_M	slice3_glob	qa	12	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	1	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	2	write_file	src/lib.rs	-	wrote 5074 bytes to src/lib.rs
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	3	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	4	write_file	src/lib.rs	-	wrote 5029 bytes to src/lib.rs
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	5	read_file	src/lib.rs	-	//! Classify a path against an ordered list of file classes.
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	6	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	7	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	8	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	9	run	cargo test --lib slice3_glob	-	$ cargo test --lib slice3_glob
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	10	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	11	say		budget	no tool call; nothing happened
+10	ornith1.5-9b-Q5_K_M	slice3_glob	qa	12	read_file	src/lib.rs	repeat	REPEAT: you already ran `read_file src/lib.rs` and nothing has changed since, so the result would be identical and this…

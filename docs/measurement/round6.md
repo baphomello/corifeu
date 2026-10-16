@@ -154,6 +154,19 @@ the restore is undoing work mid-thought and the comparison scope is wrong.
 
 ---
 
+## Q5's third leg, and a confound that arrived with it
+
+Round five ran the floor sweep at 12 and at 8 and they were indistinguishable: 9 of 20
+delivered either way, total steps within 2%, with the allowance growing in 6 of 20 iterations
+at floor 8 against 4 of 20 at floor 12. The third leg, `floor = 30`, was not run.
+
+**It cannot simply be run later.** The GPU driver was updated between round five and this one
+(610.88, with 617.42 offered mid-round), and a leg measured on a different stack is not a leg of
+the same sweep. Either all three legs run together on one driver, or the sweep stays at two.
+
+Defect 31: `round.txt` now records the driver version, for the same reason it records the
+commit and the seed.
+
 ## Q1 and Q4 carry over
 
 Round five's pair cells ran against the frozen runtime and are recorded separately. They are not

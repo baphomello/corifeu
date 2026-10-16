@@ -1,0 +1,11 @@
+round:   20261015-232435
+mode:    pair
+task:    c-glob
+host:    192.168.32.1
+models:  qwopus3.5-9b-coder-Q4_K_M ornith1.5-9b-Q5_K_M
+commit:  b5fd0eb
+suite:   cargo test --lib
+oracle:  test result: FAILED. 0 passed; 26 failed; 0 ig
+slice:   1
+steps:   floor=default ceiling=default
+         patience=default raise_by=default

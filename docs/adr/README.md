@@ -187,3 +187,21 @@ taken before the work that would test them, so that the reasoning is not re-deri
 |---|---|---|
 | [0064](0064-a-model-writes-the-rule-it-is-not-the-rule.md) | A model writes the rule; a model is not the rule | Accepted, not implemented |
 | [0065](0065-an-oracle-and-a-judge-are-different-contracts.md) | An oracle and a judge are different contracts, and are never mixed | Accepted, not implemented |
+
+### Decisions taken on round five
+The fifth round answered eight of its twelve questions and produced seven decisions. Five of
+them are a field or a value with the measured behaviour as the default, so nothing changed by
+default and all of them are testable; [round six](../measurement/round6.md) is what tests them.
+Two needed an ADR of their own.
+
+| ADR | Title | Status |
+|---|---|---|
+| [0066](0066-a-round-is-replayable-or-it-is-an-anecdote.md) | A measured round is replayable, or it is an anecdote | Accepted |
+| [0067](0067-a-check-that-cannot-be-counted-is-not-a-verdict.md) | A check that cannot be counted is not a verdict on the code | Accepted |
+
+Amended by the same round: [0050](0050-loop-detection-warns-before-it-stops.md) (the repeat
+threshold is now a setting, and priced at 30% of a round's steps for a 3.7% rescue rate),
+[0051](0051-checkpoint-before-every-write.md) (untested rather than proven — four firings in
+1,076 steps), and [0063](0063-an-unfinished-slice-is-asked-again.md) (the re-probe is confirmed;
+carrying on is worth 66% in a chained plan and 2% in an independent one, so it became a policy).
+

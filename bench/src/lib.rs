@@ -7,7 +7,7 @@
 //! round.
 
 use corifeu_check::{Cases, Check, Verdict};
-use corifeu_doer::Steps;
+use corifeu_doer::{Limits, Steps};
 use corifeu_doer::{Oracle, Run, Slice};
 use corifeu_exec::{Allowlist, Command};
 use corifeu_workspace::{Class, Classes, Protected};
@@ -130,6 +130,32 @@ pub fn steps() -> Steps {
         patience: number("BENCH_STEPS_PATIENCE", fallback.patience),
         raise_by: number("BENCH_STEPS_RAISE_BY", fallback.raise_by),
     }
+}
+
+/// The seed this iteration runs with (defect 26).
+///
+/// Derived from the iteration so that one iteration can be replayed on its own:
+/// `BENCH_SEED=<base>` fixes the base and the iteration number varies it, which
+/// keeps the twenty runs of a cell from being twenty copies of each other while
+/// leaving each one reproducible. `BENCH_SEED=off` restores the unseeded
+/// sampling that rounds one to five used, for comparing against them.
+pub fn seed(iteration: &str) -> Option<u64> {
+    let base = std::env::var("BENCH_SEED").unwrap_or_else(|_| "1".into());
+    if base == "off" {
+        return None;
+    }
+    let base: u64 = base.parse().unwrap_or(1);
+    let n: u64 = iteration.parse().unwrap_or(0);
+    Some(base.wrapping_mul(1_000).wrapping_add(n))
+}
+
+/// Consecutive repeats before a turn stops (ADR-0050, D2).
+///
+/// Unset means the runtime's own default, which is what a round measuring the
+/// default should use. The fifth round priced the default at 30% of its steps
+/// for a 3.7% rescue rate, so the sixth should sweep it.
+pub fn repeats() -> u32 {
+    number("BENCH_REPEATS", Limits::default().repeats)
 }
 
 fn number(name: &str, fallback: u32) -> u32 {
@@ -332,5 +358,29 @@ mod tests {
             "{renamed}"
         );
         assert!(renamed.contains("version = \"0.0.0\""), "{renamed}");
+    }
+}
+
+#[cfg(test)]
+mod defaults_agree {
+    //! The configuration and the runtime each carry their own defaults and
+    //! nothing converts one into the other yet: `limits.steps` is declared in
+    //! `corifeu-config` and consumed nowhere. Until that path exists, the real
+    //! hazard is the two drifting apart, so that a project file saying `floor:
+    //! 12` and a runtime defaulting to something else would both look right.
+    //!
+    //! This crate is the only one that depends on both, which is why the
+    //! assertion lives in the measurement harness rather than in the product.
+
+    #[test]
+    fn the_config_and_the_runtime_describe_the_same_limits() {
+        let config = corifeu_config::model::Limits::default();
+        let runtime = corifeu_doer::Limits::default();
+
+        assert_eq!(config.steps.floor, runtime.steps.floor, "floor");
+        assert_eq!(config.steps.ceiling, runtime.steps.ceiling, "ceiling");
+        assert_eq!(config.steps.patience, runtime.steps.patience, "patience");
+        assert_eq!(config.steps.raise_by, runtime.steps.raise_by, "raise_by");
+        assert_eq!(config.repeats, runtime.repeats, "repeats");
     }
 }

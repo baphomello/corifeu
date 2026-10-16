@@ -43,10 +43,12 @@ fn main() {
         num_predict: 4096,
         num_ctx: Some(8192),
         think: false,
+        seed: corifeu_bench::seed(&iteration),
     };
     let limits = Limits {
         steps: corifeu_bench::steps(),
         output_budget: 8_000,
+        repeats: corifeu_bench::repeats(),
     };
 
     // Rust keeps a unit test inside the file it tests, so file-class ownership

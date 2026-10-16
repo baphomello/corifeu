@@ -1,0 +1,35 @@
+{
+  "name": "f-expr",
+  "summary": "An integer expression evaluator. Two slices, the second holding sixteen cases that pull against each other, built so that a regression is possible at all.",
+  "artefact": "src/lib.rs",
+  "oracle": ["cargo", "test", "--lib", "{module}"],
+  "whole_suite": ["cargo", "test", "--lib"],
+  "tools": [["cargo"]],
+  "owned": ["src/**"],
+  "protected": "#[test]",
+  "tests_at": "`#[cfg(test)] mod {module}` at the end of the file",
+  "language": "rust",
+  "copy": ["Cargo.toml"],
+  "slices": [
+    {
+      "module": "slice1_tokens",
+      "cases": 6,
+      "signature": "fn tokens(expr: &str) -> Option<Vec<String>> {",
+      "helpers": [],
+      "implement": "`tokens` is unimplemented. Implement it so its tests pass. It splits an expression into tokens: runs of digits, the operators + - * /, and parentheses. Whitespace separates tokens but is never one. Any other character makes the whole expression invalid.",
+      "specify": "`tokens(expr) -> Option<Vec<String>>` splits an expression into tokens: runs of digits stay together, `+ - * / ( )` are each one token, whitespace separates but is never a token, and any other character gives None."
+    },
+    {
+      "module": "slice2_eval",
+      "cases": 16,
+      "signature": "pub fn eval(expr: &str) -> Option<i64> {",
+      "helpers": [
+        "fn sum(tokens: &[String], at: &mut usize) -> Option<i64> {",
+        "fn product(tokens: &[String], at: &mut usize) -> Option<i64> {",
+        "fn unary(tokens: &[String], at: &mut usize) -> Option<i64> {"
+      ],
+      "implement": "`eval` is unimplemented. Implement it so its tests pass. `*` and `/` bind tighter than `+` and `-`; both groups are left associative. A `-` with no value before it is a sign. Division truncates toward zero. Division by zero, overflow, a malformed expression and unbalanced parentheses all give None.",
+      "specify": "`eval(expr) -> Option<i64>` evaluates an integer expression. `*` and `/` bind tighter than `+` and `-`, both groups are left associative, a `-` with no value before it is a sign, division truncates toward zero, and division by zero, overflow or a malformed expression gives None."
+    }
+  ]
+}

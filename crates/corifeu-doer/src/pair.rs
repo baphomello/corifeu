@@ -118,6 +118,36 @@ pub struct Pair<'a> {
     pub qa_rounds: u32,
 }
 
+/// What a walk does when a slice does not close (ADR-0063, D3).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Carry {
+    /// Work every slice in the plan regardless. ADR-0063 as measured, and the
+    /// default because it is the only one with data behind it.
+    #[default]
+    Always,
+    /// Stop at the first slice that does not close. The behaviour ADR-0063
+    /// replaced, kept so the reversal can be re-measured rather than argued.
+    Never,
+    /// Carry on until `patience` slices in a row have failed with no sign that
+    /// this plan's slices overlap, then stop.
+    ///
+    /// **A hypothesis, not a finding.** The fifth round measured the re-probe
+    /// rescuing 66% of unclosed slices in a chained Rust plan, 20% in the same
+    /// plan in Python and 2% in a plan whose slices call nothing, which says
+    /// carrying on is worth very different amounts depending on the plan's
+    /// shape. It does not say this rule detects the difference, and one case in
+    /// that round argues it does not: runs that closed one slice of four and
+    /// had three rescued delivered the complete crate, and those three failures
+    /// came before any overlap had shown itself. Under this policy with a
+    /// patience of two they would have been abandoned.
+    ///
+    /// The signal that would actually decide it is whether a later slice
+    /// depends on an earlier one, which is a property of the plan rather than
+    /// of anything observable while walking it. ADR-0056's planner could
+    /// declare it and has never cut up a task.
+    UntilOverlap { patience: usize },
+}
+
 impl Pair<'_> {
     /// One slice, with an allowance of its own.
     pub fn work(&self, slice: &Slice, workspace: &mut Workspace) -> SliceRun {
@@ -273,8 +303,9 @@ impl Walked {
         self.slices.len() == self.planned && self.asked_again.is_empty()
     }
 
-    /// The walk did not reach the end of the plan. One thing causes it, and
-    /// it is not a verdict on the work: the provider went away.
+    /// The walk did not reach the end of the plan. Two things cause it, and
+    /// neither is a verdict on the work: the provider went away, or the
+    /// project's own check cannot run.
     pub fn abandoned(&self) -> bool {
         self.slices.len() != self.planned
     }
@@ -319,17 +350,41 @@ impl Pair<'_> {
     /// of nineteen runs. Giving up early would have thrown away work that was
     /// about to be done by the next slice.
     ///
-    /// One thing still ends the walk, because nothing after it can succeed: the
-    /// provider being unreachable.
+    /// Two things still end the walk, because nothing after them can succeed:
+    /// the provider being unreachable, and the project's check being
+    /// uncountable.
     pub fn walk(&self, plan: &Plan, timeout: Duration, workspace: &mut Workspace) -> Walked {
+        self.walk_with(plan, Carry::default(), timeout, workspace)
+    }
+
+    /// [`Pair::walk`] with the carry-on policy named rather than defaulted.
+    pub fn walk_with(
+        &self,
+        plan: &Plan,
+        carry: Carry,
+        timeout: Duration,
+        workspace: &mut Workspace,
+    ) -> Walked {
         let mut allowance = Allowance::new(self.qa.limits.steps);
         let mut slices = Vec::new();
+        let (mut failures, mut overlap_seen) = (0usize, false);
 
         for planned in &plan.slices {
             let run = self.work_within(&from_plan(planned, timeout), &mut allowance, workspace);
-            let gone = provider_gone(&run);
+            // A slice that arrived already green is this plan's slices sitting
+            // in each other's line of sight. It is the only overlap a walk can
+            // observe while it is still walking.
+            overlap_seen |= matches!(run.outcome, SliceOutcome::DeliveredEarly { .. });
+            failures = if run.is_done() { 0 } else { failures + 1 };
+
+            let stop = pointless_to_continue(&run)
+                || match carry {
+                    Carry::Always => false,
+                    Carry::Never => failures > 0,
+                    Carry::UntilOverlap { patience } => !overlap_seen && failures >= patience,
+                };
             slices.push((planned.clone(), run));
-            if gone {
+            if stop {
                 break;
             }
         }
@@ -355,13 +410,22 @@ impl Pair<'_> {
     }
 }
 
-/// The one failure that makes the rest of the plan pointless.
-fn provider_gone(run: &SliceRun) -> bool {
+/// The failures that make the rest of the plan pointless.
+///
+/// An absent provider is the obvious one: nothing after it can succeed. An
+/// unusable oracle is the same shape and was not noticed until defect 24 — the
+/// slices of one plan share a project and therefore a test command, so a check
+/// that cannot be counted for one slice will not be countable for the next, and
+/// carrying on spends every remaining allowance to learn it again.
+fn pointless_to_continue(run: &SliceRun) -> bool {
     let why = match &run.outcome {
         SliceOutcome::NoRunnableTest { why } | SliceOutcome::NotPassed { why, .. } => why,
         _ => return false,
     };
-    matches!(why, Outcome::ProviderFailed { .. })
+    matches!(
+        why,
+        Outcome::ProviderFailed { .. } | Outcome::OracleUnusable { .. }
+    )
 }
 
 fn from_plan(planned: &PlannedSlice, timeout: Duration) -> Slice {

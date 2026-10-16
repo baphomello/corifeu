@@ -3,7 +3,10 @@
 - **Status:** Accepted
 - **Date:** 2026-10-13
 - **Amends:** [ADR-0018](0018-loop-and-budget-control.md)
-- **Evidence:** [measurement](../measurement.md)
+- **Evidence:** [measurement](../measurement.md),
+  [round five](../measurement/round5-cell3.md#the-rounds-three-cells-together)
+- **Amended:** 2026-10-15, after round five priced the threshold. The decision stands; the
+  number became a setting and is now the open question rather than the answer.
 
 ## Context
 [ADR-0018](0018-loop-and-budget-control.md) stops an agent that repeats itself. The
@@ -30,7 +33,7 @@ pure read loop. The warning was telling it to do the thing that was not working.
 **A repeated action produces a warning delivered to the agent as a tool result. Only
 consecutive warnings stop the run.**
 
-1. **Strikes, not a trigger.** `loop.strikes` consecutive repeats end the run; the measured
+1. **Strikes, not a trigger.** `limits.repeats` consecutive repeats end the run; the measured
    working value is 6. A non-repeated action resets the count to zero.
 2. **The warning is delivered in-band**, as the result of the call the agent just made, so it
    arrives where the agent is already looking.
@@ -53,9 +56,40 @@ consecutive warnings stop the run.**
 - **Let a model judge whether the agent is looping.** Adds a model call per step to replace a
   comparison, and introduces an opinion where there is currently a fact.
 
+## What round five priced (amendment, 2026-10-15)
+Three rounds ran with six strikes and none of them measured what the five steps between the
+first repeat and the sixth were buying. Round five's step trace did, across three cells and two
+languages:
+
+| | Slices that repeated an action | Of those, reached green | Steps after the first repeat |
+|---|---:|---:|---:|
+| Task C, Rust, chained | 17 | 0 | 111 (38% of the cell) |
+| Task D, Python, chained | 12 | 2 | 64 (34%) |
+| Task E, Rust, independent | 25 | 0 | 147 (24%) |
+| **All** | **54** | **2** | **322 (30%)** |
+
+**A warned model changed course 3.7% of the time, and the warning cost 30% of everything the
+round spent.** The separation is sharper than the rate: of the 63 Task C slices that never
+repeated an action, 62 succeeded.
+
+That does not make the warning harmful, and the distinction matters. A repeat is plausibly a
+*symptom* of a slice already failing rather than a cause of it, so stopping earlier would not
+have turned those 54 slices green — it would have stopped paying for them. The honest claim is
+that the threshold is expensive and almost never earns it, not that it does damage.
+
+Two things follow, and only one of them is a decision:
+
+- **The threshold is a number, not a constant.** `limits.repeats` carries it, validation refuses
+  0, and 1 — stop at the first repeat, which is what this ADR reversed — is a legal value with a
+  test saying so. Nothing changed by default: six is still six.
+- **Which number is right is a measurement.** [Round six's Q15](../measurement/round6.md)
+  sweeps 1, 2 and 6 and names what would say to leave it alone: delivery falling by more than
+  the 3.7% rescue rate implies, which would mean the five steps buy something the rescue count
+  does not capture.
+
 ## Consequences
-- `loop.strikes` and `loop.window` are configuration. A patient local run and a metered
-  remote one want different values.
+- `limits.repeats` is configuration, and so is `limits.loop_detection`. A patient local run and
+  a metered remote one want different values.
 - Warning text is product surface. It is read by a model in difficulty, which is the worst
   moment for an ambiguous instruction, and it should be revised whenever a measurement shows
   an agent taking the wrong branch of it.

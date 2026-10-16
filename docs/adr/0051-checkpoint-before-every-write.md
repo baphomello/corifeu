@@ -5,6 +5,9 @@
 - **Supports:** [ADR-0013](0013-blackboard-as-source-of-truth.md), [ADR-0019](0019-tie-breaking-and-oracle-precedence.md)
 - **Evidence:** [measurement](../measurement.md)
 
+- **Amended:** 2026-10-15. Untested rather than proven: it fired four times in 1,076 steps
+  across round five. A task that can regress at all now exists and round six measures it.
+
 ## Context
 A doer reached 18 of 21 tests passing. A repair round then rewrote the whole file three times
 and left the crate not compiling. The 18/21 state was gone: no snapshot, no history, nothing
@@ -61,3 +64,28 @@ regression to detect and the write stands.
 - Checkpointing only covers writes the runtime performs. An agent that writes through a shell
   command bypasses it entirely, which is why
   [ADR-0052](0052-write-restriction-in-the-sandbox.md) exists.
+
+## What round five found, and what it could not (amendment, 2026-10-15)
+Across three cells, 56 iterations and 1,076 steps, the restore fired **four times**. One in Task
+C, zero in Task D, three in Task E.
+
+[Round five's plan](../measurement/round5.md) registered the reading beforehand: near-zero
+firings mean the protection is **untested rather than proven**, and that should be said out loud
+rather than assumed. It is said here.
+
+The distribution is the useful part. Task C and Task D's slices are four to nine lines with four
+to nine cases each; Task E's are whole algorithms. Three of the four firings were in Task E,
+which is the first evidence the mechanism needs something to regress before it can do anything
+at all. A slice whose cases are independent of each other cannot score worse by being changed.
+
+Round five's tasks therefore did not test this decision — they gave it nothing to do.
+[`f-expr`](../../bench/tasks/f-expr) was built for the question: two slices, the second holding
+sixteen cases that pull against each other, where getting precedence right is the usual way to
+break unary minus and making division total is the usual way to break left associativity.
+[Round six's Q18](../measurement/round6.md) runs it and names all three outcomes, including the
+one that says to remove this mechanism: still near zero, in which case
+checkpoint-before-every-write protects against something that does not happen at any slice size
+Corifeu has been given.
+
+Nothing about the decision changes in the meantime. Untested insurance is kept while it is being
+tested, not removed on the strength of not having fired.

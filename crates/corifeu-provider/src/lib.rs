@@ -82,6 +82,18 @@ pub struct Budget {
     /// ADR-0048 §3: off for roles whose work is transcription, on for roles
     /// whose output is a judgement.
     pub think: bool,
+    /// The sampler's seed, or None to let the runtime pick one.
+    ///
+    /// Defect 26. Five measurement rounds ran without this and none of them can
+    /// be replayed: the same model against the same slice reached green between
+    /// four and ten times in ten, so a round could not tell a model's weakness
+    /// from a bad draw, and a paired comparison controlled the starting state
+    /// while leaving the sampling free.
+    ///
+    /// Reproducible, not bit-exact. A local runtime splitting a batch
+    /// differently across devices can still diverge; this removes the sampler
+    /// as a source of it, which is the one a measurement controls.
+    pub seed: Option<u64>,
 }
 
 impl Budget {
@@ -91,6 +103,7 @@ impl Budget {
             num_predict: 8192,
             num_ctx: Some(8192),
             think: false,
+            seed: None,
         }
     }
 
@@ -100,6 +113,7 @@ impl Budget {
             num_predict: 2048,
             num_ctx: Some(8192),
             think: true,
+            seed: None,
         }
     }
 }

@@ -48,6 +48,10 @@ impl Provider for Ollama {
         budget: &Budget,
     ) -> Result<Turn, Error> {
         let mut options = json!({ "num_predict": budget.num_predict });
+        // Defect 26: a round that cannot be replayed cannot be checked.
+        if let Some(seed) = budget.seed {
+            options["seed"] = json!(seed);
+        }
         if let Some(num_ctx) = budget.num_ctx {
             options["num_ctx"] = json!(num_ctx);
         }

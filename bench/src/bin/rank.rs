@@ -39,6 +39,7 @@ fn main() {
             num_predict: 4096,
             num_ctx: Some(8192),
             think: false,
+            seed: corifeu_bench::seed(&iteration),
         },
         allowlist: allow.clone(),
         guard: Guard {
@@ -50,6 +51,7 @@ fn main() {
         limits: Limits {
             steps: corifeu_bench::steps(),
             output_budget: 8_000,
+            repeats: corifeu_bench::repeats(),
         },
     };
 
@@ -89,7 +91,13 @@ fn main() {
         prompt += run.prompt_tokens;
         output += run.output_tokens;
         checks += run.checks;
-        let gone = matches!(run.outcome, Outcome::ProviderFailed { .. });
+        // Defect 24: both say nothing after this slice can succeed. The slices
+        // of one task share a test command, so an uncountable check stays
+        // uncountable for the next one.
+        let gone = matches!(
+            run.outcome,
+            Outcome::ProviderFailed { .. } | Outcome::OracleUnusable { .. }
+        );
         if run.reached() {
             closed += 1;
         } else {
@@ -103,6 +111,8 @@ fn main() {
                 Outcome::Exhausted { .. } => "EXHAUSTED".to_string(),
                 Outcome::Looping => "LOOPING".to_string(),
                 Outcome::ProviderFailed { why } => format!("PROVIDER_FAILED {}", one_line(why)),
+                Outcome::OracleUnusable { detail } =>
+                    format!("ORACLE_UNUSABLE {}", one_line(detail)),
             },
             run.steps,
             run.prompt_tokens,
@@ -110,7 +120,6 @@ fn main() {
             run.checks
         );
 
-        // ADR-0063: nothing after an unreachable provider can succeed.
         if gone {
             break;
         }

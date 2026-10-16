@@ -4,7 +4,11 @@
 - **Date:** 2026-10-14
 - **Refines:** [ADR-0058](0058-slice-boundaries-are-observed.md)
 - **Supersedes part of:** [ADR-0056](0056-one-oracle-per-slice.md)
-- **Evidence:** [measurement](../measurement.md#fourth-run--ten-per-cell)
+- **Evidence:** [measurement](../measurement.md#fourth-run--ten-per-cell),
+  [round five](../measurement/round5-cell3.md#q2--overflow-is-a-property-of-the-decomposition-and-the-answer-is-not-close)
+- **Amended:** 2026-10-15. The re-probe is confirmed and keeps its scope. The second half —
+  carrying on past a failure — is now known to be worth very different amounts depending on the
+  plan's shape, and is a policy rather than a rule.
 
 ## Context
 [ADR-0058](0058-slice-boundaries-are-observed.md) established that a coder overflows its slice
@@ -68,6 +72,49 @@ asked once more when the rest of the plan has run.**
   the number that would fix the decomposition.
 - **Re-dispatch the unfinished slice after the plan.** Pays again for work the re-probe says
   is already there.
+
+## What round five measured (amendment, 2026-10-15)
+This ADR was taken on a re-reading of the fourth run, which had not been collected to answer it.
+Round five collected it on purpose, across three cells, and split the two halves of the decision
+apart.
+
+**The re-probe is confirmed and is cheap in every case.** One oracle run per unfinished slice, no
+model. In all three cells, every delivered run had each slice either closed, already green, or
+green on the re-probe — and a red re-probe appeared in 14 runs across the round, **none of which
+delivered**. A red re-probe is a reliable signal that a run is lost, which is more than this ADR
+claimed for it.
+
+**Carrying on is worth what the plan's shape says it is worth.**
+
+| | Slices that did not close | Green on the re-probe |
+|---|---:|---:|
+| Task C — Rust, slices call each other | 18 | **12 (66%)** |
+| Task D — the same plan in Python | 24 | **5 (20%)** |
+| Task E — Rust, slices call nothing | 38 | **1 (2%)** |
+
+Slices arriving already green tell the same story: 13, 7 and zero.
+
+So [ADR-0058](0058-slice-boundaries-are-observed.md)'s overflow is a property of the plan rather
+than of coders, and the decomposition matters more than the language. Carrying on past a failure
+pays out two times in three where the slices sit in each other's line of sight and one time in
+fifty where they do not.
+
+**What did not follow.** The obvious adaptive rule — carry on only while this walk has seen a
+slice arrive already green — does not survive the data. The rescues come from a *later* slice
+writing an *earlier* slice's code, so observed overflow does not predict future rescue, and the
+runs that make the strongest case against the rule are the ones it would have killed: runs
+closing one slice of four with three rescued delivered the complete crate, and all three
+failures came before any overlap had shown itself.
+
+The signal that would decide it is whether a later slice depends on an earlier one, which is a
+property of the plan and not of anything a walk can observe.
+[ADR-0056](0056-one-oracle-per-slice.md)'s planner could declare it and has never cut up a task.
+
+**So the behaviour is a value, not a rule.** `Carry::Always` is this ADR as measured and stays
+the default. `Carry::Never` is what it replaced, kept so the reversal can be re-measured rather
+than re-argued. `Carry::UntilOverlap` is the hypothesis, carrying the case against it in its own
+doc comment. [Round six's Q17](../measurement/round6.md) runs `Never` against `Always` on Task E,
+where carrying on is worth 2% and stopping should therefore cost nothing.
 
 ## Consequences
 - A plan with a genuinely dependent chain now spends the later slices' allowances on work that

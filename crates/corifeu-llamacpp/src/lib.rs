@@ -82,6 +82,10 @@ impl Provider for LlamaCpp {
         if !tools.is_empty() {
             request["tools"] = json!(tools);
         }
+        // Defect 26: a round that cannot be replayed cannot be checked.
+        if let Some(seed) = budget.seed {
+            request["seed"] = json!(seed);
+        }
         // The server decides whether to emit thought tags; asking for none is
         // how a transcription role keeps its whole budget for the file.
         if !budget.think {
@@ -95,6 +99,33 @@ impl Provider for LlamaCpp {
         )?;
         parse(&body, budget.num_predict)
     }
+}
+
+/// The request as it goes on the wire.
+///
+/// Separated from [`LlamaCpp::chat`] so that what is sent can be asserted
+/// without a server. Defect 26 was a missing field here, and a missing field
+/// here is invisible in every test that stubs the response.
+pub fn body(model: &str, messages: &[Message], tools: &[Value], budget: &Budget) -> Value {
+    let mut request = json!({
+        "model": model,
+        "messages": messages,
+        "stream": false,
+        "max_tokens": budget.num_predict,
+    });
+    if !tools.is_empty() {
+        request["tools"] = json!(tools);
+    }
+    // The server decides whether to emit thought tags; asking for none is how a
+    // transcription role keeps its whole budget for the file.
+    if !budget.think {
+        request["reasoning_format"] = json!("none");
+    }
+    // Defect 26: a round that cannot be replayed cannot be checked.
+    if let Some(seed) = budget.seed {
+        request["seed"] = json!(seed);
+    }
+    request
 }
 
 pub fn parse(body: &str, num_predict: u32) -> Result<Turn, Error> {
@@ -181,4 +212,56 @@ fn native_calls(message: &Value) -> Vec<ToolCall> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::body;
+    use corifeu_provider::Budget;
+
+    fn budget() -> Budget {
+        Budget {
+            num_predict: 4096,
+            num_ctx: Some(8192),
+            think: false,
+            seed: None,
+        }
+    }
+
+    #[test]
+    fn no_seed_sends_no_seed() {
+        // The runtime picks one, which is what every round before defect 26 did.
+        assert!(body("m", &[], &[], &budget()).get("seed").is_none());
+    }
+
+    #[test]
+    fn a_seed_reaches_the_wire() {
+        let budget = Budget {
+            seed: Some(7),
+            ..budget()
+        };
+        assert_eq!(body("m", &[], &[], &budget)["seed"], 7);
+    }
+
+    /// `num_ctx` is deliberately not sent: llama.cpp fixes the context when the
+    /// model is loaded, so a per-request value would be silently ignored and
+    /// reading it back would be reading our own wish.
+    #[test]
+    fn the_context_is_the_servers_to_decide() {
+        assert!(body("m", &[], &[], &budget()).get("num_ctx").is_none());
+    }
+
+    #[test]
+    fn a_transcription_role_asks_for_no_reasoning() {
+        assert_eq!(body("m", &[], &[], &budget())["reasoning_format"], "none");
+        let judging = Budget {
+            think: true,
+            ..budget()
+        };
+        assert!(
+            body("m", &[], &[], &judging)
+                .get("reasoning_format")
+                .is_none()
+        );
+    }
 }

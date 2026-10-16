@@ -293,6 +293,18 @@ pub struct Limits {
     pub role_timeout_s: u32,
     #[serde(default = "yes")]
     pub loop_detection: bool,
+    /// Consecutive repeats of one action before a role's turn stops
+    /// ([ADR-0050]). One stops at the first repeat.
+    ///
+    /// Six is what three measurement rounds ran with. The fifth round priced
+    /// it: across three cells and two languages 54 slices repeated an action,
+    /// 2 reached green, and the steps spent after a first repeat were 30% of
+    /// everything the round spent. The right number is a measurement and this
+    /// is where it is taken.
+    ///
+    /// [ADR-0050]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0050-loop-detection-warns-before-it-stops.md
+    #[serde(default = "default_repeats")]
+    pub repeats: u32,
 }
 
 impl Default for Limits {
@@ -304,6 +316,7 @@ impl Default for Limits {
             run_budget_tokens: None,
             role_timeout_s: default_role_timeout(),
             loop_detection: true,
+            repeats: default_repeats(),
         }
     }
 }
@@ -660,6 +673,13 @@ fn yes() -> bool {
 }
 /// Twelve: the slowest of the fourth run's 57 green slices. Thirty-eight of
 /// them closed in one step.
+/// ADR-0050's measured default. Three killed the winning Task B round at step
+/// 26: it hit four dead ends in a row before finding the fix, which is
+/// searching rather than looping.
+fn default_repeats() -> u32 {
+    6
+}
+
 fn default_steps_floor() -> u32 {
     12
 }

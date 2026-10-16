@@ -26,8 +26,9 @@ and spends a connect timeout on each one.
 A round writes to `bench/rounds/<stamp>-<mode>/`, which is not committed:
 
 ```
-round.txt        what was run, against which commit, with which allowance
+round.txt        what was run, against which commit, allowance, seed and oracle
 results.tsv      one row per slice, plus the rows below
+steps.tsv        one row per step: tool, argument, flags, outcome
 log              timestamps, scaffold output, anything the driver put on stderr
 work/<model>/<iteration>/
                  the crate as the round left it — sources, .checkpoints/, final.txt
@@ -97,13 +98,13 @@ Per slice it carries the case count, the signature to stub, the helpers to delet
 the two wordings a doer and a pair are given. The drivers read the file from the workspace
 rather than carrying a copy in Rust, so adding a task is a directory and a JSON file.
 
-| | `c-glob` | `e-indep` | `d-glob-py` |
-|---|---|---|---|
-| Language | Rust | Rust | Python, pytest 9.1.1 |
-| What | a glob matcher and a path classifier | Roman numerals, word wrap, base32, Luhn | `c-glob`, ported |
-| Slices | 4, each calling the one before it | 4, calling nothing at all | 4, each calling the one before it |
-| Cases | 26 | 26 | 26 — the same 4-8-9-5 split |
-| Held-out suites | slices 1 and 3 | none yet; `rank` only | none yet; `rank` only |
+| | `c-glob` | `e-indep` | `d-glob-py` | `f-expr` |
+|---|---|---|---|---|
+| Language | Rust | Rust | Python, pytest 9.1.1 | Rust |
+| What | a glob matcher and a path classifier | Roman numerals, word wrap, base32, Luhn | `c-glob`, ported | an integer expression evaluator |
+| Slices | 4, each calling the one before it | 4, calling nothing at all | 4, each calling the one before it | 2, the second holding most of the work |
+| Cases | 26 | 26 | 26 — the same 4-8-9-5 split | 22 — split 6 and 16 |
+| Held-out suites | slices 1 and 3 | none yet; `rank` only | none yet; `rank` only | none yet; `rank` only |
 
 `d-glob-py` is the other control. ADR-0062's floor of twelve steps was measured against 57
 green slices that were all Rust, where a large part of the work was done by compiler errors — a
@@ -121,6 +122,14 @@ way `cargo test --lib <module>` does, and the two cells differ in nothing but th
 `classify` calls `glob_match` calls `match_seg` calls `split_segs` — a coder implementing one
 slice has the next one in front of it. In `e-indep` nothing calls anything, and the four are
 deliberately unlike one another: a lookup table, a string loop, bit packing, and a validator.
+
+`f-expr` exists so that [ADR-0051](../docs/adr/0051-checkpoint-before-every-write.md) can be
+measured at all. Checkpoint-before-every-write restores a state that scores worse, and across
+round five's three cells it fired **four times in 1,076 steps** — three of those in `e-indep`,
+whose slices are whole algorithms rather than four-line helpers. A slice whose cases are
+independent cannot regress. `f-expr`'s second slice holds sixteen cases that pull against each
+other: getting precedence right is the usual way to break unary minus, and making division
+total is the usual way to break left associativity.
 
 `tasks/scaffold.py` cuts the hole a round starts from.
 
@@ -155,12 +164,39 @@ BENCH_STEPS_FLOOR=8 BENCH_STEPS_CEILING=30 bench/run.sh rank 10 <model>
 Leaving them unset uses the runtime's own defaults, which is what a round measuring the
 defaults should do.
 
+Two more numbers became sweepable after round five, for the same reason:
+
+```sh
+BENCH_REPEATS=2 bench/run.sh rank 10 <model>   # ADR-0050's threshold, default 6
+BENCH_SEED=off  bench/run.sh rank 10 <model>   # unseeded, as rounds 1-5 ran
+```
+
+`BENCH_REPEATS` is the number of consecutive repeats before a turn stops. Round five priced the
+default of six at 30% of its steps for a 3.7% rescue rate, which is why it is a number now.
+
+`BENCH_SEED` is a base, varied by the iteration, so one iteration can be replayed on its own.
+It defaults to 1. `off` leaves the sampler unseeded, which is how rounds one to five ran and the
+reason none of them can be replayed — the same model against the same slice reached green
+between four and ten times in ten. Every round records what it used in `round.txt`.
+
 ## What the next round has to answer
 
 [`docs/measurement/round5.md`](../docs/measurement/round5.md) is written before the round runs:
 six questions, the cell that answers each, and the result that would say the answer is no. Read
 it before changing anything here — half of what is in this directory exists to serve one of
 those six.
+
+## Reading a round
+
+`bench/analyse.py` prints the numbers the measurement pages quote.
+
+```sh
+bench/analyse.py bench/rounds/<round>/1-c-glob-rank-default            # one cell
+bench/analyse.py bench/rounds/<round>/1-* bench/rounds/<round>/2-*     # side by side
+```
+
+It exists because the first draft of round five's cell 1 page carried two numbers typed by hand
+and both were wrong. It says what it cannot answer rather than printing a zero.
 
 ## Recording a round
 

@@ -191,6 +191,7 @@ fn doer<'a>(provider: &'a Replay, max_steps: u32) -> Doer<'a> {
         limits: Limits {
             steps: Steps::fixed(max_steps),
             output_budget: 4_000,
+            repeats: Limits::default().repeats,
         },
     }
 }
@@ -639,4 +640,119 @@ fn a_fixed_allowance_never_grows() {
         assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), None);
     }
     assert_eq!(allowance.now(), 7);
+}
+
+// ------------------------------------------- defect 24: an unusable oracle
+
+/// An oracle that cannot produce a case count at all. The test binary with a
+/// flag it does not know: it exits non-zero and prints usage, so the counter
+/// declines the output rather than reading a zero out of it.
+fn uncountable_oracle() -> Oracle {
+    let exe = std::env::current_exe()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    Oracle {
+        argv: vec![exe, "--no-such-flag".into()],
+        timeout: Duration::from_secs(60),
+        expect_cases: Some(1),
+    }
+}
+
+/// Defect 24. The doer must not spend a single step repairing code against a
+/// check that never judged it. Eight slices of one measurement cell did exactly
+/// that: `cargo` was refusing to run and the verdict read as red.
+#[test]
+fn a_check_that_cannot_be_counted_ends_the_slice_before_any_step() {
+    let (root, store) = scratch();
+    let provider = Replay::of(vec![calls(
+        "write_file",
+        json!({"path": "artefact.txt", "contents": "DONE"}),
+    )]);
+    let mut ws = Workspace::open(&root, &store).unwrap();
+
+    let run = doer(&provider, 10).work(
+        &Slice {
+            oracle: uncountable_oracle(),
+            ..slice()
+        },
+        &mut ws,
+    );
+
+    assert!(
+        matches!(run.outcome, Outcome::OracleUnusable { .. }),
+        "{:?}",
+        run.outcome
+    );
+    assert_eq!(run.steps, 0, "no step may be spent against a broken check");
+    assert_eq!(run.prompt_tokens, 0, "and no dispatch either");
+}
+
+/// The negative case, which matters more than the positive one: a slice whose
+/// work is merely unfinished must still run. A stubbed artefact fails its cases
+/// and that is a count, not an absence of one — a guard that confused the two
+/// would refuse every red slice, which is every slice at the start.
+#[test]
+fn an_unfinished_slice_is_not_mistaken_for_a_broken_check() {
+    let (root, store) = scratch();
+    std::fs::write(root.join("artefact.txt"), "nothing yet").unwrap();
+    let provider = Replay::of(vec![calls(
+        "write_file",
+        json!({"path": "artefact.txt", "contents": "DONE"}),
+    )]);
+    let mut ws = Workspace::open(&root, &store).unwrap();
+
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+
+    assert!(
+        !matches!(run.outcome, Outcome::OracleUnusable { .. }),
+        "a red slice is work to do, not a broken oracle: {:?}",
+        run.outcome
+    );
+    assert!(run.steps > 0, "the slice must have been worked");
+}
+
+// ------------------------------- defect 27: a wasted step must say what it was
+
+/// Five hundred and seventy-eight wasted steps in round five all read "no tool
+/// call; nothing happened", so nothing in the data could say what the model had
+/// been doing instead, and D6's prompt change had to be designed blind.
+#[test]
+fn a_step_with_no_tool_call_records_what_the_model_said() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let provider = Replay::of(vec![says(
+        "Let me think about how to approach this problem carefully.",
+    )]);
+
+    let run = doer(&provider, 1).work(&slice(), &mut ws);
+
+    let step = run.trace.first().expect("the wasted step is in the trace");
+    assert!(
+        step.outcome.contains("Let me think about how to approach"),
+        "{}",
+        step.outcome
+    );
+    assert!(
+        step.result.contains("Call a tool"),
+        "the model still reads the nudge, not its own words: {}",
+        step.result
+    );
+}
+
+/// A turn that says nothing at all is a different failure from a turn that
+/// argues with the task, and the trace has to tell them apart.
+#[test]
+fn an_empty_answer_is_recorded_as_empty() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let provider = Replay::of(vec![says("")]);
+
+    let run = doer(&provider, 1).work(&slice(), &mut ws);
+
+    assert!(
+        run.trace[0].outcome.contains("(nothing at all)"),
+        "{}",
+        run.trace[0].outcome
+    );
 }

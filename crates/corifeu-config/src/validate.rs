@@ -57,6 +57,7 @@ pub fn check(config: &Config) -> Vec<Problem> {
     check_shadowed_classes(config, &mut problems);
     check_contracts(config, &mut problems);
     check_steps(config, &mut problems);
+    check_repeats(config, &mut problems);
     problems
 }
 
@@ -262,6 +263,25 @@ fn check_contracts(config: &Config, out: &mut Vec<Problem>) {
 
 /// A step allowance that cannot grow, or cannot run, is a configuration that
 /// behaves nothing like what it says (ADR-0062).
+fn check_repeats(config: &Config, out: &mut Vec<Problem>) {
+    if config.limits.loop_detection && config.limits.repeats == 0 {
+        out.push(error(
+            "limits.repeats is 0, so a role's turn would stop at the first repeated action \
+             with no warning; 1 is the lowest value that means that on purpose",
+        ));
+    }
+    if !config.limits.loop_detection && config.limits.repeats != default_repeats_value() {
+        out.push(warning(format!(
+            "limits.repeats is set to {} but limits.loop_detection is off, so it has no effect",
+            config.limits.repeats
+        )));
+    }
+}
+
+fn default_repeats_value() -> u32 {
+    crate::model::Limits::default().repeats
+}
+
 fn check_steps(config: &Config, out: &mut Vec<Problem>) {
     let steps = config.limits.steps;
     if steps.floor == 0 {

@@ -18,3 +18,7 @@ bench/rounds/
 
 # Installed once per task by bench/run.sh, not committed.
 bench/tasks/*/node_modules/
+
+# The probe symlinks the task runner it shares; runs are data, not source.
+bench/probe/node_modules
+bench/probe/runs/

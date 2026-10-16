@@ -23,7 +23,9 @@ path = "src/main.rs"
 [dependencies]
 clap = { workspace = true }
 corifeu-check = { workspace = true }
+corifeu-agent = { workspace = true }
 corifeu-config = { workspace = true }
+corifeu-doer = { workspace = true }
 corifeu-exec = { workspace = true }
 corifeu-llamacpp = { workspace = true }
 corifeu-ollama = { workspace = true }

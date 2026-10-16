@@ -31,7 +31,7 @@ reading the output.
 | Stage | What it unlocks | Criteria |
 |---|---|---:|
 | S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
-| S2 · `corifeu run`, one file | the first real use | 5 |
+| S2 · `corifeu run`, one file | the first real use | **5 ✅** |
 | S3 · Measured on TypeScript | whether the plan survives | 3 |
 | S4 · A slice that touches several files | a feature instead of a function | 4 |
 | S5 · Hybrid roles, cost measured | the project's actual claim | 3 |
@@ -39,7 +39,7 @@ reading the output.
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 4 of 24** — S1 complete.
+**Today: 9 of 24** — S1 and S2 complete.
 
 ---
 
@@ -86,6 +86,17 @@ There is a second half nobody would guess: **the configuration is declared and n
 A `run` command that ignored the project file would be worse than none.
 
 **Deliverable.** `corifeu run`, and the conversion from configuration to runtime.
+
+**Done**, 2026-10-16. Criterion 9 is the one worth reading: with no provider listening at all,
+`corifeu run` against a project whose suite fails to load reported *the check cannot judge this*
+rather than *provider failed*. There was nothing to dispatch to and it never tried, which is
+what "before the first dispatch" means.
+
+Two defects came out of it. 35 was mine and the configuration validator caught it before any
+run: `ownership` is keyed by file class and I read it as keyed by role. 34 was the runtime's and
+only a real project found it — every successful write counted as an artefact change, including
+one that wrote identical bytes, so a model rewriting the same file reset the loop detector on
+every step and was never warned.
 
 **Acceptance.**
 5. `corifeu run --task "<what to do>"` turns a failing oracle green in a scratch repository, with

@@ -756,3 +756,63 @@ fn an_empty_answer_is_recorded_as_empty() {
         run.trace[0].outcome
     );
 }
+
+// ------------------ defect 34: an identical write is not a change
+
+/// ADR-0050 §4 clears the repeat history when an artefact changes, because the
+/// same command against changed code is a different action. Writing the same
+/// bytes back is not changed code, and counting it as one disabled loop
+/// detection exactly where it was needed — a model rewriting an identical file
+/// reset the detector on every step and was never warned.
+#[test]
+fn rewriting_the_same_bytes_does_not_clear_the_repeat_history() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    // The first write is new and the rest are repeats, so the default limit of
+    // six needs seven of them. The oracle never goes green, so nothing but the
+    // detector can end this.
+    let provider = Replay::of((0..8).map(|_| write("not yet\n")).collect());
+    let run = doer(&provider, 20).work(&slice(), &mut ws);
+
+    assert_eq!(
+        run.outcome,
+        Outcome::Looping,
+        "an identical rewrite must count as a repeat: {:?}",
+        run.outcome
+    );
+    assert!(run.steps < 20, "it stopped before the allowance ran out");
+}
+
+/// And the model is told, because one that cannot tell its write landed will
+/// write it again.
+#[test]
+fn an_identical_write_says_nothing_changed() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("not yet\n")]);
+    let run = doer(&provider, 1).work(&slice(), &mut ws);
+
+    assert!(
+        run.trace[0].result.contains("Nothing changed"),
+        "{}",
+        run.trace[0].result
+    );
+}
+
+/// The negative case: a write that does change the file must still clear the
+/// history, or a model correcting itself would be accused of looping.
+#[test]
+fn a_write_that_changes_the_file_still_clears_the_history() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("A\n"), write("A\nB\n"), write("DONE\n")]);
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Reached, "{:?}", run.outcome);
+}

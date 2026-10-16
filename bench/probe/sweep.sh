@@ -4,6 +4,7 @@
 #   bench/probe/sweep.sh list        what the router offers, against models.txt
 #   bench/probe/sweep.sh models      one baseline config, every model
 #   bench/probe/sweep.sh flags       every flag combination, on one model
+#   bench/probe/sweep.sh mtp         multi-token prediction, on and off
 #   bench/probe/sweep.sh all
 #
 # The models are named in models.txt rather than here, because the quant tag in
@@ -156,7 +157,11 @@ if [ "$WHICH" = models ] || [ "$WHICH" = all ]; then
   echo "=== pass one: every model at the baseline ($SAMPLES samples each) ==="
   for m in "${MODELS[@]}"; do
     short=$(sed 's#.*/##; s/-GGUF//; s/:.*//' <<<"$m" | cut -c1-24)
-    config "base-$short" "$m" -c 8192 -fa on
+    # --no-mmproj because this probe asks for code. A multimodal build loads a
+    # vision tower that writes none, and letting it do so would handicap that
+    # model on VRAM for a capability nothing here tests. Harmless on a model
+    # that has no projector.
+    config "base-$short" "$m" -c 8192 -fa on --no-mmproj
   done
 fi
 
@@ -177,6 +182,33 @@ if [ "$WHICH" = flags ] || [ "$WHICH" = all ]; then
   # "n_gpu_layers already set by user to 99, abort". Leaving it out is the only
   # way to find out what it would have chosen.
   config "ctx16k-q8-autofit" "$M" -c 16384 -fa on -ctk q8_0 -ctv q8_0
+fi
+
+# Multi-token prediction drafts several tokens per step from a head built into
+# the model, so it needs an MTP-enabled GGUF — a standard one has no such head —
+# and llama.cpp needs ggml-org/llama.cpp#22673, merged 2026-05-16 and present in
+# this build: `--spec-type` lists `draft-mtp` among its values.
+#
+# It is the only thing in this sweep that changes decoding rather than
+# placement, so the comparison has to be the same GGUF with the flag and
+# without it. Measuring the MTP build against a different model would confound
+# the head with the weights.
+#
+# The PR reports roughly twice the decode speed and a slower prefill, which is
+# why `passed` matters as much here as tok/s: a draft that is usually rejected
+# costs time and changes nothing else.
+if [ "$WHICH" = mtp ] || [ "$WHICH" = all ]; then
+  # Comments are dropped first: the line explaining MTP contains the word, and
+  # matching before filtering found the explanation instead of the model.
+  M=${PROBE_MODEL:-$(grep -vE '^\s*(#|$)' "$HERE/models.txt" | grep -i -m1 'mtp')}
+  [ -n "$M" ] || { echo "no MTP model in models.txt" >&2; exit 2; }
+  echo "=== multi-token prediction, on $M ==="
+  # --parallel 1 throughout: commenters on the PR reported MTP failing with
+  # more than one slot, and a configuration that errors measures nothing.
+  config "mtp-off"   "$M" -c 8192 -fa on --no-mmproj --parallel 1
+  config "mtp-n2"    "$M" -c 8192 -fa on --no-mmproj --parallel 1 --spec-type draft-mtp --spec-draft-n-max 2
+  config "mtp-n3"    "$M" -c 8192 -fa on --no-mmproj --parallel 1 --spec-type draft-mtp --spec-draft-n-max 3
+  config "mtp-n5"    "$M" -c 8192 -fa on --no-mmproj --parallel 1 --spec-type draft-mtp --spec-draft-n-max 5
 fi
 
 echo

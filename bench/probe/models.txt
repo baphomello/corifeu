@@ -22,9 +22,13 @@ Qwen/Qwen2.5-Coder-7B-Instruct-GGUF:Q4_K_M
 # multimodal, and it is paying VRAM for a vision tower that writes no code.
 unsloth/Qwen3.5-9B-GGUF:Q4_K_M
 
-# Multi-token prediction. The only thing on this list that attacks speed
-# through the architecture rather than through a flag. Whether llama.cpp uses
-# the MTP head for this architecture shows up in the load log.
+# Multi-token prediction. Not a rival to the line above but the same weights
+# with a drafting head, so it belongs in `sweep.sh mtp`, which runs it with
+# `--spec-type draft-mtp` and without. It appears here too so that pass one
+# shows what it does at the baseline, where the head is present and unused.
+#
+# Needs ggml-org/llama.cpp#22673, merged 2026-05-16. This build has it: the
+# `--spec-type` help lists `draft-mtp`.
 unsloth/Qwen3.5-9B-MTP-GGUF:Q4_K_M
 
 # The experiment, not a candidate for work. ~7 GB of weights against ~7 GB of

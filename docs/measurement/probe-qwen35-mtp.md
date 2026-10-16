@@ -39,6 +39,33 @@ The load log confirms the head was used rather than ignored:
 line is the one worth checking, because a drafting flag that is silently dropped produces a
 number that looks legitimate.
 
+## What the model card says, and what it corrects here
+
+Read after the measurements above were taken, which is the wrong order and is why this section
+exists.
+
+**Thinking needs a context this card cannot give it.** The model card asks for "a context length
+of at least 128K tokens to preserve thinking capabilities". Everything below was measured at
+12,288 and then 32,768, because 5.8 GB of weights on an 8 GB card leaves no room for more. So
+the honest statement is not that this model reasons badly — it is that **thinking is not
+usable on this hardware**, and that is a conclusion about the card rather than about the model.
+
+**The sampling was not what the card asks for.** It recommends, for precise coding, temperature
+0.6 with `top_k` 20, `top_p` 0.95, `min_p` 0.0 and no presence penalty. These runs used
+temperature 0.1 or 0.2 and llama.cpp's defaults for the rest — `top_k` 40 and **`min_p` 0.05**,
+which filters tokens the model expects to have. Every score below is therefore a score under
+sampling the model was not tuned for, and the prompt finding further down is the one least
+likely to be affected by that.
+
+**It also recommends an output length of 32,768 tokens**, and 81,920 for hard coding. These runs
+used 6,144. The measurement that a run stopped on its own at 12,180 is still true and was read
+too broadly: it stopped on its own *in a context where the card says reasoning is already
+degraded*.
+
+**Two flags were requirements rather than choices.** The card states that `-np > 1` and
+`--mmproj` are not supported with MTP, so `--parallel 1` and `--no-mmproj` were never optional.
+It also recommends `--spec-draft-n-max 6`, where these runs used 3.
+
 ## Thinking costs twenty times the wall clock and buys nothing here
 
 | | thinking off | thinking on |

@@ -107,16 +107,21 @@ fn allowlist() -> Allowlist {
 /// A model whose turns are decided in advance.
 struct Replay {
     turns: RefCell<Vec<Result<Turn, &'static str>>>,
+    /// What the doer actually said to the model. Kept so a test can assert on
+    /// the contract rather than on the fact that a call happened.
+    said: RefCell<Vec<Message>>,
 }
 
 impl Replay {
     fn of(turns: Vec<Turn>) -> Self {
         Self {
             turns: RefCell::new(turns.into_iter().map(Ok).collect()),
+            said: RefCell::new(Vec::new()),
         }
     }
     fn failing() -> Self {
         Self {
+            said: RefCell::new(Vec::new()),
             turns: RefCell::new(vec![Err("connection refused")]),
         }
     }
@@ -129,10 +134,11 @@ impl Provider for Replay {
     fn chat(
         &self,
         _: &str,
-        _: &[Message],
+        messages: &[Message],
         _: &[serde_json::Value],
         _: &Budget,
     ) -> Result<Turn, Error> {
+        self.said.borrow_mut().extend_from_slice(messages);
         let mut turns = self.turns.borrow_mut();
         match turns.is_empty() {
             // Running out means the script was shorter than the run; repeating
@@ -815,4 +821,33 @@ fn a_write_that_changes_the_file_still_clears_the_history() {
     let run = doer(&provider, 10).work(&slice(), &mut ws);
 
     assert_eq!(run.outcome, Outcome::Reached, "{:?}", run.outcome);
+}
+
+// ------------------------------ the doer is asked for rigour, not just action
+
+/// Measured on the probe before it was put in the prompt: two sentences asking
+/// for rigour took one model from six of ten to ten of ten, three times out of
+/// three, where suppressing thinking, forcing greedy sampling and quadrupling
+/// the token budget had each bought nothing.
+///
+/// The wording names no specific case, because naming them would be teaching to
+/// the test — and a doer's task is not known in advance anyway.
+#[test]
+fn the_doer_is_told_to_be_exhaustive() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("DONE\n")]);
+    let _ = doer(&provider, 1).work(&slice(), &mut ws);
+
+    // Message is an enum, so the assertion goes through its serialised form —
+    // which is also what the model receives.
+    let said = provider.said.borrow();
+    let system = serde_json::to_string(said.first().expect("a system message was sent"))
+        .expect("a message serialises");
+    assert!(
+        system.contains("Be exhaustive"),
+        "the contract has to ask for it: {system}"
+    );
 }

@@ -99,7 +99,7 @@ def main() -> int:
     # chosen second-best and code does not compile. The first sweep watched one
     # model score 5 of 10 and then 10 of 10 under identical flags, and that was
     # read as the model's variance when it may have been the sampler's.
-    parser.add_argument("--temp", type=float, default=0.2)
+    parser.add_argument("--temp", type=float, default=0.1)
     # A thinking model answers better and slower. Both are worth measuring, and
     # which one a doer can afford is the question Corifeu actually has.
     parser.add_argument("--think", action="store_true")

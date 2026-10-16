@@ -664,7 +664,10 @@ impl Doer<'_> {
              - `write_file` replaces the whole file. Send all of it, never a patch.\n\
              - The file you are changing is included below in full on every step, read fresh \
              from disk. You never need to read it.\n\
-             - The command above is run for you after every write. You do not have to run it.",
+             - The command above is run for you after every write. You do not have to run it.\n\
+             - Be exhaustive about what the task asks for. Inputs that are malformed in ways a \
+             naive implementation would accept must still be handled, and the cases a naive \
+             implementation would get wrong are the ones the check is looking for.",
             context.contract.task, context.contract.acceptance
         ))];
 

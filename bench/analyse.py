@@ -1,7 +1,7 @@
 """Read one cell's rows and print the numbers round five registered questions for.
 
     bench/analyse.py bench/rounds/round5-<stamp>/1-c-glob-rank-default
-    bench/analyse.py <cell> <cell>          # side by side
+    bench/analyse.py <cell> <cell> ...     # each report, then the replay matrix
 
 Every number in docs/measurement/round5-*.md comes from here. The first cell's
 came from a shell pipeline typed once, which nobody can repeat and nobody can
@@ -214,8 +214,40 @@ def report(cell):
         fn(c)
 
 
+def replay(cells):
+    """Whether the same seed produced the same round, cell against cell.
+
+    ADR-0066 asks a round to be replayable, and that is a claim about two
+    rounds rather than about one, which is why it cannot be read off a single
+    report. A slice run is the unit: same outcome and same step count, keyed by
+    iteration and slice.
+    """
+    seen = [read(c) for c in cells]
+    runs = [{(r[0], r[2]): (outcome(r), r[4]) for r in c["slices"]} for c in seen]
+    keys = sorted(set.intersection(*(set(r) for r in runs)), key=lambda k: (int(k[0]), k[1]))
+    if not keys:
+        print("no slice run appears in every cell — nothing to compare")
+        return
+
+    print(f"\n{'=' * 72}\nreplay — {len(keys)} slice runs in every cell\n{'=' * 72}")
+    names = [c["name"] for c in seen]
+    width = max(len(n) for n in names) + 2
+    print(" " * width + "".join(f"{n:>{width}}" for n in names))
+    for name, a in zip(names, runs):
+        agree = (f"{sum(1 for k in keys if a[k] == b[k]):>{width}}" for b in runs)
+        print(f"{name:>{width}}" + "".join(agree))
+
+    divergent = [k for k in keys if len({r[k] for r in runs}) > 1]
+    print(f"\nslice runs the cells do not all agree on: {len(divergent)}")
+    for k in divergent:
+        said = ", ".join(f"{n}={r[k][0]}/{r[k][1]}" for n, r in zip(names, runs))
+        print(f"  iteration {k[0]} {k[1]}: {said}")
+
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         sys.exit(__doc__)
     for one in sys.argv[1:]:
         report(one)
+    if len(sys.argv) > 2:
+        replay(sys.argv[1:])

@@ -189,6 +189,11 @@ DRIVER=${DRIVER:-$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2
 RUNTIME=$(llama.exe --version 2>/dev/null | tr -d '\r' | head -1)
 RUNTIME=${RUNTIME:-$(llama --version 2>/dev/null | head -1)}
 
+# Defect 44, the third of exactly this kind after the driver and the runtime
+# build: something that moves the result and that no round wrote down. The
+# decoding configuration lives on the server, so the harness asks it.
+SERVER_LINES=$(python3 "$HERE/server.py" "$HOST:9931" 2>/dev/null)
+
 mkdir -p "$ROUND"
 RESULTS="$ROUND/results.tsv"
 STEPS="$ROUND/steps.tsv"
@@ -208,6 +213,10 @@ LOG="$ROUND/log"
   echo "block:   $BLOCK iteration(s) per model before switching"
   echo "driver:  ${DRIVER:-unknown}"
   echo "runtime: ${RUNTIME:-unknown}"
+  echo "temp:    ${BENCH_TEMP:-unset, so whatever the server was started with}"
+  printf '%s\n' "${SERVER_LINES:-server\tunreachable}" | while IFS=$'\t' read -r key value; do
+    printf '%-8s %s\n' "$key:" "$value"
+  done
   echo "repeats: ${BENCH_REPEATS:-default}"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"

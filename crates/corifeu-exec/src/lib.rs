@@ -166,10 +166,61 @@ pub fn run(
         // `None` means killed rather than exited, which is also what a signal
         // produces. `timed_out` says which.
         exit_status: status.and_then(|s| s.code()),
-        output: stdout + &stderr,
+        output: steady(&(stdout + &stderr)),
         elapsed: started.elapsed(),
         timed_out,
     })
+}
+
+/// The same output for the same code, so a seeded round can be replayed.
+///
+/// A check's output goes into the next step's prompt, and every test runner
+/// prints how long it took. Two runs of one unchanged crate differ by
+/// `Finished ... in 0.22s` against `in 0.13s`, which is enough to change a
+/// token under greedy decoding and every token after it. Round eight measured
+/// the consequence: two passes of one configuration at one seed agreed on 6
+/// slice runs out of 10, with speculative decoding off.
+///
+/// A duration is never something the model needs. The wall clock a round
+/// reports comes from `elapsed`, which is measured here and not parsed back
+/// out of the text.
+pub fn steady(output: &str) -> String {
+    let mut out = String::with_capacity(output.len());
+    let mut rest = output;
+    // `in <number>s`, `in <number>ms` and the bare `<number>ms` vitest prints,
+    // matched by hand rather than by a regex crate: this runs on every check of
+    // every step and the grammar is three shapes wide.
+    while let Some(at) = rest.find(|c: char| c.is_ascii_digit()) {
+        let (before, from) = rest.split_at(at);
+        let digits = from
+            .find(|c: char| !c.is_ascii_digit() && c != '.')
+            .unwrap_or(from.len());
+        let (number, after) = from.split_at(digits);
+        // A unit the number is glued to, and the unit has to end the word: it
+        // keeps `189ms` and `0.22s` and leaves a test named `takes_1step`
+        // alone.
+        let unit = ["ms", "s"].into_iter().find(|u| {
+            after.strip_prefix(u).is_some_and(|tail| {
+                tail.chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric() && c != '_')
+            })
+        });
+        match unit {
+            Some(unit) => {
+                out.push_str(before);
+                out.push_str("Xs");
+                rest = &after[unit.len()..];
+            }
+            _ => {
+                out.push_str(before);
+                out.push_str(number);
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 fn drain<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::JoinHandle<String> {
@@ -180,4 +231,68 @@ fn drain<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::JoinHandle
         }
         String::from_utf8_lossy(&buffer).into_owned()
     })
+}
+
+#[cfg(test)]
+mod steady_tests {
+    use super::steady;
+
+    /// The line that made a seeded round unreplayable. Two runs of one
+    /// unchanged crate print different compile times, and the text goes into
+    /// the next step's prompt.
+    #[test]
+    fn two_cargo_runs_of_one_crate_read_the_same() {
+        let first = "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s";
+        let second = "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s";
+        assert_eq!(steady(first), steady(second));
+    }
+
+    #[test]
+    fn a_test_summary_keeps_every_count_it_carries() {
+        let line = "test result: ok. 22 passed; 0 failed; 3 ignored; 0 measured; \
+                    0 filtered out; finished in 0.16s";
+        let steadied = steady(line);
+        assert!(steadied.contains("22 passed"), "{steadied}");
+        assert!(steadied.contains("3 ignored"), "{steadied}");
+        assert!(steadied.contains("0 filtered out"), "{steadied}");
+        assert!(
+            !steadied.contains("0.16"),
+            "the duration is gone: {steadied}"
+        );
+    }
+
+    /// vitest prints milliseconds, and prints them without `in` in front.
+    #[test]
+    fn vitest_durations_go_too() {
+        let a = "   Duration  189ms (transform 20ms, collect 20ms, tests 3ms)";
+        let b = "   Duration  205ms (transform 24ms, collect 18ms, tests 4ms)";
+        assert_eq!(steady(a), steady(b));
+    }
+
+    #[test]
+    fn a_vitest_summary_keeps_its_counts() {
+        let steadied = steady("Tests  1 failed | 2 passed | 1 skipped (5)");
+        assert_eq!(steadied, "Tests  1 failed | 2 passed | 1 skipped (5)");
+    }
+
+    /// A number that is not a duration is information. Case counts, byte
+    /// counts, line numbers and versions all have to survive.
+    #[test]
+    fn numbers_that_are_not_durations_survive() {
+        for line in [
+            "pytest: 26 passed",
+            "wrote 8001 bytes to src/pathclass.ts",
+            "error[E0308]: mismatched types at src/lib.rs:42:17",
+            "Compiling f-expr v0.0.0",
+            "0 passed; 26 failed",
+        ] {
+            assert_eq!(steady(line), line, "changed: {line}");
+        }
+    }
+
+    #[test]
+    fn output_with_no_numbers_at_all_is_untouched() {
+        let text = "thread 'main' panicked at src/lib.rs\nnot done yet\n";
+        assert_eq!(steady(text), text);
+    }
 }

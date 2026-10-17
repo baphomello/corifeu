@@ -2,14 +2,35 @@
   "name": "f-expr",
   "summary": "An integer expression evaluator. Two slices, the second holding sixteen cases that pull against each other, built so that a regression is possible at all.",
   "artefact": "src/lib.rs",
-  "oracle": ["cargo", "test", "--lib", "{module}"],
-  "whole_suite": ["cargo", "test", "--lib"],
-  "tools": [["cargo"]],
-  "owned": ["src/**"],
+  "oracle": [
+    "cargo",
+    "test",
+    "--lib",
+    "{module}",
+    "--",
+    "--test-threads=1"
+  ],
+  "whole_suite": [
+    "cargo",
+    "test",
+    "--lib",
+    "--",
+    "--test-threads=1"
+  ],
+  "tools": [
+    [
+      "cargo"
+    ]
+  ],
+  "owned": [
+    "src/**"
+  ],
   "protected": "#[test]",
   "tests_at": "`#[cfg(test)] mod {module}` at the end of the file",
   "language": "rust",
-  "copy": ["Cargo.toml"],
+  "copy": [
+    "Cargo.toml"
+  ],
   "slices": [
     {
       "module": "slice1_tokens",

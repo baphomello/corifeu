@@ -2,14 +2,35 @@
   "name": "c-glob",
   "summary": "A glob matcher and a path classifier. Four slices in one file, each calling the one before it.",
   "artefact": "src/lib.rs",
-  "oracle": ["cargo", "test", "--lib", "{module}"],
-  "whole_suite": ["cargo", "test", "--lib"],
-  "tools": [["cargo"]],
-  "owned": ["src/**"],
+  "oracle": [
+    "cargo",
+    "test",
+    "--lib",
+    "{module}",
+    "--",
+    "--test-threads=1"
+  ],
+  "whole_suite": [
+    "cargo",
+    "test",
+    "--lib",
+    "--",
+    "--test-threads=1"
+  ],
+  "tools": [
+    [
+      "cargo"
+    ]
+  ],
+  "owned": [
+    "src/**"
+  ],
   "protected": "#[test]",
   "tests_at": "`#[cfg(test)] mod {module}` at the end of the file",
   "language": "rust",
-  "copy": ["Cargo.toml"],
+  "copy": [
+    "Cargo.toml"
+  ],
   "slices": [
     {
       "module": "slice1_segs",
@@ -23,7 +44,9 @@
       "module": "slice2_seg",
       "cases": 8,
       "signature": "fn match_seg(pattern: &str, component: &str) -> bool {",
-      "helpers": ["fn match_seg_impl(pattern: &[u8], component: &[u8]) -> bool {"],
+      "helpers": [
+        "fn match_seg_impl(pattern: &[u8], component: &[u8]) -> bool {"
+      ],
       "implement": "`match_seg` is unimplemented. Implement it so its tests pass. It matches ONE path component against one pattern segment, where `*` is any run of characters and `?` is exactly one.",
       "specify": "`match_seg(pattern, component) -> bool` matches ONE path component against one pattern segment. `*` matches any run of characters, including none; `?` matches exactly one. Neither matches a '/'."
     },
@@ -31,7 +54,9 @@
       "module": "slice3_glob",
       "cases": 9,
       "signature": "fn glob_match(pattern: &str, path: &str) -> bool {",
-      "helpers": ["fn glob_match_suffix(pattern: &[&str], path: &[&str]) -> bool {"],
+      "helpers": [
+        "fn glob_match_suffix(pattern: &[&str], path: &[&str]) -> bool {"
+      ],
       "implement": "`glob_match` is unimplemented. Implement it so its tests pass. `**` crosses `/`, `*` and `?` do not.",
       "specify": "`glob_match(pattern, path) -> bool` matches a whole glob pattern against a whole path. `**` matches any number of path components including none; `*` and `?` stay inside one component, where `*` is any run of characters and `?` is exactly one."
     },

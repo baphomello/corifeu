@@ -246,6 +246,60 @@ answered past the oracle and the local one answered up to it.** Same claim from 
 hybrid split is about where each model is used, and the oracle is the thing that has to be
 better than either.
 
+## And if the expensive model had done all of it?
+
+The same brief, the same fixed tests, the coder role pointed at the `claude` CLI instead of the
+local model — [all-expensive.yaml](task/all-expensive.yaml), one line different in `roles`.
+
+| | hybrid, best pass | all expensive |
+|---|---:|---:|
+| money | **$0.0121** | **$0.2028** |
+| dispatches | 1 planner + 4 coder | 1 planner + 3 coder |
+| steps | 4 | **3** |
+| slices closed | 3 of 3 | 3 of 3 |
+| cases | 10 of 10 | 10 of 10 |
+| `postPath` across timezones | **wrong** | right |
+
+**16.8× the money against the best hybrid pass, 11.1× against the average of nine.** And one
+step per slice, no retries, no refused writes, no narration — against 4 to 18 steps on the
+slice the local model found hard.
+
+It is also the better code. The expensive model never built a local `Date` from the ISO string:
+
+```ts
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})(?:T[0-9:.]+(?:Z|[+-]\d{2}:?\d{2})?)?$/;
+...
+const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+if (day > daysInMonth) throw new Error(...);
+```
+
+Same three cases to satisfy, same suite green, and it answers `/blog/2026/03/x` in every
+timezone. It also rejects a 31st of February, which nothing asked for.
+
+### The number that decides the design
+
+A coder dispatch to the CLI cost **$0.0637**, and what Corifeu actually sent it was about 1,200
+prompt tokens — the figure the local coder reports for the identical prompt. The CLI billed
+15,197 per internal turn. **Roughly 95% of what the expensive side charges is the CLI's own
+ambient context, and it does not grow with the task.**
+
+So the cost of an expensive agent CLI scales with **how many times you call it**, not with how
+much you ask each time. That inverts the thing Corifeu is built around: small scoped slices with
+an oracle after each one is the shape a 9B needs, and it is the most expensive possible shape to
+drive a CLI in. Three slices cost three dispatches where one prompt holding all three functions
+would have cost one, and at these prices that single prompt — about $0.06, no planner, no loop —
+is **a third of what Corifeu-with-Opus spent and three times what the hybrid spent**.
+
+That is not an argument against the hybrid. It is the boundary of where the hybrid earns
+anything, and this task is below it: three independent pure functions, sixty lines, one prompt
+wide. ADR-0031's saving is real and it is a saving on *this* arrangement, not on the cheapest way
+a human could have got the same three files.
+
+What would move the boundary is anything that makes one prompt insufficient — a change that
+needs twenty files read, a suite that takes minutes, a loop that has to iterate against a check
+the author cannot run in their head. S7's site is the first task in this project that plausibly
+sits above it, and the number to beat is now measured rather than assumed.
+
 ## What this round is not
 
 - **Not a comparison of the two models on the same work.** Neither did the other's job.

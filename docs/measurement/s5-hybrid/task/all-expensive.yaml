@@ -1,0 +1,48 @@
+version: 1
+
+# The founding arrangement, declared: one expensive model that plans and a
+# local one that writes the code.
+providers:
+  expensive:
+    kind: cli
+    command: claude
+    min_version: "2.1.0"
+  local:
+    kind: llama-cpp
+    base_url: "http://192.168.32.1:9931"
+
+roles:
+  lead: { category: lead, provider: expensive, model: "", required: true }
+  coder:
+    category: doers
+    provider: expensive
+    model: ""
+    writes: [source]
+
+file_classes:
+  - { name: test, include: ["src/*.test.ts"] }
+  - { name: source, include: ["src/**"] }
+
+# The coder owns source and nothing else. The tests were written before the
+# run and stay fixed, so the oracle is not an opinion of the model being
+# measured (ADR-0042, and defect 53, which is what happens without this).
+ownership:
+  source: [coder]
+
+oracles:
+  suite:
+    command: ["npx", "vitest", "run"]
+    timeout_s: 180
+
+limits:
+  steps: { floor: 12, ceiling: 12, patience: 0, raise_by: 0 }
+  repeats: 6
+  seed: 1
+
+protected:
+  marker: "it("
+  in_classes: [source]
+
+execution:
+  allowed_commands:
+    - ["npx", "vitest", "run"]

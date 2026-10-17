@@ -36,10 +36,10 @@ reading the output.
 | S4 · A slice that touches several files | a feature instead of a function | **4 ✅** |
 | S5 · Hybrid roles, cost measured | the project's actual claim | **3 ✅** |
 | S6 · The planner cuts a brief | writing in Portuguese instead of JSON | **2 ✅** |
-| S7 · The site | the goal | 3 |
+| S7 · The site | the goal | **2** of 3 |
 | | | **24** |
 
-**Today: 21 of 24** — S1 to S6 complete. What is left is the site itself.
+**Today: 23 of 24** — S1 to S6 complete, S7 at two of three.
 
 ---
 
@@ -308,12 +308,47 @@ passes.
 model reproducing it is slower, worse, and a bad first test. Corifeu's job starts at the first
 feature.
 
+**The site.** [gabrielanascimentobeauty](https://github.com/baphomello/gabrielanascimentobeauty)
+— a makeup artist and brow designer in Medianeira. Its visual decisions live in a published
+design system, and the repository consumes its `tokens.json`: a generated `tokens.css` plus a
+Tailwind bridge, with a test that fails if either is edited by hand. One place decides a colour.
+
+**22 and 23 done**, 2026-10-17. The first feature was planned on the `claude` CLI and written by
+the local 9B, against tests and content that no role owns.
+
+**Three of the four things the run found were the oracle's, not the model's.** The list test
+counted every `listitem` in the document and so forbade, without saying so, that a card's
+techniques be a list themselves — which is the right markup for them. The component was correct
+and passed whole once the test counted only the items with a heading. A second test read its own
+source file through `import.meta.url` and never ran at all under jsdom, so it was red for a
+reason no code could fix; the doer wrote correct code, saw red, and spent its remaining steps
+trying to rewrite the test until [ADR-0050](adr/0050-loop-detection-warns-before-it-stops.md)
+stopped it. [ADR-0067](adr/0067-a-check-that-cannot-be-counted-is-not-a-verdict.md) does not
+cover that case: vitest produced an ordinary case count, so the oracle was not unusable, it was
+red — and a count does not tell a case failing on the code from one failing on the environment.
+
+The fourth was the model's, and a brief fixed it without a human touching the component: the
+technique chips had inherited the card's styling and become small cards.
+
+**[ADR-0035](adr/0035-file-ownership-by-glob-classes.md) held both times and that is the point** —
+but it is also where this stops. Blocked from the test file, the doer repeated the same refused
+write until the detector ended the turn. Both times the test really was wrong, so the instinct
+was right and only the action was not its to take. Defect 65.
+
 **Acceptance.**
 22. The repository exists, scaffolded by the generator, with vitest and Playwright running in
-    CI and a `corifeu.yaml` that `corifeu doctor` passes.
+    CI and a `corifeu.yaml` that `corifeu doctor` passes. ✅
 23. One feature — a real one, chosen from what the site needs — delivered by `corifeu run`, with
-    the oracle green and the diff reviewed.
+    the oracle green and the diff reviewed. ✅
 24. A second feature delivered with **no human edit to the code**, only to the brief.
+
+**A tension in 24, worth settling before it is claimed.** The chip fix was delivered with no
+human edit to the component — but it needed a test, and a human wrote it. This project's own
+arrangement puts tests outside the doer's ownership on purpose
+([ADR-0042](adr/0042-test-authorship-separation.md), and defect 53 is what happens otherwise), so
+"no human edit to the code" and "the doer does not write its own oracle" pull against each other.
+24 is met by a feature whose test already exists, or by a QA role writing it; it is not met by
+counting a hand-written test as part of the brief.
 
 ---
 

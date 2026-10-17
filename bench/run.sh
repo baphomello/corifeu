@@ -136,6 +136,21 @@ for (( m = ${#MODELS[@]} - 1; m >= 0; m-- )); do
   echo "warm:    $MODEL"
 done
 
+# Defect 51. run.sh rebuilds at the start of every round, so a round started
+# while the tree is being edited runs a binary that `commit:` below does not
+# name. Two replay passes recorded 8eaa719 and 00ebf5e and the comparison was
+# reported as a replay result before that line was read. A dirty tree is
+# refused rather than recorded, because a round is a configuration and a half
+# written one is not any configuration at all.
+DIRTY=$(cd "$REPO" && git status --porcelain -- ':!bench/rounds' ':!docs')
+if [ -n "$DIRTY" ] && [ -z "${BENCH_ALLOW_DIRTY:-}" ]; then
+  echo "the tree has uncommitted changes, so this round would not be replayable:" >&2
+  printf '%s\n' "$DIRTY" >&2
+  echo >&2
+  echo "commit them, or set BENCH_ALLOW_DIRTY=1 to run an exploratory round." >&2
+  exit 1
+fi
+
 # Built against the repository's own target directory, so it is cached between
 # rounds. The round's target directory is set after this, not before.
 ( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
@@ -205,7 +220,7 @@ LOG="$ROUND/log"
   echo "task:    $TASK"
   echo "host:    $HOST"
   echo "models:  ${MODELS[*]}"
-  echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)"
+  echo "commit:  $(cd "$REPO" && git rev-parse --short HEAD)${DIRTY:+ plus uncommitted changes}"
   echo "suite:   ${SUITE[*]}"
   echo "oracle:  $PROBE"
   [ "$MODE" = pair ] && echo "slice:   $SLICE"

@@ -892,6 +892,12 @@ fn dump(dir: &std::path::Path, slice: &Slice, step: u32, messages: &[Message]) {
         .chars()
         .rev()
         .collect();
+    // A round runs the same slice once per iteration, and the name was the
+    // oracle and the step number alone — so iteration two silently overwrote
+    // iteration one, in the one tool that exists to find out why two rounds
+    // differ. The attempt is counted here because nothing else in a dispatch
+    // knows it: the doer is shared across slices and holds no per-run state.
+    let attempt = attempt_of(&scope, step);
     if std::fs::create_dir_all(dir).is_err() {
         return;
     }
@@ -900,5 +906,47 @@ fn dump(dir: &std::path::Path, slice: &Slice, step: u32, messages: &[Message]) {
         .map(|m| serde_json::to_string_pretty(m).unwrap_or_default())
         .collect::<Vec<_>>()
         .join("\n");
-    let _ = std::fs::write(dir.join(format!("{scope}-{step:03}.json")), body);
+    let _ = std::fs::write(
+        dir.join(format!("{scope}-a{attempt:02}-{step:03}.json")),
+        body,
+    );
+}
+
+/// Which visit to this slice the caller is on, counted from the first step of
+/// each turn. Deterministic in the order the iterations run, so two rounds'
+/// files still line up by name, which is what makes them diffable.
+fn attempt_of(scope: &str, step: u32) -> u32 {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+
+    static SEEN: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
+    let mut seen = match SEEN.get_or_init(Default::default).lock() {
+        Ok(seen) => seen,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    let attempt = seen.entry(scope.to_string()).or_insert(0);
+    if step <= 1 {
+        *attempt += 1;
+    }
+    (*attempt).max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::attempt_of;
+
+    /// A round runs the same slice once per iteration, and the dump was named
+    /// by the oracle and the step alone, so iteration two overwrote iteration
+    /// one in the one tool that exists to find out why two rounds differ.
+    #[test]
+    fn a_second_visit_to_a_slice_does_not_overwrite_the_first() {
+        assert_eq!(attempt_of("npx-vitest-run", 1), 1);
+        assert_eq!(attempt_of("npx-vitest-run", 2), 1);
+        assert_eq!(attempt_of("npx-vitest-run", 3), 1);
+        // The next turn on the same slice starts over at step one.
+        assert_eq!(attempt_of("npx-vitest-run", 1), 2);
+        assert_eq!(attempt_of("npx-vitest-run", 2), 2);
+        // A different slice counts separately.
+        assert_eq!(attempt_of("cargo-test", 1), 1);
+    }
 }

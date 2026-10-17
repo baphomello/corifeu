@@ -1,0 +1,15 @@
+[package]
+name = "corifeu-cliagent"
+description = "Agent CLI adapter: drives a coding CLI non-interactively and reads its turn."
+readme = "README.md"
+include = ["src/**/*.rs", "Cargo.toml", "README.md", "LICENSE", "NOTICE"]
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+corifeu-provider = { workspace = true }
+serde_json = { workspace = true }

@@ -28,6 +28,7 @@ corifeu-config = { workspace = true }
 corifeu-doer = { workspace = true }
 corifeu-exec = { workspace = true }
 corifeu-llamacpp = { workspace = true }
+corifeu-cliagent = { workspace = true }
 corifeu-ollama = { workspace = true }
 corifeu-provider = { workspace = true }
 corifeu-workspace = { workspace = true }

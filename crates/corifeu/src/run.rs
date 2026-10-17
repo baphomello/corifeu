@@ -13,6 +13,7 @@
 //! defaults ever disagree.
 
 use corifeu_agent::Window;
+use corifeu_cliagent::{Agent, CliAgent, antigravity, claude_code, codex};
 use corifeu_config::model::{Config, ProviderKind};
 use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Steps};
 use corifeu_exec::Allowlist;
@@ -76,6 +77,9 @@ impl FromConfig {
 
 /// Build the provider a role names. Returned boxed because which one it is
 /// depends on a string in a file.
+/// Every CLI adapter there is. One list, so adding one is one edit.
+const AGENTS: [Agent; 3] = [claude_code(), codex(), antigravity()];
+
 fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
     let declared = config
         .roles
@@ -87,6 +91,40 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
             declared.provider
         )
     })?;
+    // A CLI agent is a subprocess, so it has no base_url to be missing. Asking
+    // for one before the match would refuse the provider for lacking something
+    // it cannot have; what it has instead is `command`.
+    if provider.kind == ProviderKind::Cli {
+        let command = provider.command.as_deref().ok_or_else(|| {
+            format!(
+                "provider `{}` is a CLI and declares no `command`. Name the executable: {}",
+                declared.provider,
+                AGENTS.map(|a| a.program).join(", ")
+            )
+        })?;
+        let agent = AGENTS
+            .into_iter()
+            .find(|a| a.program == command)
+            .ok_or_else(|| {
+                format!(
+                    "provider `{}` names command `{command}`, which has no adapter. Known: {}",
+                    declared.provider,
+                    AGENTS.map(|a| a.program).join(", ")
+                )
+            })?;
+        // ADR-0007 keeps three CLIs in scope so the abstraction cannot become
+        // one CLI's shape, and only one of the three has been run. A warning
+        // rather than a refusal: an unverified adapter may well work, and
+        // finding out is the point.
+        if !agent.verified {
+            eprintln!(
+                "warning: the {} adapter has never been exercised against the real CLI;                  its flags come from ADR-0007's table",
+                agent.runtime
+            );
+        }
+        return Ok(Box::new(CliAgent::new(agent)));
+    }
+
     let base = provider
         .base_url
         .clone()
@@ -95,7 +133,7 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
     match provider.kind {
         ProviderKind::LlamaCpp => Ok(Box::new(LlamaCpp::new(base))),
         ProviderKind::Ollama => Ok(Box::new(Ollama::new(base))),
-        // A CLI provider speaks a different protocol and a plugin is phase 7.
+        // A plugin provider is phase 7 (ADR-0032).
         other => Err(format!(
             "provider `{}` is {other:?}, which `corifeu run` cannot drive yet",
             declared.provider

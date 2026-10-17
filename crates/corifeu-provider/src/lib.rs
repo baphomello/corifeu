@@ -32,6 +32,15 @@ pub enum Error {
 
     #[error("could not read the reply as JSON: {0}")]
     Json(#[from] serde_json::Error),
+
+    /// A provider that is a subprocess rather than an endpoint. Separate from
+    /// [`Error::Shape`] because a CLI that is missing, unauthenticated or
+    /// killed produced no reply to be the wrong shape.
+    #[error("{runtime} could not be run: {detail}")]
+    Process {
+        runtime: &'static str,
+        detail: String,
+    },
 }
 
 /// One message in the context the loop rebuilds each step (ADR-0047).

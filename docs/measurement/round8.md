@@ -49,6 +49,13 @@ replaying exactly and concluded a round is replayable on this stack. Every slice
 different token early changes every prompt after it. The claim should have been scoped to the
 trace length that produced it.
 
+> **Corrected again by [round nine](round9.md).** The reading above — that the stack cannot
+> replay a long trace — is wrong in the other direction. It could not replay because Corifeu
+> put four volatile things into its own prompts, and with them removed two passes are identical
+> byte for byte. Every delivery number on this page was measured with that contamination
+> present, so the three legs below are three samples of a noisy process and the floor still has
+> no measurement either way.
+
 ## ADR-0062's growth is unreachable at this task shape
 
 The allowance never grew: all 60 slice runs ran at the floor they started with, against

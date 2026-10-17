@@ -273,6 +273,10 @@ pub fn turn(reply: &Value, runtime: &'static str) -> Result<Turn, Error> {
             + count("cache_creation_input_tokens"),
         output_tokens: count("output_tokens"),
         speed: None,
+        // The honest unit for a provider that bills. Tokens cannot be turned
+        // into this: the same reply reported two input tokens and cost eleven
+        // cents, because the agent's own context arrives as cache reads.
+        cost_usd: reply.get("total_cost_usd").and_then(Value::as_f64),
     })
 }
 

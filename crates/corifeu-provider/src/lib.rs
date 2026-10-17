@@ -186,6 +186,13 @@ pub struct Turn {
     pub prompt_tokens: u32,
     pub output_tokens: u32,
     pub speed: Option<Speed>,
+    /// What this turn cost, where the provider bills and says so.
+    ///
+    /// `None` for a local runtime, which costs electricity and not money.
+    /// Carried next to the token counts rather than derived from them, because
+    /// a CLI agent reports two input tokens on a call that cost eleven cents
+    /// (defect 46) — the tokens cannot be turned into the price.
+    pub cost_usd: Option<f64>,
 }
 
 /// One turn, from whichever runtime.

@@ -268,10 +268,10 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
     println!();
 
     let outcome = doer.work(&slice, &mut workspace);
-    report(&outcome)
+    report(&outcome, ask.role, &role.provider, &role.model)
 }
 
-fn report(run: &corifeu_doer::Run) -> ExitCode {
+fn report(run: &corifeu_doer::Run, role: &str, provider: &str, model: &str) -> ExitCode {
     for step in &run.trace {
         println!(
             "  {:>3}  {:<12} {}",
@@ -291,6 +291,25 @@ fn report(run: &corifeu_doer::Run) -> ExitCode {
         run.steps,
         run.checks,
         run.prompt_tokens,
+    );
+
+    // Acceptance 18. One role per `run` today, so this is a one-line table —
+    // but it is the table the hybrid split is reported in, and money sits
+    // beside tokens because for a provider that bills the two do not convert
+    // (defect 46).
+    println!();
+    println!("spend by role:");
+    println!(
+        "  {:<10} {:<10} {:<14} {:>4} dispatch(es)  {:>7} prompt  {:>6} output  {}",
+        role,
+        provider,
+        model,
+        run.spend.dispatches,
+        run.spend.prompt_tokens,
+        run.spend.output_tokens,
+        run.spend
+            .cost_usd
+            .map_or_else(|| "no charge".to_string(), |c| format!("${c:.4}")),
     );
 
     match run.outcome {

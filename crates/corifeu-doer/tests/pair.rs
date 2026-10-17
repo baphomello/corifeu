@@ -141,6 +141,7 @@ fn turn(tool_calls: Vec<ToolCall>, content: &str) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 

@@ -105,6 +105,7 @@ pub fn parse(body: &str, num_predict: u32) -> Result<Turn, Error> {
         prompt_tokens: count(&reply, "prompt_eval_count"),
         output_tokens: count(&reply, "eval_count"),
         speed: speed(&reply),
+        cost_usd: None,
     })
 }
 

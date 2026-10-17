@@ -163,6 +163,7 @@ fn calls(name: &str, arguments: serde_json::Value) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -175,6 +176,7 @@ fn says(what: &str) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -1085,4 +1087,84 @@ fn a_success_between_two_cuts_means_patience_never_runs_out() {
         "five cuts, and the allowance is still the floor"
     );
     assert!(!allowance.raised());
+}
+
+// ------------------------------------------------------------- what it spent
+
+/// S5 acceptance 18. The split has to be a number, and for a provider that
+/// bills it has to be money: a CLI agent reports two input tokens on a call
+/// that cost eleven cents, so tokens cannot be converted into the price
+/// (defect 46).
+#[test]
+fn a_run_records_what_each_dispatch_spent() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("still not\n"), write("DONE\n")]);
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+
+    assert_eq!(run.spend.dispatches, 2);
+    assert_eq!(run.spend.prompt_tokens, 200, "100 a turn, as the stub says");
+    assert_eq!(run.spend.output_tokens, 40);
+    assert_eq!(
+        run.spend.cost_usd, None,
+        "a local runtime costs electricity, which is not a number it reports"
+    );
+}
+
+/// `None` and `Some(0.0)` are different answers: one is a provider that does
+/// not bill, the other is a bill of nothing.
+#[test]
+fn a_local_run_has_no_cost_rather_than_a_cost_of_zero() {
+    use corifeu_doer::Spend;
+
+    let local = Spend {
+        dispatches: 3,
+        prompt_tokens: 300,
+        output_tokens: 60,
+        cost_usd: None,
+    };
+    let billed = Spend {
+        dispatches: 1,
+        prompt_tokens: 19_342,
+        output_tokens: 42,
+        cost_usd: Some(0.1145),
+    };
+
+    assert_eq!(local.with(local).cost_usd, None);
+    let together = local.with(billed);
+    assert_eq!(together.cost_usd, Some(0.1145));
+    assert_eq!(together.dispatches, 4);
+}
+
+/// The share is by money where money was spent, because that is the claim the
+/// project makes. Where nothing billed, tokens are the only unit there is.
+#[test]
+fn the_expensive_share_is_measured_in_what_it_charged() {
+    use corifeu_doer::Spend;
+
+    let planner = Spend {
+        dispatches: 2,
+        prompt_tokens: 40_000,
+        output_tokens: 500,
+        cost_usd: Some(0.20),
+    };
+    let coder = Spend {
+        dispatches: 20,
+        prompt_tokens: 60_000,
+        output_tokens: 8_000,
+        cost_usd: None,
+    };
+    let total = planner.with(coder);
+
+    assert_eq!(
+        planner.share_of(total),
+        Some(1.0),
+        "the only money spent was the planner's, whatever the token counts say"
+    );
+
+    let all_local = coder.with(coder);
+    let half = coder.share_of(all_local).expect("tokens are the fallback");
+    assert!((half - 0.5).abs() < 1e-9, "{half}");
 }

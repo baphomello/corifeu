@@ -43,6 +43,12 @@ enum Command {
         /// Which declared oracle decides when it is done.
         #[arg(long, value_name = "NAME")]
         oracle: String,
+        /// Narrow that oracle to this slice, by appending an argument to it.
+        /// Repeat for more. A suite that judges the whole project is red for
+        /// work this slice is not doing, and the doer has no move that fixes
+        /// it.
+        #[arg(long = "only", value_name = "ARG")]
+        only: Vec<String>,
         /// Which role does the work.
         #[arg(long, default_value = "coder", value_name = "ROLE")]
         role: String,
@@ -112,6 +118,7 @@ fn main() -> ExitCode {
             task,
             artefacts,
             oracle,
+            only,
             role,
             expect_cases,
             file,
@@ -119,6 +126,7 @@ fn main() -> ExitCode {
             &task,
             &artefacts,
             &oracle,
+            &only,
             &role,
             expect_cases,
             file.as_deref(),
@@ -150,6 +158,7 @@ fn run_cmd(
     task: &str,
     artefacts: &[String],
     oracle: &str,
+    only: &[String],
     role: &str,
     expect_cases: Option<u32>,
     file: Option<&std::path::Path>,
@@ -164,6 +173,7 @@ fn run_cmd(
             task,
             artefacts,
             oracle,
+            only,
             role,
             expect_cases,
             root: &root,

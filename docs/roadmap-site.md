@@ -178,11 +178,17 @@ than enforced, so the file class still decides what a role may write and naming 
 grants no third. Second, the tests caught the prompt still telling a doer holding two files
 that it was *"changing one file"*, which was the runtime lying to the model about its own task.
 
-**16 is not met yet.** The mechanism is proven by
-`a_file_and_its_test_change_in_one_slice` — two files, one slice, oracle green — but with text
-files in a unit test. The criterion says *a component and its test*, and this roadmap is about
-a real site, so it stays open until `corifeu run` closes it against a Node project with a
-held-out suite judging the result.
+**16 is still not met, and the live run is worth reading anyway** —
+[s4-live](measurement/s4-live/README.md). `corifeu run` wrote both artefacts in one slice
+against a real Node project, which is the mechanism working through the product rather than
+through a unit test. It did not go green: the oracle read 10 of 12 and the slice ran out of
+steps.
+
+The two failures were the model's **own tests**, which confused centavos with reais while the
+implementation got it right. The held-out suite it never saw passes 10 of 10 against the code
+exactly as written. So the code was correct, the oracle it wrote for itself was not, and
+nothing inside the run could tell the difference — which is what `corifeu doctor`'s
+self-authorship warning is worth, measured. Defects 52 and 53.
 
 **Acceptance.**
 13. A slice naming two files has both pinned into every step, read fresh from disk.

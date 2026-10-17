@@ -32,6 +32,10 @@ use corifeu_agent::{Action, Artefact, Context, Contract, Detector, Repeat, Step,
 use corifeu_check::{Cases, Check, Verdict};
 use corifeu_exec::{Allowlist, Command};
 use corifeu_provider::{Budget, Message, Provider, Stop};
+
+// A spend is a sum of turns, so it lives beside `Turn` and a planner — which
+// is one dispatch and no loop — can report one without depending on the doer.
+pub use corifeu_provider::Spend;
 use corifeu_workspace::{Guard, Score, Workspace};
 use std::time::Duration;
 
@@ -874,58 +878,4 @@ fn dump(dir: &std::path::Path, slice: &Slice, step: u32, messages: &[Message]) {
         .collect::<Vec<_>>()
         .join("\n");
     let _ = std::fs::write(dir.join(format!("{scope}-{step:03}.json")), body);
-}
-
-/// What a run cost, in the two units that are not interchangeable.
-///
-/// ADR-0031 shows the user a saving, and the saving is only honest if the
-/// expensive side is counted in what it actually charges. A CLI agent reports
-/// two input tokens on a call that costs eleven cents, because its own context
-/// arrives as cache reads (defect 46), so tokens and money are recorded side
-/// by side and neither is derived from the other.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
-pub struct Spend {
-    pub dispatches: u32,
-    pub prompt_tokens: u32,
-    pub output_tokens: u32,
-    /// Summed only over the turns that reported one. A run with no billed
-    /// turns has `None`, which is different from a run that cost nothing.
-    pub cost_usd: Option<f64>,
-}
-
-impl Spend {
-    fn saw(&mut self, turn: &corifeu_provider::Turn) {
-        self.dispatches += 1;
-        self.prompt_tokens += turn.prompt_tokens;
-        self.output_tokens += turn.output_tokens;
-        if let Some(cost) = turn.cost_usd {
-            self.cost_usd = Some(self.cost_usd.unwrap_or(0.0) + cost);
-        }
-    }
-
-    /// What this and `other` spent together, for adding up the roles that
-    /// worked one task.
-    pub fn with(self, other: Spend) -> Spend {
-        Spend {
-            dispatches: self.dispatches + other.dispatches,
-            prompt_tokens: self.prompt_tokens + other.prompt_tokens,
-            output_tokens: self.output_tokens + other.output_tokens,
-            cost_usd: match (self.cost_usd, other.cost_usd) {
-                (None, None) => None,
-                (a, b) => Some(a.unwrap_or(0.0) + b.unwrap_or(0.0)),
-            },
-        }
-    }
-
-    /// This run's share of a total, by money where money was spent and by
-    /// tokens where it was not.
-    pub fn share_of(&self, total: Spend) -> Option<f64> {
-        match (self.cost_usd, total.cost_usd) {
-            (Some(mine), Some(all)) if all > 0.0 => Some(mine / all),
-            _ => (total.prompt_tokens + total.output_tokens > 0).then(|| {
-                f64::from(self.prompt_tokens + self.output_tokens)
-                    / f64::from(total.prompt_tokens + total.output_tokens)
-            }),
-        }
-    }
 }

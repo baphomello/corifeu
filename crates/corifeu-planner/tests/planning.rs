@@ -174,8 +174,14 @@ fn the_whole_list_comes_back_from_one_call() {
         "",
     )]));
 
-    let plan = planner(&provider).plan(&brief(), &cargo_test()).unwrap();
-    assert_eq!(plan, good());
+    let planned = planner(&provider).plan(&brief(), &cargo_test()).unwrap();
+    assert_eq!(planned.plan, good());
+    // The expensive side of the hybrid split is the planner, so a run that
+    // reported only the doers' tokens would show a saving that left out the
+    // thing being paid for.
+    assert_eq!(planned.spend.dispatches, 1);
+    assert_eq!(planned.spend.prompt_tokens, 400);
+    assert_eq!(planned.spend.output_tokens, 120);
 }
 
 #[test]

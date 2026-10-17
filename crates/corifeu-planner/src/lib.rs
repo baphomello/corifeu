@@ -30,7 +30,7 @@
 //! the wrong number.
 
 use corifeu_exec::{Allowlist, Command};
-use corifeu_provider::{Budget, Message, Provider, ToolCall};
+use corifeu_provider::{Budget, Message, Provider, Spend, ToolCall};
 use serde_json::{Value, json};
 
 pub const EMIT_PLAN: &str = "emit_plan";
@@ -155,6 +155,18 @@ impl Plan {
     }
 }
 
+/// A plan and what asking for it cost.
+///
+/// The cost is returned rather than discarded because planning is the
+/// expensive side of the hybrid split: a run that reported only the doers'
+/// tokens would show a saving that excluded the thing being paid for
+/// ([ADR-0031](https://github.com/baphomello/corifeu/blob/main/docs/adr/0031-token-savings-metering.md)).
+#[derive(Debug, Clone)]
+pub struct Planned {
+    pub plan: Plan,
+    pub spend: Spend,
+}
+
 pub struct Planner<'a> {
     pub provider: &'a dyn Provider,
     pub model: String,
@@ -163,10 +175,12 @@ pub struct Planner<'a> {
 
 impl Planner<'_> {
     /// Ask once, and reject what comes back if it cannot be executed.
-    pub fn plan(&self, brief: &Brief, allowlist: &Allowlist) -> Result<Plan, Error> {
+    pub fn plan(&self, brief: &Brief, allowlist: &Allowlist) -> Result<Planned, Error> {
         let turn = self
             .provider
             .chat(&self.model, &messages(brief), &[schema()], &self.budget)?;
+        let mut spend = Spend::default();
+        spend.saw(&turn);
 
         let call = turn
             .tool_calls
@@ -178,7 +192,7 @@ impl Planner<'_> {
 
         let plan = read(call)?;
         plan.check(allowlist)?;
-        Ok(plan)
+        Ok(Planned { plan, spend })
     }
 }
 

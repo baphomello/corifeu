@@ -152,6 +152,7 @@ dependencies = [
  "corifeu-exec",
  "corifeu-llamacpp",
  "corifeu-ollama",
+ "corifeu-planner",
  "corifeu-provider",
  "corifeu-workspace",
  "serde_json",

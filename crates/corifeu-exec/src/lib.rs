@@ -173,7 +173,7 @@ pub fn run(
         // `None` means killed rather than exited, which is also what a signal
         // produces. `timed_out` says which.
         exit_status: status.and_then(|s| s.code()),
-        output: settled(&(stdout + &stderr), working_dir),
+        output: settled(&(stdout + &stderr), &scratch(working_dir)),
         elapsed: started.elapsed(),
         timed_out,
     })
@@ -194,13 +194,34 @@ pub fn run(
 ///
 /// The path is also noise for the model: it is being asked about a file it can
 /// see, in a directory it cannot leave.
-pub fn settled(output: &str, working_dir: &Path) -> String {
-    let steadied = steady(output);
-    let threadless = threads(&steadied);
-    match working_dir.to_str() {
-        Some(root) if !root.is_empty() => threadless.replace(root, "."),
-        _ => threadless,
+pub fn settled(output: &str, scratch: &[String]) -> String {
+    let mut out = threads(&steady(output));
+    // Longest first: a target directory inside the workspace would otherwise
+    // be half-replaced by the workspace's own prefix.
+    let mut paths: Vec<&String> = scratch.iter().filter(|p| !p.is_empty()).collect();
+    paths.sort_by_key(|p| std::cmp::Reverse(p.len()));
+    for path in paths {
+        out = out.replace(path.as_str(), ".");
     }
+    out
+}
+
+/// The absolute paths a round's own layout puts into a tool's output.
+///
+/// The workspace is one. The other is `CARGO_TARGET_DIR`, which
+/// `bench/run.sh` points outside the workspace so two iterations cannot share
+/// a test binary — a good reason that also puts the round's directory name
+/// into `Running unittests src/lib.rs (<there>)`, and so into the next step's
+/// prompt. Round nine found this one last, after the dump showed it was the
+/// only difference left.
+fn scratch(working_dir: &Path) -> Vec<String> {
+    let mut paths = vec![working_dir.to_string_lossy().into_owned()];
+    for key in ["CARGO_TARGET_DIR", "GOCACHE", "GOPATH"] {
+        if let Some(value) = std::env::var_os(key) {
+            paths.push(value.to_string_lossy().into_owned());
+        }
+    }
+    paths
 }
 
 /// `thread 'x' (186718) panicked` → `thread 'x' (T) panicked`.
@@ -391,8 +412,6 @@ mod env_tests {
 #[cfg(test)]
 mod settled_tests {
     use super::settled;
-    use std::path::Path;
-
     /// The two sources round nine found by diffing dumped prompts. Both were
     /// invisible in the step trace, which records only the first line.
     #[test]
@@ -403,8 +422,8 @@ mod settled_tests {
                  Compiling exprs v0.0.0 ({dir}/work/m/2)\n    Finished `test` profile in 0.13s\n"
             )
         };
-        let first = settled(&line("186718", "/rounds/V"), Path::new("/rounds/V"));
-        let second = settled(&line("187944", "/rounds/W"), Path::new("/rounds/W"));
+        let first = settled(&line("186718", "/rounds/V"), &["/rounds/V".to_string()]);
+        let second = settled(&line("187944", "/rounds/W"), &["/rounds/W".to_string()]);
         assert_eq!(first, second);
         assert!(first.contains("(T)"), "{first}");
         assert!(first.contains("(./work/m/2)"), "{first}");
@@ -414,13 +433,13 @@ mod settled_tests {
     #[test]
     fn a_count_in_parentheses_survives() {
         let line = "Tests  1 failed | 2 passed (3)";
-        assert_eq!(settled(line, Path::new("/nowhere")), line);
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
     }
 
     #[test]
     fn a_panic_line_without_a_thread_id_is_left_alone() {
         let line = "thread 'main' panicked at src/lib.rs:7:1";
-        assert_eq!(settled(line, Path::new("/nowhere")), line);
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
     }
 
     /// The assertion text is the whole value of a failing run to the model.
@@ -428,6 +447,38 @@ mod settled_tests {
     fn what_the_test_actually_reported_is_untouched() {
         let line = "assertion `left == right` failed\n  left: Some([\"20\", \"*\", \"\"])\n \
                     right: Some([\"120\", \"*\", \"3\"])";
-        assert_eq!(settled(line, Path::new("/nowhere")), line);
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
+    }
+}
+
+#[cfg(test)]
+mod scratch_tests {
+    use super::settled;
+
+    /// The one difference left after the thread ids and the durations went.
+    /// `bench/run.sh` points CARGO_TARGET_DIR outside the workspace so two
+    /// iterations cannot share a test binary, which also puts the round's own
+    /// directory name in front of the model.
+    #[test]
+    fn a_target_directory_outside_the_workspace_is_elided_too() {
+        let line = |round: &str| {
+            format!("     Running unittests src/lib.rs ({round}/target/m/5/debug/deps/exprs-ba37)")
+        };
+        let paths = |round: &str| vec![format!("{round}/work/m/5"), format!("{round}/target")];
+        assert_eq!(
+            settled(&line("/r/Y"), &paths("/r/Y")),
+            settled(&line("/r/Z"), &paths("/r/Z"))
+        );
+    }
+
+    /// Longest first, or the workspace prefix eats the start of a target
+    /// directory nested inside it and leaves the rest.
+    #[test]
+    fn a_nested_path_is_replaced_whole() {
+        let out = settled(
+            "wrote /repo/target/debug/x and read /repo/src/a.rs",
+            &["/repo".to_string(), "/repo/target".to_string()],
+        );
+        assert_eq!(out, "wrote ./debug/x and read ./src/a.rs");
     }
 }

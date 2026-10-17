@@ -118,11 +118,33 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
         // finding out is the point.
         if !agent.verified {
             eprintln!(
-                "warning: the {} adapter has never been exercised against the real CLI;                  its flags come from ADR-0007's table",
+                "warning: the {} adapter has never been run against the real CLI; its flags \
+                 come from ADR-0007's table",
                 agent.runtime
             );
         }
-        return Ok(Box::new(CliAgent::new(agent)));
+        let driver = CliAgent::new(agent);
+        // ADR-0007 calls adapter churn the dominant technical risk, and asks for
+        // the detected version to be reported and an untested one refused with a
+        // clear message rather than a parse error.
+        let Some(found) = driver.version() else {
+            return Err(format!(
+                "provider `{}` names command `{command}`, which did not answer `--version`. \
+                 Is it installed and on PATH?",
+                declared.provider
+            ));
+        };
+        println!("provider: {command} {found}");
+        if let Some(wanted) = provider.min_version.as_deref()
+            && !corifeu_cliagent::at_least(&found, wanted)
+        {
+            return Err(format!(
+                "provider `{}` needs {command} {wanted} or newer and found {found}. \
+                     Corifeu's adapter is written against the flags that version documents.",
+                declared.provider
+            ));
+        }
+        return Ok(Box::new(driver));
     }
 
     let base = provider

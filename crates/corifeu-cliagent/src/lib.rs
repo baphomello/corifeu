@@ -42,6 +42,44 @@ pub struct Agent {
     pub verified: bool,
 }
 
+/// The version string a CLI prints, reduced to its leading numbers.
+///
+/// `claude --version` answers `2.1.302 (Claude Code)`, and ADR-0007 asks
+/// Corifeu to report the version it detected and refuse an untested one with a
+/// clear message rather than a parse error. Anything after the numbers is the
+/// CLI's own decoration.
+pub fn version_in(output: &str) -> Option<String> {
+    let at = output.find(|c: char| c.is_ascii_digit())?;
+    let rest = &output[at..];
+    let end = rest
+        .find(|c: char| !c.is_ascii_digit() && c != '.')
+        .unwrap_or(rest.len());
+    let found = rest[..end].trim_end_matches('.');
+    (!found.is_empty()).then(|| found.to_string())
+}
+
+/// Whether `found` is at least `wanted`, compared number by number.
+///
+/// Not a semver implementation: these are pre-1.0 tools whose versions are
+/// three numbers, and a dependency to compare three numbers would be the
+/// larger risk. A part that is not a number makes the comparison fail closed,
+/// because refusing to run is recoverable and running against an unknown
+/// version is what ADR-0007 asks to prevent.
+pub fn at_least(found: &str, wanted: &str) -> bool {
+    let parts =
+        |v: &str| -> Option<Vec<u64>> { v.split('.').map(|p| p.parse::<u64>().ok()).collect() };
+    let (Some(found), Some(wanted)) = (parts(found), parts(wanted)) else {
+        return false;
+    };
+    let at = |v: &[u64], i: usize| v.get(i).copied().unwrap_or(0);
+    for i in 0..found.len().max(wanted.len()) {
+        if at(&found, i) != at(&wanted, i) {
+            return at(&found, i) > at(&wanted, i);
+        }
+    }
+    true
+}
+
 /// Claude Code. Every flag here was run; see the probe.
 pub const fn claude_code() -> Agent {
     Agent {
@@ -112,6 +150,21 @@ pub struct CliAgent {
 impl CliAgent {
     pub fn new(agent: Agent) -> Self {
         Self { agent }
+    }
+
+    pub fn agent(&self) -> Agent {
+        self.agent
+    }
+
+    /// Ask the CLI what version it is. `None` when it cannot be run at all,
+    /// which the caller reports differently from a version that is too old.
+    pub fn version(&self) -> Option<String> {
+        let output = Command::new(self.agent.program)
+            .arg("--version")
+            .stdin(Stdio::null())
+            .output()
+            .ok()?;
+        version_in(&String::from_utf8_lossy(&output.stdout))
     }
 
     /// The argv for one dispatch, as a testable value rather than as a

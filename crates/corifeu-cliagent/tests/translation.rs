@@ -208,3 +208,49 @@ fn every_message_reaches_the_prompt_with_its_role() {
         assert!(text.contains(expected), "{expected} missing from: {text}");
     }
 }
+
+// ----------------------------------------------------------------- the version
+
+/// ADR-0007: Corifeu reports the CLI version it detected and refuses an
+/// untested one with a clear message rather than a parse error.
+#[test]
+fn the_version_is_read_out_of_what_the_cli_prints() {
+    use corifeu_cliagent::version_in;
+
+    assert_eq!(
+        version_in("2.1.302 (Claude Code)").as_deref(),
+        Some("2.1.302")
+    );
+    assert_eq!(
+        version_in("codex-cli 0.162.1\n").as_deref(),
+        Some("0.162.1")
+    );
+    assert_eq!(version_in("agy version 1.4\n").as_deref(), Some("1.4"));
+    assert_eq!(version_in("command not found"), None);
+    assert_eq!(version_in(""), None);
+}
+
+#[test]
+fn a_version_is_compared_number_by_number_not_as_text() {
+    use corifeu_cliagent::at_least;
+
+    assert!(at_least("2.1.302", "2.1.302"), "equal is enough");
+    assert!(
+        at_least("2.1.302", "2.1.9"),
+        "302 is above 9, as text it is below"
+    );
+    assert!(at_least("2.2.0", "2.1.302"));
+    assert!(at_least("2.1", "2.1.0"), "a missing part is zero");
+    assert!(!at_least("2.1.301", "2.1.302"));
+    assert!(!at_least("1.9.9", "2.0.0"));
+}
+
+/// An unparseable version fails closed. Refusing to run is recoverable;
+/// running against a version nobody has tested is what the ADR prevents.
+#[test]
+fn a_version_that_is_not_numbers_is_refused_rather_than_assumed() {
+    use corifeu_cliagent::at_least;
+
+    assert!(!at_least("nightly", "2.1.302"));
+    assert!(!at_least("2.1.302", "latest"));
+}

@@ -1168,3 +1168,37 @@ fn the_expensive_share_is_measured_in_what_it_charged() {
     let half = coder.share_of(all_local).expect("tokens are the fallback");
     assert!((half - 0.5).abs() < 1e-9, "{half}");
 }
+
+/// Defect 52, measured on a hybrid run: ten of twelve steps answered
+/// `no tool call; said: I ran: write_file src/excerpt.ts`. The transcript was
+/// putting one assistant message per past step reading `I ran: <action>`,
+/// which is a worked example of answering in prose sitting in the slot the
+/// model fills next. Nothing in the suite looked at the shape of the
+/// transcript, so the loop was free to teach that.
+#[test]
+fn a_past_step_is_never_shown_as_the_model_answering_in_prose() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("still not\n"), write("DONE\n")]);
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+    assert_eq!(run.outcome, Outcome::Reached);
+
+    let said = provider.said.borrow();
+    assert!(
+        !said.iter().any(|m| matches!(m, Message::Assistant { .. })),
+        "the context is rebuilt from state every step (ADR-0047), so there is no \
+         assistant turn to reconstruct: {said:#?}"
+    );
+    // The result still has to arrive, or the fix would have cured the lesson
+    // by removing the information.
+    assert!(
+        said.iter().any(|m| match m {
+            Message::Tool { content } =>
+                content.contains("write_file") && content.contains("1 failed"),
+            _ => false,
+        }),
+        "the past step's action and its result both reach the next step: {said:#?}"
+    );
+}

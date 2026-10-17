@@ -738,12 +738,22 @@ impl Doer<'_> {
                 context.compacted.join("\n")
             )));
         }
+        // Defect 52. This used to put one assistant message per past step
+        // reading `I ran: <action>`, which is a worked example of answering in
+        // prose sitting in the slot the model is about to fill. It copied it:
+        // in one hybrid run ten of twelve steps answered `no tool call; said:
+        // I ran: write_file src/excerpt.ts` and the slice never closed. Under
+        // ADR-0047 there is no conversation to reconstruct — the context is
+        // rebuilt from state every step — so a past step is carried as its
+        // result alone, with the action naming it, and nothing in the
+        // transcript shows an assistant answering without a call.
         for step in &context.recent {
-            messages.push(Message::assistant(format!(
-                "I ran: {}",
-                step.action.describe()
+            messages.push(Message::tool(format!(
+                "step {}, `{}`:\n{}",
+                step.number,
+                step.action.describe(),
+                step.result
             )));
-            messages.push(Message::tool(step.result.clone()));
         }
         messages
     }

@@ -1,0 +1,18 @@
+Projeto TypeScript, sem framework, testado com vitest 3.2.4 (`npx vitest run`).
+Tudo fica em `src/`. Cada funcao tem um arquivo proprio e, ao lado dele, o teste
+que a julga:
+
+  src/readingTime.ts  e  src/readingTime.test.ts  ->  readingTime(text: string): number
+  src/excerpt.ts      e  src/excerpt.test.ts      ->  excerpt(text: string, limit: number): string
+  src/postPath.ts     e  src/postPath.test.ts     ->  postPath(slug: string, isoDate: string): string
+
+Os tres arquivos de codigo ja existem, com o corpo lancando `not implemented`.
+
+Os testes ja estao escritos e sao fixos: ninguem pode alterá-los, e eles dizem
+exatamente qual e o comportamento esperado. Por isso cada fatia precisa listar em
+`artefacts` o arquivo de codigo E o teste dele: quem escreve o codigo so enxerga
+os arquivos que a fatia lista, e precisa ler os casos para acertá-los. Escrever no
+teste e negado pela configuracao; listar o teste serve para poder le-lo.
+
+O unico comando permitido e `npx vitest run`, que aceita o caminho de um arquivo
+para rodar so aquele teste.

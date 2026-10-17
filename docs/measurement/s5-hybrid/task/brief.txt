@@ -1,0 +1,3 @@
+A listagem de posts do blog precisa mostrar, em cada cartao, quanto tempo leva
+para ler o post, um resumo curto do texto que nao estoure o espaco do cartao, e
+o link para o post. Implemente as tres funcoes que essa listagem vai chamar.

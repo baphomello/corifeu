@@ -30,6 +30,7 @@ corifeu-exec = { workspace = true }
 corifeu-llamacpp = { workspace = true }
 corifeu-cliagent = { workspace = true }
 corifeu-ollama = { workspace = true }
+corifeu-planner = { workspace = true }
 corifeu-provider = { workspace = true }
 corifeu-workspace = { workspace = true }
 serde_json = { workspace = true }

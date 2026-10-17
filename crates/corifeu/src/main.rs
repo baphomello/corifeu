@@ -3,6 +3,7 @@
 //! The design this implements is recorded in `docs/`, decision by decision, in
 //! `docs/adr/`.
 
+mod build;
 mod config_cmd;
 mod doctor;
 mod run;
@@ -53,6 +54,29 @@ enum Command {
         #[arg(long, value_name = "FILE")]
         file: Option<std::path::PathBuf>,
     },
+    /// Plan a brief with one role and work every slice with another.
+    Build {
+        /// What to build, in plain language. This is what the planner is told.
+        #[arg(long, value_name = "SENTENCE")]
+        brief: String,
+        /// What the planner needs in order to name real commands: the
+        /// language, the test runner, the layout.
+        #[arg(long, value_name = "TEXT", default_value = "")]
+        context: String,
+        /// Read the context from a file instead, for anything longer than a
+        /// shell argument comfortably holds.
+        #[arg(long, value_name = "FILE")]
+        context_file: Option<std::path::PathBuf>,
+        /// Which role cuts the brief into slices.
+        #[arg(long, default_value = "lead", value_name = "ROLE")]
+        planner: String,
+        /// Which role works them.
+        #[arg(long, default_value = "coder", value_name = "ROLE")]
+        coder: String,
+        /// Read this file as the project layer instead of discovering it.
+        #[arg(long, value_name = "FILE")]
+        file: Option<std::path::PathBuf>,
+    },
     /// Check what this machine will actually do, by doing it.
     Doctor {
         /// Read this file as the project layer instead of discovering it.
@@ -99,6 +123,21 @@ fn main() -> ExitCode {
             expect_cases,
             file.as_deref(),
         ),
+        Some(Command::Build {
+            brief,
+            context,
+            context_file,
+            planner,
+            coder,
+            file,
+        }) => build_cmd(
+            &brief,
+            &context,
+            context_file.as_deref(),
+            &planner,
+            &coder,
+            file.as_deref(),
+        ),
         Some(Command::Doctor { file, quick }) => doctor::run(file.as_deref(), quick),
         None => {
             banner();
@@ -115,30 +154,71 @@ fn run_cmd(
     expect_cases: Option<u32>,
     file: Option<&std::path::Path>,
 ) -> ExitCode {
-    // collect_layers has already said why, on stderr, and hands back the code.
-    let layers = match config_cmd::collect_layers(file) {
-        Ok(layers) => layers,
-        Err(code) => return code,
+    let Some(loaded) = load(file) else {
+        return ExitCode::FAILURE;
     };
-    let loaded = match corifeu_config::load(layers) {
-        Ok(loaded) => loaded,
-        Err(error) => {
-            eprintln!("{error}");
-            return ExitCode::FAILURE;
-        }
-    };
-    for problem in &loaded.warnings {
-        eprintln!("warning: {}", problem.message);
-    }
     let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
     run::run(
-        &loaded.config,
+        &loaded,
         run::Ask {
             task,
             artefacts,
             oracle,
             role,
             expect_cases,
+            root: &root,
+        },
+    )
+}
+
+/// The effective configuration, with every layer's warnings already on
+/// stderr. `None` means the reason has been reported and the caller only has
+/// to fail.
+fn load(file: Option<&std::path::Path>) -> Option<corifeu_config::model::Config> {
+    // collect_layers has already said why, on stderr.
+    let layers = config_cmd::collect_layers(file).ok()?;
+    let loaded = match corifeu_config::load(layers) {
+        Ok(loaded) => loaded,
+        Err(error) => {
+            eprintln!("{error}");
+            return None;
+        }
+    };
+    for problem in &loaded.warnings {
+        eprintln!("warning: {}", problem.message);
+    }
+    Some(loaded.config)
+}
+
+fn build_cmd(
+    brief: &str,
+    context: &str,
+    context_file: Option<&std::path::Path>,
+    planner: &str,
+    coder: &str,
+    file: Option<&std::path::Path>,
+) -> ExitCode {
+    let context = match context_file {
+        None => context.to_string(),
+        Some(path) => match std::fs::read_to_string(path) {
+            Ok(text) => text,
+            Err(error) => {
+                eprintln!("cannot read {}: {error}", path.display());
+                return ExitCode::FAILURE;
+            }
+        },
+    };
+    let Some(loaded) = load(file) else {
+        return ExitCode::FAILURE;
+    };
+    let root = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."));
+    build::build(
+        &loaded,
+        build::Ask {
+            goal: brief,
+            context: &context,
+            planner,
+            coder,
             root: &root,
         },
     )

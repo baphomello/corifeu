@@ -15,7 +15,7 @@
 use corifeu_agent::Window;
 use corifeu_cliagent::{ADAPTERS, CliAgent, programs};
 use corifeu_config::model::{Config, ProviderKind};
-use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Steps};
+use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Spend, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_ollama::Ollama;
@@ -77,7 +77,7 @@ impl FromConfig {
 
 /// Build the provider a role names. Returned boxed because which one it is
 /// depends on a string in a file.
-fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
+pub fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
     let declared = config
         .roles
         .get(role)
@@ -290,28 +290,48 @@ fn report(run: &corifeu_doer::Run, role: &str, provider: &str, model: &str) -> E
         run.prompt_tokens,
     );
 
-    // Acceptance 18. One role per `run` today, so this is a one-line table —
-    // but it is the table the hybrid split is reported in, and money sits
-    // beside tokens because for a provider that bills the two do not convert
-    // (defect 46).
-    println!();
-    println!("spend by role:");
-    println!(
-        "  {:<10} {:<10} {:<14} {:>4} dispatch(es)  {:>7} prompt  {:>6} output  {}",
+    // Acceptance 18. One role per `run`, so this is a one-line table; `build`
+    // prints the same table with a row per role, because a split reported in
+    // two different shapes is two numbers nobody can compare.
+    spend_table(&[Row {
         role,
         provider,
         model,
-        run.spend.dispatches,
-        run.spend.prompt_tokens,
-        run.spend.output_tokens,
-        run.spend
-            .cost_usd
-            .map_or_else(|| "no charge".to_string(), |c| format!("${c:.4}")),
-    );
+        spend: run.spend,
+    }]);
 
     match run.outcome {
         Outcome::Reached => ExitCode::SUCCESS,
         _ => ExitCode::FAILURE,
+    }
+}
+
+/// One role's spend, for the table both commands print.
+pub struct Row<'a> {
+    pub role: &'a str,
+    pub provider: &'a str,
+    pub model: &'a str,
+    pub spend: Spend,
+}
+
+/// Money sits beside tokens and neither is derived from the other: a CLI agent
+/// reported two input tokens on a call that cost eleven cents (defect 46).
+pub fn spend_table(rows: &[Row<'_>]) {
+    println!();
+    println!("spend by role:");
+    for row in rows {
+        println!(
+            "  {:<10} {:<10} {:<14} {:>4} dispatch(es)  {:>7} prompt  {:>6} output  {}",
+            row.role,
+            row.provider,
+            row.model,
+            row.spend.dispatches,
+            row.spend.prompt_tokens,
+            row.spend.output_tokens,
+            row.spend
+                .cost_usd
+                .map_or_else(|| "no charge".to_string(), |c| format!("${c:.4}")),
+        );
     }
 }
 

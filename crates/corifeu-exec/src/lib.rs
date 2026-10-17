@@ -128,6 +128,13 @@ pub fn run(
     let mut child = std::process::Command::new(&command.program)
         .args(&command.args)
         .current_dir(working_dir)
+        // A runner that spreads cases over threads reports them in the order
+        // they finish, and that text goes into the next step's prompt. Set here
+        // rather than in the oracle's argv: a doer is shown the command it is
+        // judged by, and one carrying `-- --test-threads=1` reads as something
+        // to run — measured, five times in one round.
+        .env("RUST_TEST_THREADS", "1")
+        .env("GOMAXPROCS", "1")
         // Without this a command that reads input waits for a terminal that is
         // not there, and the deadline becomes the only thing that ends it.
         .stdin(Stdio::null())
@@ -294,5 +301,34 @@ mod steady_tests {
     fn output_with_no_numbers_at_all_is_untouched() {
         let text = "thread 'main' panicked at src/lib.rs\nnot done yet\n";
         assert_eq!(steady(text), text);
+    }
+}
+
+#[cfg(test)]
+mod env_tests {
+    use crate::{Allowlist, Command, run};
+    use std::time::Duration;
+
+    /// The ordering half of defect 49, and the reason it is set here rather
+    /// than in the oracle's argv: a doer is shown the command it is judged by,
+    /// and one ending in `-- --test-threads=1` reads as something to run. It
+    /// did, five times in one round.
+    #[test]
+    fn a_child_is_told_to_run_its_cases_on_one_thread() {
+        let argv = ["/usr/bin/env".to_string()];
+        let command = Command::from_argv(&argv).expect("env is a program");
+        let observed = run(
+            &command,
+            std::path::Path::new("/tmp"),
+            Duration::from_secs(10),
+            &Allowlist::new([argv.to_vec()]),
+        )
+        .expect("env runs");
+
+        assert!(
+            observed.output.contains("RUST_TEST_THREADS=1"),
+            "the child sees it: {}",
+            observed.output
+        );
     }
 }

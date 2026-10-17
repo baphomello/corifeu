@@ -6,16 +6,12 @@
     "cargo",
     "test",
     "--lib",
-    "{module}",
-    "--",
-    "--test-threads=1"
+    "{module}"
   ],
   "whole_suite": [
     "cargo",
     "test",
-    "--lib",
-    "--",
-    "--test-threads=1"
+    "--lib"
   ],
   "tools": [
     [

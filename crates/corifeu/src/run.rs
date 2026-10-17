@@ -19,6 +19,7 @@ use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Spend, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_ollama::Ollama;
+use corifeu_provider::manage::{Found, Plan, Runtime};
 use corifeu_provider::{Budget, Provider};
 use corifeu_workspace::{Class, Classes, Guard, Ownership, Protected, Workspace};
 use std::path::Path;
@@ -72,6 +73,76 @@ impl FromConfig {
                 .as_ref()
                 .map(|p| Protected::new(p.marker.clone(), p.in_classes.clone())),
         }
+    }
+}
+
+/// Bring up every managed runtime the named roles need, and hold them.
+///
+/// The returned values own the runtimes Corifeu started: dropping them stops
+/// those, and only those. A runtime that was already answering is reported and
+/// left alone — an endpoint that answers belongs to somebody, and guessing
+/// whose is how a tool kills the server a person was using.
+pub fn ensure_runtimes(config: &Config, roles: &[&str]) -> Result<Vec<Runtime>, String> {
+    let mut wanted: Vec<&String> = Vec::new();
+    for role in roles {
+        if let Some(declared) = config.roles.get(*role)
+            && !wanted.contains(&&declared.provider)
+        {
+            wanted.push(&declared.provider);
+        }
+    }
+
+    let mut held = Vec::new();
+    for name in wanted {
+        let Some(provider) = config.providers.get(name) else {
+            continue;
+        };
+        let (Some(manage), Some(base)) = (&provider.manage, provider.base_url.as_deref()) else {
+            continue;
+        };
+
+        let kind = provider.kind;
+        let plan = Plan {
+            base_url: base.to_string(),
+            command: manage.command.clone(),
+            stop: manage.stop.clone(),
+            // Only llama.cpp documents this flag. Appending it to a runtime
+            // that does not know it would stop that runtime from starting at
+            // all, and the saving is not worth a guess.
+            sleep_idle_s: match kind {
+                ProviderKind::LlamaCpp => manage.sleep_idle_s,
+                _ => 0,
+            },
+            stop_when_done: manage.stop_when_done,
+            ready_timeout: Duration::from_secs(u64::from(manage.ready_timeout_s)),
+        };
+
+        let runtime = Runtime::ensure(plan, &move |base| answers(kind, base))
+            .map_err(|why| format!("provider `{name}`: {why}"))?;
+
+        match runtime.found() {
+            Found::Already => println!("runtime: {name} already answering at {base}"),
+            Found::Started => println!("runtime: {name} started at {base}"),
+        }
+        held.push(runtime);
+    }
+    Ok(held)
+}
+
+/// Whether something is serving at this address, asked the way that runtime
+/// answers rather than by a port being open: a port that accepts and serves
+/// nothing is the failure this is meant to tell apart.
+fn answers(kind: ProviderKind, base: &str) -> bool {
+    let short = Duration::from_secs(3);
+    match kind {
+        ProviderKind::LlamaCpp => LlamaCpp::new(base).with_timeout(short).models().is_ok(),
+        // Ollama has no model listing in the shared trait, and `/api/tags` is
+        // the endpoint its own installer probes.
+        ProviderKind::Ollama => {
+            corifeu_provider::http::get(&format!("{}/api/tags", base.trim_end_matches('/')), short)
+                .is_ok()
+        }
+        _ => false,
     }
 }
 
@@ -185,6 +256,17 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
             }
         );
         return ExitCode::FAILURE;
+    };
+
+    // Before anything is dispatched, and before the provider is built: a
+    // managed runtime that is not up yet has to come up, and one that is
+    // already answering must not be started a second time.
+    let _runtimes = match ensure_runtimes(config, &[ask.role]) {
+        Ok(held) => held,
+        Err(why) => {
+            eprintln!("{why}");
+            return ExitCode::FAILURE;
+        }
     };
 
     let provider = match provider_for(config, ask.role) {

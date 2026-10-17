@@ -237,6 +237,7 @@ fn providers(config: &Config, quick: bool, report: &mut Report) {
             report.add(Level::Fail, format!("provider {name}"), "no base_url");
             continue;
         };
+        managed(name, provider, report);
         match provider.kind {
             ProviderKind::LlamaCpp => {
                 let llama =
@@ -282,6 +283,66 @@ fn providers(config: &Config, quick: bool, report: &mut Report) {
             }
         }
     }
+}
+
+/// What Corifeu will do with this runtime, said before a run does it.
+///
+/// A provider with no `manage` block is nobody's: it is started by hand, and
+/// nothing stops a second one from being started the same way. That is how a
+/// machine ends up with two servers holding the same 8 GB of weights, so the
+/// doctor says it rather than leaving it to be discovered in the task manager.
+fn managed(name: &str, provider: &corifeu_config::model::Provider, report: &mut Report) {
+    let label = format!("runtime {name}");
+    let Some(manage) = &provider.manage else {
+        report.add(
+            Level::Warn,
+            label,
+            "started by hand; corifeu will not start or stop it, and nothing prevents a second              one. Add a `manage` block to give it an owner",
+        );
+        return;
+    };
+
+    let Some(program) = manage.command.first() else {
+        report.add(Level::Fail, label, "`manage.command` is empty");
+        return;
+    };
+    if which(program).is_none() {
+        report.add(
+            Level::Fail,
+            label,
+            format!("`{program}` is not on PATH, so corifeu could not start it"),
+        );
+        return;
+    }
+
+    let proprio = corifeu_provider::manage::names_sleep(&manage.command);
+    let sono = match (provider.kind, manage.sleep_idle_s, proprio) {
+        (ProviderKind::LlamaCpp, _, true) => ", sleeps when idle, as its own command says".into(),
+        (ProviderKind::LlamaCpp, 0, false) => {
+            ", no idle sleep: it holds its memory until stopped".into()
+        }
+        (ProviderKind::LlamaCpp, s, false) => format!(", sleeps after {s}s idle"),
+        _ => String::new(),
+    };
+    let parada = match (&manage.stop, manage.stop_when_done) {
+        (_, false) => ", left running when the run ends",
+        (Some(_), _) => ", stopped by its own command",
+        (None, _) => ", stopped with the process corifeu started",
+    };
+    report.add(Level::Ok, label, format!("`{program}`{sono}{parada}"));
+}
+
+/// Whether a program would be found, without running it.
+fn which(program: &str) -> Option<std::path::PathBuf> {
+    if program.contains('/') || program.contains('\\') {
+        let direct = std::path::PathBuf::from(program);
+        return direct.exists().then_some(direct);
+    }
+    std::env::var_os("PATH").and_then(|paths| {
+        std::env::split_paths(&paths)
+            .map(|dir| dir.join(program))
+            .find(|caminho| caminho.is_file())
+    })
 }
 
 /// ADR-0027 gates the installer on a real tool call, not on a version string.

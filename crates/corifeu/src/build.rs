@@ -30,7 +30,7 @@
 //! the tests already exist, which is why the policy is written twice; they
 //! should collapse once `build` grows a QA role.
 
-use crate::run::{FromConfig, Row, provider_for, spend_table};
+use crate::run::{FromConfig, Row, ensure_runtimes, provider_for, spend_table};
 use corifeu_agent::Window;
 use corifeu_config::model::Config;
 use corifeu_doer::{Allowance, Doer, Goal, Oracle, Outcome, Slice, Spend};
@@ -83,6 +83,16 @@ pub fn build(config: &Config, ask: Ask<'_>) -> ExitCode {
         );
         return ExitCode::FAILURE;
     }
+
+    // Any managed runtime comes up first, and is held for the whole build:
+    // dropping these stops the ones Corifeu started, and only those.
+    let _runtimes = match ensure_runtimes(config, &[ask.planner, ask.coder]) {
+        Ok(held) => held,
+        Err(why) => {
+            eprintln!("{why}");
+            return ExitCode::FAILURE;
+        }
+    };
 
     // Both providers are built before either is used, so a project that names
     // a CLI that is not installed fails without having spent a dispatch.

@@ -52,6 +52,21 @@ providers:
     base_url: http://127.0.0.1:11434   # never auto-detected; see troubleshooting.md
     # base_url: http://192.168.32.1:11434   # WSL → Windows host
 
+  # Um runtime com dono (ADR-0069). Sem este bloco o servidor é subido à mão e
+  # nada impede um segundo: dois llama.cpp com o mesmo modelo são dezesseis
+  # gigabytes de RAM numa máquina de trinta e dois.
+  llama:
+    kind: llama-cpp
+    base_url: http://127.0.0.1:9931
+    manage:
+      command: ["llama-server", "-m", "modelo.gguf", "-ngl", "99", "--jinja"]
+      sleep_idle_s: 300        # libera a memória sozinho depois de ocioso
+      stop_when_done: true     # para o que o corifeu subiu, e só isso
+      ready_timeout_s: 180
+      # stop: um comando próprio, para quando matar o filho não serve — é o
+      # caso de alcançar o runtime do WSL para o host Windows, onde o que o
+      # corifeu subiu é um lançador que sai na hora.
+
 privacy:
   allow_remote_providers: true   # false refuses any non-local provider in any role
 

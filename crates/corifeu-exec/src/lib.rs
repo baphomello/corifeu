@@ -173,10 +173,65 @@ pub fn run(
         // `None` means killed rather than exited, which is also what a signal
         // produces. `timed_out` says which.
         exit_status: status.and_then(|s| s.code()),
-        output: steady(&(stdout + &stderr)),
+        output: settled(&(stdout + &stderr), working_dir),
         elapsed: started.elapsed(),
         timed_out,
     })
+}
+
+/// Everything that has to leave a check's output before it becomes the next
+/// step's prompt.
+///
+/// Three things vary between two runs of one unchanged crate, and round nine
+/// found them by dumping the prompts and diffing them rather than by reasoning
+/// about the code:
+///
+/// - how long it took, which [`steady`] replaces;
+/// - the OS thread a panicking test ran on, printed as
+///   `thread 'name' (186718) panicked`;
+/// - the absolute path of the workspace, which carries the round's own
+///   directory name and so differs by construction between two rounds.
+///
+/// The path is also noise for the model: it is being asked about a file it can
+/// see, in a directory it cannot leave.
+pub fn settled(output: &str, working_dir: &Path) -> String {
+    let steadied = steady(output);
+    let threadless = threads(&steadied);
+    match working_dir.to_str() {
+        Some(root) if !root.is_empty() => threadless.replace(root, "."),
+        _ => threadless,
+    }
+}
+
+/// `thread 'x' (186718) panicked` → `thread 'x' (T) panicked`.
+///
+/// Only after `thread '...' `, because a parenthesised number anywhere else is
+/// as likely to be a count the model needs.
+fn threads(output: &str) -> String {
+    let mut out = String::with_capacity(output.len());
+    let mut rest = output;
+    while let Some(at) = rest.find("thread '") {
+        let (before, from) = rest.split_at(at);
+        out.push_str(before);
+        let Some(close) = from.find("' (") else {
+            out.push_str(from);
+            return out;
+        };
+        let after = &from[close + 3..];
+        let digits = after
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(after.len());
+        if digits == 0 || !after[digits..].starts_with(')') {
+            out.push_str(&from[..close + 3]);
+            rest = after;
+            continue;
+        }
+        out.push_str(&from[..close + 3]);
+        out.push('T');
+        rest = &after[digits..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The same output for the same code, so a seeded round can be replayed.
@@ -330,5 +385,49 @@ mod env_tests {
             "the child sees it: {}",
             observed.output
         );
+    }
+}
+
+#[cfg(test)]
+mod settled_tests {
+    use super::settled;
+    use std::path::Path;
+
+    /// The two sources round nine found by diffing dumped prompts. Both were
+    /// invisible in the step trace, which records only the first line.
+    #[test]
+    fn two_runs_of_one_failing_suite_read_the_same() {
+        let line = |pid: &str, dir: &str| {
+            format!(
+                "thread 'slice1_tokens::parens' ({pid}) panicked at src/lib.rs:140:9\n   \
+                 Compiling exprs v0.0.0 ({dir}/work/m/2)\n    Finished `test` profile in 0.13s\n"
+            )
+        };
+        let first = settled(&line("186718", "/rounds/V"), Path::new("/rounds/V"));
+        let second = settled(&line("187944", "/rounds/W"), Path::new("/rounds/W"));
+        assert_eq!(first, second);
+        assert!(first.contains("(T)"), "{first}");
+        assert!(first.contains("(./work/m/2)"), "{first}");
+    }
+
+    /// A parenthesised number that is not a thread id is information.
+    #[test]
+    fn a_count_in_parentheses_survives() {
+        let line = "Tests  1 failed | 2 passed (3)";
+        assert_eq!(settled(line, Path::new("/nowhere")), line);
+    }
+
+    #[test]
+    fn a_panic_line_without_a_thread_id_is_left_alone() {
+        let line = "thread 'main' panicked at src/lib.rs:7:1";
+        assert_eq!(settled(line, Path::new("/nowhere")), line);
+    }
+
+    /// The assertion text is the whole value of a failing run to the model.
+    #[test]
+    fn what_the_test_actually_reported_is_untouched() {
+        let line = "assertion `left == right` failed\n  left: Some([\"20\", \"*\", \"\"])\n \
+                    right: Some([\"120\", \"*\", \"3\"])";
+        assert_eq!(settled(line, Path::new("/nowhere")), line);
     }
 }

@@ -384,8 +384,21 @@ impl Doer<'_> {
                 // 27: without this a wasted step is indistinguishable from any
                 // other wasted step, and a prompt cannot be designed against
                 // "nothing happened" five hundred times.
+                // Defect 55. The detector never saw a turn that called
+                // nothing, so the one failure mode that repeats most — a model
+                // answering in prose — was the one ADR-0050 could not stop. A
+                // slice spent its whole allowance of twelve steps on ten of
+                // them where six would have ended it, and the record read `out
+                // of steps` rather than `going in circles`, which is a
+                // different diagnosis and a different fix.
+                let action = Action::new("say", "");
+                let result = match state.detector.consider(&action) {
+                    Repeat::Spent { .. } => return state.finish(number, Outcome::Looping),
+                    Repeat::Warned { warning, .. } => format!("{nudge}\n\n{warning}"),
+                    Repeat::New => nudge,
+                };
                 state.trace.push(
-                    Step::new(number, Action::new("say", ""), nudge)
+                    Step::new(number, action, result)
                         .with_outcome(format!("no tool call; said: {}", said(&turn.content))),
                 );
                 continue;

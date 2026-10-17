@@ -1202,3 +1202,26 @@ fn a_past_step_is_never_shown_as_the_model_answering_in_prose() {
         "the past step's action and its result both reach the next step: {said:#?}"
     );
 }
+
+/// Defect 55. The no-tool-call branch skipped the detector entirely, so the
+/// most repeated failure there is — a model answering in prose — was the one
+/// ADR-0050 could not stop. A hybrid run spent all twelve of its steps, ten of
+/// them narrating, and reported `out of steps`: a different diagnosis from
+/// going in circles, and a different fix.
+#[test]
+fn a_model_that_only_talks_is_stopped_by_the_detector_and_not_by_the_clock() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    // The script is empty, so every turn is the stuck-model reply.
+    let provider = Replay::of(vec![]);
+    let run = doer(&provider, 30).work(&slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Looping);
+    assert!(
+        run.steps <= 7,
+        "six strikes, not the whole allowance of thirty: {}",
+        run.steps
+    );
+}

@@ -34,9 +34,11 @@ enum Command {
         /// What to do, in a sentence. This is what the role is told.
         #[arg(long, value_name = "SENTENCE")]
         task: String,
-        /// The file the slice is about. Pinned into every step.
-        #[arg(long, value_name = "FILE")]
-        artefact: String,
+        /// A file the slice is about. Pinned into every step. Repeat it when a
+        /// change to one file is wrong without another, such as a component
+        /// and its test: they are then checkpointed and rolled back together.
+        #[arg(long = "artefact", value_name = "FILE", required = true)]
+        artefacts: Vec<String>,
         /// Which declared oracle decides when it is done.
         #[arg(long, value_name = "NAME")]
         oracle: String,
@@ -84,14 +86,14 @@ fn main() -> ExitCode {
         }) => config_cmd::show(explain, file.as_deref()),
         Some(Command::Run {
             task,
-            artefact,
+            artefacts,
             oracle,
             role,
             expect_cases,
             file,
         }) => run_cmd(
             &task,
-            &artefact,
+            &artefacts,
             &oracle,
             &role,
             expect_cases,
@@ -107,7 +109,7 @@ fn main() -> ExitCode {
 
 fn run_cmd(
     task: &str,
-    artefact: &str,
+    artefacts: &[String],
     oracle: &str,
     role: &str,
     expect_cases: Option<u32>,
@@ -133,7 +135,7 @@ fn run_cmd(
         &loaded.config,
         run::Ask {
             task,
-            artefact,
+            artefacts,
             oracle,
             role,
             expect_cases,

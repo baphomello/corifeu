@@ -188,7 +188,6 @@ fn a_regression_names_the_better_state_to_go_back_to() {
 
     ws.write("src/lib.rs", &good, &coder()).unwrap();
     ws.score(
-        "src/lib.rs",
         CHECK,
         Score {
             green: false,
@@ -208,9 +207,7 @@ fn a_regression_names_the_better_state_to_go_back_to() {
         cases_passing: 0,
     };
 
-    let back_to = ws
-        .regression("src/lib.rs", CHECK, now)
-        .expect("0 is worse than 18");
+    let back_to = ws.regression(CHECK, now).expect("0 is worse than 18");
     let restored = ws.restore(back_to.id).unwrap();
 
     assert_eq!(ws.read("src/lib.rs").unwrap().unwrap(), good);
@@ -229,7 +226,6 @@ fn a_better_state_is_not_a_regression() {
     let mut ws = Workspace::open(&root, &store).unwrap();
     ws.write("src/lib.rs", &suite(21), &coder()).unwrap();
     ws.score(
-        "src/lib.rs",
         CHECK,
         Score {
             green: false,
@@ -241,7 +237,6 @@ fn a_better_state_is_not_a_regression() {
 
     assert!(
         ws.regression(
-            "src/lib.rs",
             CHECK,
             Score {
                 green: true,
@@ -261,7 +256,6 @@ fn with_no_check_yet_there_is_no_regression_to_find() {
 
     assert!(
         ws.regression(
-            "src/lib.rs",
             CHECK,
             Score {
                 green: false,
@@ -278,7 +272,6 @@ fn a_restore_is_itself_checkpointed_so_it_cannot_lose_work() {
     let mut ws = Workspace::open(&root, &store).unwrap();
     ws.write("src/lib.rs", &suite(5), &coder()).unwrap();
     ws.score(
-        "src/lib.rs",
         CHECK,
         Score {
             green: true,
@@ -313,7 +306,6 @@ fn one_checks_count_is_not_comparable_with_anothers() {
 
     ws.write("src/lib.rs", &suite(9), &coder()).unwrap();
     ws.score(
-        "src/lib.rs",
         WIDE,
         Score {
             green: true,
@@ -327,12 +319,11 @@ fn one_checks_count_is_not_comparable_with_anothers() {
         cases_passing: 5,
     };
     assert!(
-        ws.regression("src/lib.rs", NARROW, narrow_green).is_none(),
+        ws.regression(NARROW, narrow_green).is_none(),
         "the wide check has never judged this state, so it cannot call it worse"
     );
     assert!(
         ws.regression(
-            "src/lib.rs",
             WIDE,
             Score {
                 green: false,
@@ -350,7 +341,6 @@ fn a_checkpoint_can_hold_what_several_checks_thought_of_it() {
     let mut ws = Workspace::open(&root, &store).unwrap();
     ws.write("src/lib.rs", &suite(6), &coder()).unwrap();
     ws.score(
-        "src/lib.rs",
         "a",
         Score {
             green: true,
@@ -358,7 +348,6 @@ fn a_checkpoint_can_hold_what_several_checks_thought_of_it() {
         },
     );
     ws.score(
-        "src/lib.rs",
         "b",
         Score {
             green: false,
@@ -367,8 +356,81 @@ fn a_checkpoint_can_hold_what_several_checks_thought_of_it() {
     );
     ws.write("src/lib.rs", &suite(7), &coder()).unwrap();
 
-    let saved = ws.best("src/lib.rs", "a").expect("check a judged it");
+    let saved = ws.best("a").expect("check a judged it");
     assert_eq!(saved.score("a").unwrap().cases_passing, 6);
     assert_eq!(saved.score("b").unwrap().cases_passing, 1);
     assert_eq!(saved.score("c"), None);
+}
+
+/// S4 acceptance 15. A slice that names two files has states that only mean
+/// something in pairs, so a rollback has to put both back. Restoring one of
+/// them produces a combination no check ever saw.
+#[test]
+fn a_regression_restores_every_file_the_slice_named() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    let slice = [
+        "src/button.rs".to_string(),
+        "src/button_test.rs".to_string(),
+    ];
+    ws.stage(&slice);
+
+    ws.write("src/button.rs", "fn label() -> &str { \"Save\" }", &qa())
+        .unwrap();
+    ws.write(
+        "src/button_test.rs",
+        "assert_eq!(label(), \"Save\");",
+        &qa(),
+    )
+    .unwrap();
+    ws.score(
+        CHECK,
+        Score {
+            green: true,
+            cases_passing: 9,
+        },
+    );
+
+    // One write, and the pair stops agreeing.
+    ws.write("src/button.rs", "fn label() -> &str { \"Submit\" }", &qa())
+        .unwrap();
+    let now = Score {
+        green: false,
+        cases_passing: 4,
+    };
+
+    let back_to = ws.regression(CHECK, now).expect("4 is worse than 9");
+    assert_eq!(
+        back_to.paths().collect::<Vec<_>>(),
+        ["src/button.rs", "src/button_test.rs"],
+        "the checkpoint has to hold both, or there is nothing to restore"
+    );
+
+    let restored = ws.restore(back_to.id).unwrap();
+    assert_eq!(restored.paths.len(), 2);
+    assert_eq!(
+        ws.read("src/button.rs").unwrap().unwrap(),
+        "fn label() -> &str { \"Save\" }"
+    );
+    assert_eq!(
+        ws.read("src/button_test.rs").unwrap().unwrap(),
+        "assert_eq!(label(), \"Save\");"
+    );
+    assert_eq!(restored.regained(CHECK).unwrap().cases_passing, 9);
+}
+
+/// The other half of the same decision: a write to a file the slice did not
+/// name is its own state. Grouping it with the slice would checkpoint, and
+/// later restore, files the write has nothing to do with.
+#[test]
+fn a_write_outside_the_slice_is_checkpointed_alone() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.stage(&["src/button.rs".to_string()]);
+    ws.write("src/button.rs", "first", &qa()).unwrap();
+    ws.write("src/unrelated.rs", "first", &qa()).unwrap();
+
+    ws.write("src/unrelated.rs", "second", &qa()).unwrap();
+    let last = ws.checkpoints().last().expect("the overwrite saved one");
+    assert_eq!(last.paths().collect::<Vec<_>>(), ["src/unrelated.rs"]);
 }

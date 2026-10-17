@@ -13,7 +13,7 @@ fn cargo_test() -> Allowlist {
 fn slice(task: &str, artefact: &str, oracle: &[&str]) -> PlannedSlice {
     PlannedSlice {
         task: task.into(),
-        artefact: artefact.into(),
+        artefacts: vec![artefact.into()],
         oracle: oracle.iter().map(|s| (*s).to_string()).collect(),
     }
 }
@@ -107,7 +107,7 @@ fn a_slice_with_no_oracle_could_never_end() {
 #[test]
 fn a_slice_with_no_artefact_has_nothing_to_pin() {
     let mut plan = good();
-    plan.slices[0].artefact = "  ".into();
+    plan.slices[0].artefacts = vec!["  ".into()];
     assert!(matches!(
         plan.check(&cargo_test()),
         Err(Rejected::NoArtefact { at: 0, .. })

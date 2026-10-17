@@ -106,7 +106,7 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
 /// What a caller asked for on the command line.
 pub struct Ask<'a> {
     pub task: &'a str,
-    pub artefact: &'a str,
+    pub artefacts: &'a [String],
     pub oracle: &'a str,
     pub role: &'a str,
     pub expect_cases: Option<u32>,
@@ -181,7 +181,7 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
 
     let slice = Slice {
         task: ask.task.to_string(),
-        artefact: ask.artefact.to_string(),
+        artefacts: ask.artefacts.to_vec(),
         oracle: Oracle {
             argv: declared.command.clone(),
             timeout: Duration::from_secs(u64::from(declared.timeout_s)),
@@ -190,7 +190,7 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
     };
 
     println!("task:    {}", ask.task);
-    println!("artefact: {}", ask.artefact);
+    println!("artefact: {}", ask.artefacts.join(", "));
     println!("oracle:  {}", slice.oracle.describe());
     println!(
         "role:    {} ({} on {})",

@@ -54,9 +54,19 @@ impl Oracle {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Slice {
     pub task: String,
-    /// The file this slice is about, pinned into every step.
-    pub artefact: String,
+    /// The files this slice is about, pinned into every step and checkpointed
+    /// together. One entry is the ordinary case; a feature that changes a
+    /// component and its test in one go is why it is a list (S4).
+    pub artefacts: Vec<String>,
     pub oracle: Oracle,
+}
+
+impl Slice {
+    /// The artefact a message means when it names just one, which is every
+    /// message written before a slice could name more than one.
+    pub fn artefact(&self) -> &str {
+        self.artefacts.first().map_or("", String::as_str)
+    }
 }
 
 /// What ends a role's turn on a slice.
@@ -304,6 +314,10 @@ impl Doer<'_> {
         if let Some(detail) = self.oracle_unusable(slice, workspace) {
             return State::for_limits(&self.limits).finish(0, Outcome::OracleUnusable { detail });
         }
+        // The workspace has to know what this slice is before the first write,
+        // or a checkpoint saves one file out of a set and a rollback restores a
+        // combination nothing was scored on (S4, ADR-0051 scoped per slice).
+        workspace.stage(&slice.artefacts);
         let contract = Contract {
             task: slice.task.clone(),
             acceptance: slice.oracle.describe(),
@@ -451,15 +465,20 @@ impl Doer<'_> {
         })
     }
 
-    fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Option<Artefact> {
-        workspace
-            .read(&slice.artefact)
-            .ok()
-            .flatten()
-            .map(|body| Artefact {
-                path: slice.artefact.clone(),
-                body,
+    /// Every artefact that exists, in the order the slice named them. One that
+    /// does not exist yet is left out rather than shown empty: a doer told a
+    /// file is missing writes it, and a doer shown an empty body edits it.
+    fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Vec<Artefact> {
+        slice
+            .artefacts
+            .iter()
+            .filter_map(|path| {
+                workspace.read(path).ok().flatten().map(|body| Artefact {
+                    path: path.clone(),
+                    body,
+                })
             })
+            .collect()
     }
 
     /// Returns whether the oracle is green.
@@ -620,20 +639,20 @@ impl Doer<'_> {
             );
             return self.goal.reached(&report.verdict, &report.cases);
         }
-        if let Some(better) = workspace.regression(&slice.artefact, &scope, score) {
+        if let Some(better) = workspace.regression(&scope, score) {
             let id = better.id;
             if let Ok(restored) = workspace.restore(id) {
                 note = format!(
                     "\n\nROLLED BACK: this change scored worse than a state already saved, so \
-                     {} was restored to it. You had {} passing; it has {}. The file above is \
-                     the restored one.",
-                    restored.path,
+                     {} was restored to it. You had {} passing; it has {}. The files above are \
+                     the restored ones.",
+                    restored.describe(),
                     score.cases_passing,
                     restored.regained(&scope).map_or(0, |s| s.cases_passing),
                 );
             }
         } else {
-            workspace.score(&slice.artefact, &scope, score);
+            workspace.score(&scope, score);
         }
 
         state.last_verdict = Some(report.verdict);
@@ -652,8 +671,25 @@ impl Doer<'_> {
     }
 
     fn render(&self, context: &Context) -> Vec<Message> {
+        // A slice can name more than one file (S4), and a prompt that says
+        // "one file" to a doer holding two is telling it something false about
+        // its own task. One `write_file` still replaces one file, which is the
+        // part that has to stay unambiguous.
+        let (subject, pinned) = match context.artefacts.len() {
+            0 | 1 => (
+                "one file",
+                "The file you are changing is included below in full on every step, read \
+                 fresh from disk. You never need to read it.",
+            ),
+            _ => (
+                "a small set of files that change together",
+                "Every file you are changing is included below in full on every step, read \
+                 fresh from disk. You never need to read any of them. Each `write_file` \
+                 replaces one of them, so changing two takes two steps.",
+            ),
+        };
         let mut messages = vec![Message::system(format!(
-            "You are changing one file until one command passes.\n\n\
+            "You are changing {subject} until one command passes.\n\n\
              Task: {}\n\
              Done when this passes: {}\n\n\
              Rules:\n\
@@ -662,8 +698,7 @@ impl Doer<'_> {
              - `run` takes an argument vector. There is no shell: no pipes, no `&&`, no \
              redirection, no globs.\n\
              - `write_file` replaces the whole file. Send all of it, never a patch.\n\
-             - The file you are changing is included below in full on every step, read fresh \
-             from disk. You never need to read it.\n\
+             - {pinned}\n\
              - The command above is run for you after every write. You do not have to run it.\n\
              - Be exhaustive about what the task asks for. Inputs that are malformed in ways a \
              naive implementation would accept must still be handled, and the cases a naive \
@@ -671,7 +706,7 @@ impl Doer<'_> {
             context.contract.task, context.contract.acceptance
         ))];
 
-        if let Some(artefact) = &context.artefact {
+        for artefact in &context.artefacts {
             messages.push(Message::user(format!(
                 "{}\n\n```\n{}\n```",
                 artefact.preamble(),

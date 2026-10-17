@@ -27,6 +27,11 @@ pub struct Task {
     pub name: String,
     /// The one file every slice edits.
     pub artefact: String,
+    /// Every file a slice is about, when it is more than the one above. A task
+    /// that leaves it out is a single-artefact task, which is every task
+    /// before S4.
+    #[serde(default)]
+    pub artefacts: Vec<String>,
     /// The per-slice check, with `{module}` standing in for the slice's module.
     pub oracle: Vec<String>,
     /// Every case the task has, for the row measured after a round is scored.
@@ -104,7 +109,11 @@ impl Task {
         let slice = self.at(at);
         Slice {
             task,
-            artefact: self.artefact.clone(),
+            artefacts: if self.artefacts.is_empty() {
+                vec![self.artefact.clone()]
+            } else {
+                self.artefacts.clone()
+            },
             oracle: Oracle {
                 argv: self
                     .oracle

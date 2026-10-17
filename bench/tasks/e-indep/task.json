@@ -2,14 +2,31 @@
   "name": "e-indep",
   "summary": "Four conversions that have nothing to do with each other. The control for Task C, whose four slices call each other in a chain.",
   "artefact": "src/lib.rs",
-  "oracle": ["cargo", "test", "--lib", "{module}"],
-  "whole_suite": ["cargo", "test", "--lib"],
-  "tools": [["cargo"]],
-  "owned": ["src/**"],
+  "oracle": [
+    "cargo",
+    "test",
+    "--lib",
+    "{module}"
+  ],
+  "whole_suite": [
+    "cargo",
+    "test",
+    "--lib"
+  ],
+  "tools": [
+    [
+      "cargo"
+    ]
+  ],
+  "owned": [
+    "src/**"
+  ],
   "protected": "#[test]",
   "tests_at": "`#[cfg(test)] mod {module}` at the end of the file",
   "language": "rust",
-  "copy": ["Cargo.toml"],
+  "copy": [
+    "Cargo.toml"
+  ],
   "slices": [
     {
       "module": "slice1_roman",

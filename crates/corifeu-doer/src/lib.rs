@@ -32,6 +32,10 @@ use corifeu_agent::{Action, Artefact, Context, Contract, Detector, Repeat, Step,
 use corifeu_check::{Cases, Check, Verdict};
 use corifeu_exec::{Allowlist, Command};
 use corifeu_provider::{Budget, Message, Provider, Stop};
+
+// A spend is a sum of turns, so it lives beside `Turn` and a planner — which
+// is one dispatch and no loop — can report one without depending on the doer.
+pub use corifeu_provider::Spend;
 use corifeu_workspace::{Guard, Score, Workspace};
 use std::time::Duration;
 
@@ -54,9 +58,19 @@ impl Oracle {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Slice {
     pub task: String,
-    /// The file this slice is about, pinned into every step.
-    pub artefact: String,
+    /// The files this slice is about, pinned into every step and checkpointed
+    /// together. One entry is the ordinary case; a feature that changes a
+    /// component and its test in one go is why it is a list (S4).
+    pub artefacts: Vec<String>,
     pub oracle: Oracle,
+}
+
+impl Slice {
+    /// The artefact a message means when it names just one, which is every
+    /// message written before a slice could name more than one.
+    pub fn artefact(&self) -> &str {
+        self.artefacts.first().map_or("", String::as_str)
+    }
 }
 
 /// What ends a role's turn on a slice.
@@ -269,6 +283,16 @@ pub struct Run {
     /// red test, which is work for the coder, and one that passed the moment it
     /// was written, which says the work was already done.
     pub verdict: Option<Verdict>,
+    /// What this run spent, and on whose account (ADR-0031).
+    pub spend: Spend,
+    /// A fingerprint of what the model was shown, one per step.
+    ///
+    /// ADR-0066 wants a round replayable, and a round that keeps its trace but
+    /// not the text behind it cannot say *where* two rounds parted. Two hours
+    /// of round eight went on inferring that from the code because this column
+    /// did not exist. The hash is for comparing two runs of one binary, which
+    /// is the question it answers; it is not stable across Rust versions.
+    pub prompts: Vec<u64>,
 }
 
 impl Run {
@@ -304,6 +328,10 @@ impl Doer<'_> {
         if let Some(detail) = self.oracle_unusable(slice, workspace) {
             return State::for_limits(&self.limits).finish(0, Outcome::OracleUnusable { detail });
         }
+        // The workspace has to know what this slice is before the first write,
+        // or a checkpoint saves one file out of a set and a rollback restores a
+        // combination nothing was scored on (S4, ADR-0051 scoped per slice).
+        workspace.stage(&slice.artefacts);
         let contract = Contract {
             task: slice.task.clone(),
             acceptance: slice.oracle.describe(),
@@ -314,24 +342,29 @@ impl Doer<'_> {
             let context = self
                 .window
                 .build(&contract, self.pinned(slice, workspace), &state.trace);
-            let turn = match self.provider.chat(
-                &self.model,
-                &self.render(&context),
-                &tools::schemas(),
-                &self.budget,
-            ) {
-                Ok(turn) => turn,
-                Err(error) => {
-                    return state.finish(
-                        number - 1,
-                        Outcome::ProviderFailed {
-                            why: error.to_string(),
-                        },
-                    );
-                }
-            };
+            let rendered = self.render(&context);
+            state.prompts.push(fingerprint(&rendered));
+            if let Some(dir) = dump_dir() {
+                dump(&dir, slice, number, &rendered);
+            }
+            let turn =
+                match self
+                    .provider
+                    .chat(&self.model, &rendered, &tools::schemas(), &self.budget)
+                {
+                    Ok(turn) => turn,
+                    Err(error) => {
+                        return state.finish(
+                            number - 1,
+                            Outcome::ProviderFailed {
+                                why: error.to_string(),
+                            },
+                        );
+                    }
+                };
             state.prompt_tokens += turn.prompt_tokens;
             state.output_tokens += turn.output_tokens;
+            state.spend.saw(&turn);
 
             let Some(call) = turn.tool_calls.first() else {
                 // ADR-0048 §4: a spent budget is why a turn can end mid-thought,
@@ -351,8 +384,21 @@ impl Doer<'_> {
                 // 27: without this a wasted step is indistinguishable from any
                 // other wasted step, and a prompt cannot be designed against
                 // "nothing happened" five hundred times.
+                // Defect 55. The detector never saw a turn that called
+                // nothing, so the one failure mode that repeats most — a model
+                // answering in prose — was the one ADR-0050 could not stop. A
+                // slice spent its whole allowance of twelve steps on ten of
+                // them where six would have ended it, and the record read `out
+                // of steps` rather than `going in circles`, which is a
+                // different diagnosis and a different fix.
+                let action = Action::new("say", "");
+                let result = match state.detector.consider(&action) {
+                    Repeat::Spent { .. } => return state.finish(number, Outcome::Looping),
+                    Repeat::Warned { warning, .. } => format!("{nudge}\n\n{warning}"),
+                    Repeat::New => nudge,
+                };
                 state.trace.push(
-                    Step::new(number, Action::new("say", ""), nudge)
+                    Step::new(number, action, result)
                         .with_outcome(format!("no tool call; said: {}", said(&turn.content))),
                 );
                 continue;
@@ -451,15 +497,20 @@ impl Doer<'_> {
         })
     }
 
-    fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Option<Artefact> {
-        workspace
-            .read(&slice.artefact)
-            .ok()
-            .flatten()
-            .map(|body| Artefact {
-                path: slice.artefact.clone(),
-                body,
+    /// Every artefact that exists, in the order the slice named them. One that
+    /// does not exist yet is left out rather than shown empty: a doer told a
+    /// file is missing writes it, and a doer shown an empty body edits it.
+    fn pinned(&self, slice: &Slice, workspace: &Workspace) -> Vec<Artefact> {
+        slice
+            .artefacts
+            .iter()
+            .filter_map(|path| {
+                workspace.read(path).ok().flatten().map(|body| Artefact {
+                    path: path.clone(),
+                    body,
+                })
             })
+            .collect()
     }
 
     /// Returns whether the oracle is green.
@@ -620,20 +671,20 @@ impl Doer<'_> {
             );
             return self.goal.reached(&report.verdict, &report.cases);
         }
-        if let Some(better) = workspace.regression(&slice.artefact, &scope, score) {
+        if let Some(better) = workspace.regression(&scope, score) {
             let id = better.id;
             if let Ok(restored) = workspace.restore(id) {
                 note = format!(
                     "\n\nROLLED BACK: this change scored worse than a state already saved, so \
-                     {} was restored to it. You had {} passing; it has {}. The file above is \
-                     the restored one.",
-                    restored.path,
+                     {} was restored to it. You had {} passing; it has {}. The files above are \
+                     the restored ones.",
+                    restored.describe(),
                     score.cases_passing,
                     restored.regained(&scope).map_or(0, |s| s.cases_passing),
                 );
             }
         } else {
-            workspace.score(&slice.artefact, &scope, score);
+            workspace.score(&scope, score);
         }
 
         state.last_verdict = Some(report.verdict);
@@ -652,8 +703,25 @@ impl Doer<'_> {
     }
 
     fn render(&self, context: &Context) -> Vec<Message> {
+        // A slice can name more than one file (S4), and a prompt that says
+        // "one file" to a doer holding two is telling it something false about
+        // its own task. One `write_file` still replaces one file, which is the
+        // part that has to stay unambiguous.
+        let (subject, pinned) = match context.artefacts.len() {
+            0 | 1 => (
+                "one file",
+                "The file you are changing is included below in full on every step, read \
+                 fresh from disk. You never need to read it.",
+            ),
+            _ => (
+                "a small set of files that change together",
+                "Every file you are changing is included below in full on every step, read \
+                 fresh from disk. You never need to read any of them. Each `write_file` \
+                 replaces one of them, so changing two takes two steps.",
+            ),
+        };
         let mut messages = vec![Message::system(format!(
-            "You are changing one file until one command passes.\n\n\
+            "You are changing {subject} until one command passes.\n\n\
              Task: {}\n\
              Done when this passes: {}\n\n\
              Rules:\n\
@@ -662,8 +730,7 @@ impl Doer<'_> {
              - `run` takes an argument vector. There is no shell: no pipes, no `&&`, no \
              redirection, no globs.\n\
              - `write_file` replaces the whole file. Send all of it, never a patch.\n\
-             - The file you are changing is included below in full on every step, read fresh \
-             from disk. You never need to read it.\n\
+             - {pinned}\n\
              - The command above is run for you after every write. You do not have to run it.\n\
              - Be exhaustive about what the task asks for. Inputs that are malformed in ways a \
              naive implementation would accept must still be handled, and the cases a naive \
@@ -671,7 +738,7 @@ impl Doer<'_> {
             context.contract.task, context.contract.acceptance
         ))];
 
-        if let Some(artefact) = &context.artefact {
+        for artefact in &context.artefacts {
             messages.push(Message::user(format!(
                 "{}\n\n```\n{}\n```",
                 artefact.preamble(),
@@ -684,12 +751,22 @@ impl Doer<'_> {
                 context.compacted.join("\n")
             )));
         }
+        // Defect 52. This used to put one assistant message per past step
+        // reading `I ran: <action>`, which is a worked example of answering in
+        // prose sitting in the slot the model is about to fill. It copied it:
+        // in one hybrid run ten of twelve steps answered `no tool call; said:
+        // I ran: write_file src/excerpt.ts` and the slice never closed. Under
+        // ADR-0047 there is no conversation to reconstruct — the context is
+        // rebuilt from state every step — so a past step is carried as its
+        // result alone, with the action naming it, and nothing in the
+        // transcript shows an assistant answering without a call.
         for step in &context.recent {
-            messages.push(Message::assistant(format!(
-                "I ran: {}",
-                step.action.describe()
+            messages.push(Message::tool(format!(
+                "step {}, `{}`:\n{}",
+                step.number,
+                step.action.describe(),
+                step.result
             )));
-            messages.push(Message::tool(step.result.clone()));
         }
         messages
     }
@@ -742,11 +819,15 @@ struct State {
     prompt_tokens: u32,
     output_tokens: u32,
     checks: u32,
+    prompts: Vec<u64>,
+    spend: Spend,
 }
 
 impl State {
     fn for_limits(limits: &Limits) -> Self {
         Self {
+            spend: Spend::default(),
+            prompts: Vec::new(),
             detector: Detector::with_strikes(limits.repeats),
             ..Self::default()
         }
@@ -761,6 +842,8 @@ impl State {
             output_tokens: self.output_tokens,
             checks: self.checks,
             cases: self.last_cases,
+            prompts: self.prompts,
+            spend: self.spend,
             verdict: self.last_verdict,
         }
     }
@@ -768,3 +851,102 @@ impl State {
 
 /// Re-exported so a caller can build a slice without naming five crates.
 pub use corifeu_provider::ToolCall;
+
+/// A fingerprint of the messages a step sent.
+///
+/// `DefaultHasher` rather than a cryptographic digest and rather than a new
+/// dependency: the question is whether two runs of one binary sent the same
+/// bytes, and for that an equality check is the whole requirement.
+fn fingerprint(messages: &[Message]) -> u64 {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    for message in messages {
+        serde_json::to_string(message)
+            .unwrap_or_default()
+            .hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+/// Where to write the prompts themselves, when something asked for them.
+///
+/// A fingerprint says which step two rounds parted on. It does not say what
+/// changed, and that is the question after it, so the text is available behind
+/// an environment variable rather than kept for every round.
+fn dump_dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("CORIFEU_DUMP_PROMPTS").map(std::path::PathBuf::from)
+}
+
+fn dump(dir: &std::path::Path, slice: &Slice, step: u32, messages: &[Message]) {
+    let scope: String = slice
+        .oracle
+        .describe()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect();
+    let scope: String = scope
+        .chars()
+        .rev()
+        .take(40)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    // A round runs the same slice once per iteration, and the name was the
+    // oracle and the step number alone — so iteration two silently overwrote
+    // iteration one, in the one tool that exists to find out why two rounds
+    // differ. The attempt is counted here because nothing else in a dispatch
+    // knows it: the doer is shared across slices and holds no per-run state.
+    let attempt = attempt_of(&scope, step);
+    if std::fs::create_dir_all(dir).is_err() {
+        return;
+    }
+    let body = messages
+        .iter()
+        .map(|m| serde_json::to_string_pretty(m).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let _ = std::fs::write(
+        dir.join(format!("{scope}-a{attempt:02}-{step:03}.json")),
+        body,
+    );
+}
+
+/// Which visit to this slice the caller is on, counted from the first step of
+/// each turn. Deterministic in the order the iterations run, so two rounds'
+/// files still line up by name, which is what makes them diffable.
+fn attempt_of(scope: &str, step: u32) -> u32 {
+    use std::collections::HashMap;
+    use std::sync::{Mutex, OnceLock};
+
+    static SEEN: OnceLock<Mutex<HashMap<String, u32>>> = OnceLock::new();
+    let mut seen = match SEEN.get_or_init(Default::default).lock() {
+        Ok(seen) => seen,
+        Err(poisoned) => poisoned.into_inner(),
+    };
+    let attempt = seen.entry(scope.to_string()).or_insert(0);
+    if step <= 1 {
+        *attempt += 1;
+    }
+    (*attempt).max(1)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::attempt_of;
+
+    /// A round runs the same slice once per iteration, and the dump was named
+    /// by the oracle and the step alone, so iteration two overwrote iteration
+    /// one in the one tool that exists to find out why two rounds differ.
+    #[test]
+    fn a_second_visit_to_a_slice_does_not_overwrite_the_first() {
+        assert_eq!(attempt_of("npx-vitest-run", 1), 1);
+        assert_eq!(attempt_of("npx-vitest-run", 2), 1);
+        assert_eq!(attempt_of("npx-vitest-run", 3), 1);
+        // The next turn on the same slice starts over at step one.
+        assert_eq!(attempt_of("npx-vitest-run", 1), 2);
+        assert_eq!(attempt_of("npx-vitest-run", 2), 2);
+        // A different slice counts separately.
+        assert_eq!(attempt_of("cargo-test", 1), 1);
+    }
+}

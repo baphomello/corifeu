@@ -13,7 +13,7 @@ fn cargo_test() -> Allowlist {
 fn slice(task: &str, artefact: &str, oracle: &[&str]) -> PlannedSlice {
     PlannedSlice {
         task: task.into(),
-        artefact: artefact.into(),
+        artefacts: vec![artefact.into()],
         oracle: oracle.iter().map(|s| (*s).to_string()).collect(),
     }
 }
@@ -61,6 +61,7 @@ fn turn(tool_calls: Vec<ToolCall>, content: &str) -> Turn {
         prompt_tokens: 400,
         output_tokens: 120,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -107,7 +108,7 @@ fn a_slice_with_no_oracle_could_never_end() {
 #[test]
 fn a_slice_with_no_artefact_has_nothing_to_pin() {
     let mut plan = good();
-    plan.slices[0].artefact = "  ".into();
+    plan.slices[0].artefacts = vec!["  ".into()];
     assert!(matches!(
         plan.check(&cargo_test()),
         Err(Rejected::NoArtefact { at: 0, .. })
@@ -173,8 +174,14 @@ fn the_whole_list_comes_back_from_one_call() {
         "",
     )]));
 
-    let plan = planner(&provider).plan(&brief(), &cargo_test()).unwrap();
-    assert_eq!(plan, good());
+    let planned = planner(&provider).plan(&brief(), &cargo_test()).unwrap();
+    assert_eq!(planned.plan, good());
+    // The expensive side of the hybrid split is the planner, so a run that
+    // reported only the doers' tokens would show a saving that left out the
+    // thing being paid for.
+    assert_eq!(planned.spend.dispatches, 1);
+    assert_eq!(planned.spend.prompt_tokens, 400);
+    assert_eq!(planned.spend.output_tokens, 120);
 }
 
 #[test]

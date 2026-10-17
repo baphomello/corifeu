@@ -82,7 +82,7 @@ fn oracle() -> Oracle {
 fn slice() -> Slice {
     Slice {
         task: "The artefact must satisfy every demand.".into(),
-        artefact: "artefact.txt".into(),
+        artefacts: vec!["artefact.txt".into()],
         oracle: oracle(),
     }
 }
@@ -141,6 +141,7 @@ fn turn(tool_calls: Vec<ToolCall>, content: &str) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -330,7 +331,7 @@ fn neither_role_can_write_the_others_class() {
 fn planned(task: &str) -> PlannedSlice {
     PlannedSlice {
         task: task.into(),
-        artefact: "artefact.txt".into(),
+        artefacts: vec!["artefact.txt".into()],
         oracle: oracle().argv,
     }
 }

@@ -1,0 +1,27 @@
+iteration	model	slice	outcome	steps	prompt	output	checks	seconds	allowed
+1	qwen3.5-9b	slice1_tokens	GREEN	2	6169	4325	2	32	12
+1	qwen3.5-9b	slice2_eval	EXHAUSTED	12	55574	13401	3	100	12
+AGAIN	1	qwen3.5-9b	slice2_eval	RED
+TOTAL	1	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=14	prompt=61743	output=17726	checks=5	floor_left=false	minutes=2.2
+FINAL	1	qwen3.5-9b	22/11
+2	qwen3.5-9b	slice1_tokens	GREEN	2	6169	4325	2	32	12
+2	qwen3.5-9b	slice2_eval	EXHAUSTED	12	55574	13401	3	100	12
+AGAIN	2	qwen3.5-9b	slice2_eval	RED
+TOTAL	2	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=14	prompt=61743	output=17726	checks=5	floor_left=false	minutes=2.2
+FINAL	2	qwen3.5-9b	22/11
+3	qwen3.5-9b	slice1_tokens	GREEN	2	6169	4325	2	32	12
+3	qwen3.5-9b	slice2_eval	EXHAUSTED	12	55574	13401	3	100	12
+AGAIN	3	qwen3.5-9b	slice2_eval	RED
+TOTAL	3	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=14	prompt=61743	output=17726	checks=5	floor_left=false	minutes=2.2
+FINAL	3	qwen3.5-9b	22/11
+4	qwen3.5-9b	slice1_tokens	GREEN	2	6169	4325	2	32	12
+4	qwen3.5-9b	slice2_eval	EXHAUSTED	12	55574	13401	3	100	12
+AGAIN	4	qwen3.5-9b	slice2_eval	RED
+TOTAL	4	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=14	prompt=61743	output=17726	checks=5	floor_left=false	minutes=2.2
+FINAL	4	qwen3.5-9b	22/11
+5	qwen3.5-9b	slice1_tokens	GREEN	2	6169	4325	2	32	12
+5	qwen3.5-9b	slice2_eval	EXHAUSTED	12	55574	13401	3	100	12
+AGAIN	5	qwen3.5-9b	slice2_eval	RED
+TOTAL	5	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=14	prompt=61743	output=17726	checks=5	floor_left=false	minutes=2.2
+FINAL	5	qwen3.5-9b	22/11
+ROUND COMPLETE

@@ -13,8 +13,9 @@
 //! defaults ever disagree.
 
 use corifeu_agent::Window;
+use corifeu_cliagent::{ADAPTERS, CliAgent, programs};
 use corifeu_config::model::{Config, ProviderKind};
-use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Steps};
+use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Spend, Steps};
 use corifeu_exec::Allowlist;
 use corifeu_llamacpp::LlamaCpp;
 use corifeu_ollama::Ollama;
@@ -76,7 +77,7 @@ impl FromConfig {
 
 /// Build the provider a role names. Returned boxed because which one it is
 /// depends on a string in a file.
-fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
+pub fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
     let declared = config
         .roles
         .get(role)
@@ -87,6 +88,62 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
             declared.provider
         )
     })?;
+    // A CLI agent is a subprocess, so it has no base_url to be missing. Asking
+    // for one before the match would refuse the provider for lacking something
+    // it cannot have; what it has instead is `command`.
+    if provider.kind == ProviderKind::Cli {
+        let command = provider.command.as_deref().ok_or_else(|| {
+            format!(
+                "provider `{}` is a CLI and declares no `command`. Name the executable: {}",
+                declared.provider,
+                programs()
+            )
+        })?;
+        let agent = ADAPTERS
+            .into_iter()
+            .find(|a| a.program == command)
+            .ok_or_else(|| {
+                format!(
+                    "provider `{}` names command `{command}`, which has no adapter. Known: {}",
+                    declared.provider,
+                    programs()
+                )
+            })?;
+        // ADR-0007 keeps three CLIs in scope so the abstraction cannot become
+        // one CLI's shape, and only one of the three has been run. A warning
+        // rather than a refusal: an unverified adapter may well work, and
+        // finding out is the point.
+        if !agent.verified {
+            eprintln!(
+                "warning: the {} adapter has never been run against the real CLI; its flags \
+                 come from ADR-0007's table",
+                agent.runtime
+            );
+        }
+        let driver = CliAgent::new(agent);
+        // ADR-0007 calls adapter churn the dominant technical risk, and asks for
+        // the detected version to be reported and an untested one refused with a
+        // clear message rather than a parse error.
+        let Some(found) = driver.version() else {
+            return Err(format!(
+                "provider `{}` names command `{command}`, which did not answer `--version`. \
+                 Is it installed and on PATH?",
+                declared.provider
+            ));
+        };
+        println!("provider: {command} {found}");
+        if let Some(wanted) = provider.min_version.as_deref()
+            && !corifeu_cliagent::at_least(&found, wanted)
+        {
+            return Err(format!(
+                "provider `{}` needs {command} {wanted} or newer and found {found}. \
+                     Corifeu's adapter is written against the flags that version documents.",
+                declared.provider
+            ));
+        }
+        return Ok(Box::new(driver));
+    }
+
     let base = provider
         .base_url
         .clone()
@@ -95,7 +152,7 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
     match provider.kind {
         ProviderKind::LlamaCpp => Ok(Box::new(LlamaCpp::new(base))),
         ProviderKind::Ollama => Ok(Box::new(Ollama::new(base))),
-        // A CLI provider speaks a different protocol and a plugin is phase 7.
+        // A plugin provider is phase 7 (ADR-0032).
         other => Err(format!(
             "provider `{}` is {other:?}, which `corifeu run` cannot drive yet",
             declared.provider
@@ -106,7 +163,7 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
 /// What a caller asked for on the command line.
 pub struct Ask<'a> {
     pub task: &'a str,
-    pub artefact: &'a str,
+    pub artefacts: &'a [String],
     pub oracle: &'a str,
     pub role: &'a str,
     pub expect_cases: Option<u32>,
@@ -181,7 +238,7 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
 
     let slice = Slice {
         task: ask.task.to_string(),
-        artefact: ask.artefact.to_string(),
+        artefacts: ask.artefacts.to_vec(),
         oracle: Oracle {
             argv: declared.command.clone(),
             timeout: Duration::from_secs(u64::from(declared.timeout_s)),
@@ -190,7 +247,7 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
     };
 
     println!("task:    {}", ask.task);
-    println!("artefact: {}", ask.artefact);
+    println!("artefact: {}", ask.artefacts.join(", "));
     println!("oracle:  {}", slice.oracle.describe());
     println!(
         "role:    {} ({} on {})",
@@ -208,10 +265,10 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
     println!();
 
     let outcome = doer.work(&slice, &mut workspace);
-    report(&outcome)
+    report(&outcome, ask.role, &role.provider, &role.model)
 }
 
-fn report(run: &corifeu_doer::Run) -> ExitCode {
+fn report(run: &corifeu_doer::Run, role: &str, provider: &str, model: &str) -> ExitCode {
     for step in &run.trace {
         println!(
             "  {:>3}  {:<12} {}",
@@ -233,9 +290,48 @@ fn report(run: &corifeu_doer::Run) -> ExitCode {
         run.prompt_tokens,
     );
 
+    // Acceptance 18. One role per `run`, so this is a one-line table; `build`
+    // prints the same table with a row per role, because a split reported in
+    // two different shapes is two numbers nobody can compare.
+    spend_table(&[Row {
+        role,
+        provider,
+        model,
+        spend: run.spend,
+    }]);
+
     match run.outcome {
         Outcome::Reached => ExitCode::SUCCESS,
         _ => ExitCode::FAILURE,
+    }
+}
+
+/// One role's spend, for the table both commands print.
+pub struct Row<'a> {
+    pub role: &'a str,
+    pub provider: &'a str,
+    pub model: &'a str,
+    pub spend: Spend,
+}
+
+/// Money sits beside tokens and neither is derived from the other: a CLI agent
+/// reported two input tokens on a call that cost eleven cents (defect 46).
+pub fn spend_table(rows: &[Row<'_>]) {
+    println!();
+    println!("spend by role:");
+    for row in rows {
+        println!(
+            "  {:<10} {:<10} {:<14} {:>4} dispatch(es)  {:>7} prompt  {:>6} output  {}",
+            row.role,
+            row.provider,
+            row.model,
+            row.spend.dispatches,
+            row.spend.prompt_tokens,
+            row.spend.output_tokens,
+            row.spend
+                .cost_usd
+                .map_or_else(|| "no charge".to_string(), |c| format!("${c:.4}")),
+        );
     }
 }
 

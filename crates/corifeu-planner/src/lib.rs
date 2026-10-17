@@ -30,7 +30,7 @@
 //! the wrong number.
 
 use corifeu_exec::{Allowlist, Command};
-use corifeu_provider::{Budget, Message, Provider, ToolCall};
+use corifeu_provider::{Budget, Message, Provider, Spend, ToolCall};
 use serde_json::{Value, json};
 
 pub const EMIT_PLAN: &str = "emit_plan";
@@ -49,8 +49,9 @@ pub struct Brief {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlannedSlice {
     pub task: String,
-    /// The file the slice is about, pinned into every step (ADR-0047).
-    pub artefact: String,
+    /// The files the slice is about, pinned into every step (ADR-0047) and
+    /// checkpointed together (S4).
+    pub artefacts: Vec<String>,
     /// The one command whose red-to-green transition ends the slice.
     pub oracle: Vec<String>,
 }
@@ -121,7 +122,7 @@ impl Plan {
                     task: slice.task.clone(),
                 });
             }
-            if slice.artefact.trim().is_empty() {
+            if slice.artefacts.is_empty() || slice.artefacts.iter().any(|a| a.trim().is_empty()) {
                 return Err(Rejected::NoArtefact {
                     at,
                     task: slice.task.clone(),
@@ -154,6 +155,18 @@ impl Plan {
     }
 }
 
+/// A plan and what asking for it cost.
+///
+/// The cost is returned rather than discarded because planning is the
+/// expensive side of the hybrid split: a run that reported only the doers'
+/// tokens would show a saving that excluded the thing being paid for
+/// ([ADR-0031](https://github.com/baphomello/corifeu/blob/main/docs/adr/0031-token-savings-metering.md)).
+#[derive(Debug, Clone)]
+pub struct Planned {
+    pub plan: Plan,
+    pub spend: Spend,
+}
+
 pub struct Planner<'a> {
     pub provider: &'a dyn Provider,
     pub model: String,
@@ -162,10 +175,12 @@ pub struct Planner<'a> {
 
 impl Planner<'_> {
     /// Ask once, and reject what comes back if it cannot be executed.
-    pub fn plan(&self, brief: &Brief, allowlist: &Allowlist) -> Result<Plan, Error> {
+    pub fn plan(&self, brief: &Brief, allowlist: &Allowlist) -> Result<Planned, Error> {
         let turn = self
             .provider
             .chat(&self.model, &messages(brief), &[schema()], &self.budget)?;
+        let mut spend = Spend::default();
+        spend.saw(&turn);
 
         let call = turn
             .tool_calls
@@ -177,7 +192,7 @@ impl Planner<'_> {
 
         let plan = read(call)?;
         plan.check(allowlist)?;
-        Ok(plan)
+        Ok(Planned { plan, spend })
     }
 }
 
@@ -206,9 +221,22 @@ fn read(call: &ToolCall) -> Result<Plan, Error> {
                     .collect()
             })
             .ok_or_else(|| Error::Shape(format!("slice {at} has no `oracle` array")))?;
+        // Either shape is accepted. `artefacts` is what the schema asks for;
+        // `artefact` is what a model that has seen a thousand single-file
+        // examples writes anyway, and rejecting it would spend a slice on
+        // punctuation.
+        let artefacts: Vec<String> = slice
+            .get("artefacts")
+            .and_then(Value::as_array)
+            .map(|list| {
+                list.iter()
+                    .filter_map(|a| a.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_else(|| vec![text("artefact")]);
         out.push(PlannedSlice {
             task: text("task"),
-            artefact: text("artefact"),
+            artefacts,
             oracle,
         });
     }
@@ -223,12 +251,14 @@ fn schema() -> Value {
             "slices": {"type": "array", "items": {"type": "object", "properties": {
                 "task": {"type": "string",
                          "description": "What this slice changes, in one or two sentences."},
-                "artefact": {"type": "string",
-                             "description": "The one file this slice edits."},
+                "artefacts": {"type": "array", "items": {"type": "string"},
+                              "description": "Every file this slice edits. Usually one. Name \
+                                              more only when a change to one is wrong without \
+                                              the others, such as a component and its test."},
                 "oracle": {"type": "array", "items": {"type": "string"},
                            "description": "The command that passes only once this slice is \
                                            done, as an argument vector. No shell."}},
-                "required": ["task", "artefact", "oracle"]}}},
+                "required": ["task", "artefacts", "oracle"]}}},
             "required": ["slices"]}}})
 }
 
@@ -239,7 +269,9 @@ fn messages(brief: &Brief) -> Vec<Message> {
              from failing to passing because of it, and you name that command.\n\n\
              Rules:\n\
              - Emit every slice in one call. You are asked once.\n\
-             - Each slice names one file it edits and one command that ends it.\n\
+             - Each slice names the files it edits and one command that ends it. One file is \
+             the usual case; name more only when a change to one of them is wrong without the \
+             others.\n\
              - Two slices may not share a command: neither could then be finished on its own.\n\
              - A command is an argument vector. There is no shell: no pipes, no `&&`, no \
              redirection.\n\

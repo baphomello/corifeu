@@ -162,7 +162,22 @@ pub struct Score {
     pub cases_passing: u32,
 }
 
-/// A saved state of one file, and what each check thought of it.
+/// One file inside a checkpoint: where it lives in the workspace, and where
+/// its content was copied to.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Saved {
+    pub path: String,
+    pub stored: PathBuf,
+}
+
+/// A saved state of everything a slice is about, and what each check thought
+/// of it.
+///
+/// The unit is the slice rather than the file, because a case count is a
+/// property of the combination. A component and its test that change together
+/// have states that are only meaningful in pairs: restoring the test to a
+/// state that scored nine, beside a component it never saw, produces a
+/// combination nothing ever measured (ADR-0051, scoped per slice).
 ///
 /// Scores are kept per check rather than one per state, because a count only
 /// means something next to the check that produced it. Nine cases passing under
@@ -171,8 +186,7 @@ pub struct Score {
 #[derive(Debug, Clone)]
 pub struct Checkpoint {
     pub id: usize,
-    pub path: String,
-    pub stored: PathBuf,
+    pub files: Vec<Saved>,
     /// Keyed by the check that produced each score.
     pub scores: BTreeMap<String, Score>,
 }
@@ -180,6 +194,14 @@ pub struct Checkpoint {
 impl Checkpoint {
     pub fn score(&self, scope: &str) -> Option<Score> {
         self.scores.get(scope).copied()
+    }
+
+    pub fn paths(&self) -> impl Iterator<Item = &str> {
+        self.files.iter().map(|f| f.path.as_str())
+    }
+
+    pub fn holds(&self, path: &str) -> bool {
+        self.files.iter().any(|f| f.path == path)
     }
 }
 
@@ -207,7 +229,7 @@ pub enum Error {
 /// simply make it again.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Restored {
-    pub path: String,
+    pub paths: Vec<String>,
     pub from: usize,
     /// What each check thought of the state that came back.
     pub regained: BTreeMap<String, Score>,
@@ -223,17 +245,30 @@ impl Restored {
     pub fn lost(&self, scope: &str) -> Option<Score> {
         self.lost.get(scope).copied()
     }
+
+    /// The files, as a doer should be told about them.
+    pub fn describe(&self) -> String {
+        self.paths.join(", ")
+    }
 }
 
 pub struct Workspace {
     root: PathBuf,
     store: PathBuf,
     checkpoints: Vec<Checkpoint>,
-    /// Scores of what is on disk now, keyed by path and then by check, held
-    /// until the next write turns that content into a checkpoint. A checkpoint
-    /// is taken *before* a write, so the state being scored is not a checkpoint
-    /// yet when the check runs.
-    pending: BTreeMap<String, BTreeMap<String, Score>>,
+    /// The files the current slice is about, saved and restored together.
+    /// Empty until a caller stages one, and a write outside it is checkpointed
+    /// on its own — which is what a role writing a file the slice does not
+    /// name is doing.
+    slice: Vec<String>,
+    /// Scores of what is on disk now, keyed by the check that produced each,
+    /// held until the next write turns that content into a checkpoint. A
+    /// checkpoint is taken *before* a write, so the state being scored is not
+    /// a checkpoint yet when the check runs.
+    ///
+    /// Not keyed by path: the state being scored is the slice's, and the check
+    /// that produced the score already identifies which slice that is.
+    pending: BTreeMap<String, Score>,
 }
 
 impl Workspace {
@@ -247,6 +282,7 @@ impl Workspace {
             root: root.into(),
             store,
             checkpoints: Vec::new(),
+            slice: Vec::new(),
             pending: BTreeMap::new(),
         })
     }
@@ -255,6 +291,27 @@ impl Workspace {
     /// commands run.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// Declare the files the next slice is about. A write to any of them
+    /// checkpoints all of them, so a rollback restores the combination that
+    /// was scored rather than one file out of it.
+    ///
+    /// Scores recorded for the previous slice are dropped, because they
+    /// describe content this slice is about to replace.
+    pub fn stage(&mut self, paths: &[String]) {
+        self.slice = paths.to_vec();
+        self.pending.clear();
+    }
+
+    /// The files that travel with `path`: the staged set when it is one of
+    /// them, and `path` alone otherwise.
+    fn group(&self, path: &str) -> Vec<String> {
+        if self.slice.iter().any(|p| p == path) {
+            self.slice.clone()
+        } else {
+            vec![path.to_string()]
+        }
     }
 
     pub fn read(&self, path: &str) -> Result<Option<String>, Error> {
@@ -273,9 +330,9 @@ impl Workspace {
         let current = self.read(path)?;
         guard.permits(path, current.as_deref(), content)?;
 
-        if current.is_some() {
-            self.checkpoint(path, &full)?;
-        }
+        // Every file the slice holds, not only the one being written: the
+        // score this checkpoint carries was measured on the combination.
+        self.checkpoint(&self.group(path))?;
         if let Some(parent) = full.parent() {
             std::fs::create_dir_all(parent).map_err(|source| Error::Io {
                 path: parent.to_path_buf(),
@@ -285,44 +342,61 @@ impl Workspace {
         std::fs::write(&full, content).map_err(|source| Error::Io { path: full, source })
     }
 
-    fn checkpoint(&mut self, path: &str, full: &Path) -> Result<usize, Error> {
+    /// Save every named file that exists. A set where none of them exists yet
+    /// is not a state worth keeping, so nothing is pushed and the ids stay
+    /// dense.
+    fn checkpoint(&mut self, paths: &[String]) -> Result<Option<usize>, Error> {
         let id = self.checkpoints.len();
-        let stored = self.store.join(format!("{id:05}-{}", flatten(path)));
-        std::fs::copy(full, &stored).map_err(|source| Error::Io {
-            path: stored.clone(),
-            source,
-        })?;
+        let mut files = Vec::new();
+        for (n, path) in paths.iter().enumerate() {
+            let full = self.resolve(path)?;
+            if !full.exists() {
+                continue;
+            }
+            let stored = self.store.join(format!("{id:05}-{n}-{}", flatten(path)));
+            std::fs::copy(&full, &stored).map_err(|source| Error::Io {
+                path: stored.clone(),
+                source,
+            })?;
+            files.push(Saved {
+                path: path.clone(),
+                stored,
+            });
+        }
+        if files.is_empty() {
+            return Ok(None);
+        }
         self.checkpoints.push(Checkpoint {
             id,
-            path: path.to_string(),
-            stored,
-            scores: self.pending.remove(path).unwrap_or_default(),
+            files,
+            scores: std::mem::take(&mut self.pending),
         });
-        Ok(id)
+        Ok(Some(id))
     }
 
-    /// Record what a check said about the state currently on disk for `path`.
-    /// It becomes that content's score when the next write checkpoints it.
-    pub fn score(&mut self, path: &str, scope: &str, score: Score) {
-        self.pending
-            .entry(path.to_string())
-            .or_default()
-            .insert(scope.to_string(), score);
+    /// Record what a check said about the state currently on disk. It becomes
+    /// that state's score when the next write checkpoints it.
+    pub fn score(&mut self, scope: &str, score: Score) {
+        self.pending.insert(scope.to_string(), score);
     }
 
-    /// The best scored state saved for `path`.
-    pub fn best(&self, path: &str, scope: &str) -> Option<&Checkpoint> {
+    /// The best state this check has scored.
+    ///
+    /// Checkpoints from other slices are filtered out by the scope itself: a
+    /// slice's oracle is what names it, so a state it never scored is not a
+    /// state it can be compared against.
+    pub fn best(&self, scope: &str) -> Option<&Checkpoint> {
         self.checkpoints
             .iter()
-            .filter(|c| c.path == path && c.score(scope).is_some())
+            .filter(|c| c.score(scope).is_some())
             .max_by_key(|c| c.score(scope))
     }
 
     /// ADR-0051 §3: a state that scores worse than one already saved is a
     /// regression, and the better state is what to go back to. Where no check
     /// has run there is nothing to compare and the write stands.
-    pub fn regression(&self, path: &str, scope: &str, now: Score) -> Option<&Checkpoint> {
-        self.best(path, scope)
+    pub fn regression(&self, scope: &str, now: Score) -> Option<&Checkpoint> {
+        self.best(scope)
             .filter(|best| best.score(scope).is_some_and(|saved| saved > now))
     }
 
@@ -334,24 +408,30 @@ impl Workspace {
             .get(id)
             .ok_or(Error::NoSuchCheckpoint(id))?
             .clone();
-        let full = self.resolve(&checkpoint.path)?;
-        let lost = self
-            .pending
-            .get(&checkpoint.path)
-            .cloned()
-            .unwrap_or_default();
+        let lost = std::mem::take(&mut self.pending);
 
-        if full.exists() {
-            self.checkpoint(&checkpoint.path, &full)?;
+        // The content being replaced is checkpointed first, so a restore is
+        // never itself a loss. Its own files are the group, not the staged
+        // set, because that is the combination that scored.
+        let paths: Vec<String> = checkpoint.paths().map(String::from).collect();
+        self.checkpoint(&paths)?;
+
+        for file in &checkpoint.files {
+            let full = self.resolve(&file.path)?;
+            if let Some(parent) = full.parent() {
+                std::fs::create_dir_all(parent).map_err(|source| Error::Io {
+                    path: parent.to_path_buf(),
+                    source,
+                })?;
+            }
+            std::fs::copy(&file.stored, &full)
+                .map_err(|source| Error::Io { path: full, source })?;
         }
-        std::fs::copy(&checkpoint.stored, &full)
-            .map_err(|source| Error::Io { path: full, source })?;
-        // What is on disk is now the restored content, so its scores are known.
-        self.pending
-            .insert(checkpoint.path.clone(), checkpoint.scores.clone());
+        // What is on disk is now the restored state, so its scores are known.
+        self.pending = checkpoint.scores.clone();
 
         Ok(Restored {
-            path: checkpoint.path,
+            paths,
             from: id,
             regained: checkpoint.scores,
             lost,

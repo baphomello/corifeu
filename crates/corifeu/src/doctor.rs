@@ -219,6 +219,8 @@ fn oracles(config: &Config, report: &mut Report) {
 }
 
 fn providers(config: &Config, quick: bool, report: &mut Report) {
+    agent_clis(config, report);
+
     let locals: Vec<(&String, &corifeu_config::model::Provider)> = config
         .providers
         .iter()
@@ -332,6 +334,62 @@ fn tool_call(provider: &dyn Provider, model: &str, report: &mut Report) {
                 check,
                 format!("calls tools, {speed}, {} output tokens", turn.output_tokens),
             );
+        }
+    }
+}
+
+/// Defect 54. A project whose only provider was a CLI passed with nothing
+/// checked — not the executable, not the version, not that it answers — while
+/// `corifeu run` detected and reported the version all along. The check
+/// existed and this is what calls it before a step is spent.
+fn agent_clis(config: &Config, report: &mut Report) {
+    for (name, provider) in config
+        .providers
+        .iter()
+        .filter(|(_, p)| p.kind == ProviderKind::Cli)
+    {
+        let label = format!("provider {name}");
+        let Some(command) = provider.command.as_deref() else {
+            report.add(Level::Fail, label, "a CLI provider and no `command`");
+            continue;
+        };
+        let Some(agent) = corifeu_cliagent::ADAPTERS
+            .into_iter()
+            .find(|a| a.program == command)
+        else {
+            report.add(
+                Level::Fail,
+                label,
+                format!(
+                    "`{command}` has no adapter. Known: {}",
+                    corifeu_cliagent::programs()
+                ),
+            );
+            continue;
+        };
+        let Some(found) = corifeu_cliagent::CliAgent::new(agent).version() else {
+            report.add(
+                Level::Fail,
+                label,
+                format!("`{command}` did not answer `--version`. Installed and on PATH?"),
+            );
+            continue;
+        };
+        match provider.min_version.as_deref() {
+            Some(wanted) if !corifeu_cliagent::at_least(&found, wanted) => report.add(
+                Level::Fail,
+                label,
+                format!("{command} {found} is older than the {wanted} this project asks for"),
+            ),
+            _ if !agent.verified => report.add(
+                Level::Warn,
+                label,
+                format!(
+                    "{command} {found}; this adapter has never been run against the real CLI, \
+                     its flags come from ADR-0007's table"
+                ),
+            ),
+            _ => report.add(Level::Ok, label, format!("{command} {found}")),
         }
     }
 }

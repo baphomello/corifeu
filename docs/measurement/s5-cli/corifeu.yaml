@@ -1,0 +1,33 @@
+version: 1
+
+providers:
+  expensive:
+    kind: cli
+    command: claude
+    min_version: "2.1.0"
+
+roles:
+  lead: { category: lead, provider: expensive, model: "", required: true }
+  coder: { category: doers, provider: expensive, model: "", writes: [source] }
+
+file_classes:
+  - { name: test, include: ["src/*.test.ts"] }
+  - { name: source, include: ["src/**"] }
+
+ownership:
+  source: [coder]
+
+oracles:
+  suite:
+    command: ["npx", "vitest", "run"]
+    timeout_s: 180
+
+execution:
+  allowed_commands:
+    - ["npx", "vitest", "run"]
+
+limits:
+  # Three steps: this proves the adapter end to end, and each dispatch to a
+  # CLI agent costs about ten cents whatever it does.
+  steps: { floor: 3, ceiling: 3, patience: 0, raise_by: 0 }
+  repeats: 6

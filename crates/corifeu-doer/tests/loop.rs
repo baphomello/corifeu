@@ -78,7 +78,7 @@ fn oracle() -> Oracle {
 fn slice() -> Slice {
     Slice {
         task: "Make the artefact say DONE.".into(),
-        artefact: "artefact.txt".into(),
+        artefacts: vec!["artefact.txt".into()],
         oracle: oracle(),
     }
 }
@@ -163,6 +163,7 @@ fn calls(name: &str, arguments: serde_json::Value) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -175,6 +176,7 @@ fn says(what: &str) -> Turn {
         prompt_tokens: 100,
         output_tokens: 20,
         speed: None,
+        cost_usd: None,
     }
 }
 
@@ -440,7 +442,7 @@ fn markers_oracle() -> Oracle {
 fn markers_slice() -> Slice {
     Slice {
         task: "Make the artefact contain A, B and C.".into(),
-        artefact: "artefact.txt".into(),
+        artefacts: vec!["artefact.txt".into()],
         oracle: markers_oracle(),
     }
 }
@@ -554,7 +556,7 @@ fn a_green_slice_is_not_a_regression_from_a_larger_one() {
     // A one-case slice on the same file goes green with fewer cases passing.
     let narrow_slice = Slice {
         task: "Keep A, B, C and add DONE.".into(),
-        artefact: "artefact.txt".into(),
+        artefacts: vec!["artefact.txt".into()],
         oracle: oracle(), // artefact_is_done: one case
     };
     let narrow = Replay::of(vec![write("ABC DONE\n")]);
@@ -849,5 +851,377 @@ fn the_doer_is_told_to_be_exhaustive() {
     assert!(
         system.contains("Be exhaustive"),
         "the contract has to ask for it: {system}"
+    );
+}
+
+// ------------------------------------------------------------ S4, several files
+
+/// A two-file oracle: it passes only when the file and its test agree, so
+/// neither can be finished alone. This is the shape S4 exists for — a
+/// component and its test changing in one slice.
+#[ignore]
+#[test]
+fn pair_agrees() {
+    let body = std::fs::read_to_string("component.txt").unwrap_or_default();
+    let test = std::fs::read_to_string("component_test.txt").unwrap_or_default();
+    assert!(!body.trim().is_empty(), "nothing written yet");
+    assert_eq!(body.trim(), test.trim(), "the test does not match the file");
+}
+
+fn pair_oracle() -> Oracle {
+    let exe = std::env::current_exe()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    Oracle {
+        argv: vec![
+            exe,
+            "--exact".into(),
+            "pair_agrees".into(),
+            "--ignored".into(),
+        ],
+        timeout: Duration::from_secs(60),
+        expect_cases: Some(1),
+    }
+}
+
+fn pair_slice() -> Slice {
+    Slice {
+        task: "Make the component and its test agree on the label.".into(),
+        artefacts: vec!["component.txt".into(), "component_test.txt".into()],
+        oracle: pair_oracle(),
+    }
+}
+
+fn writes(path: &str, content: &str) -> Turn {
+    calls("write_file", json!({"path": path, "content": content}))
+}
+
+/// S4 acceptance 13. Both files are in front of the model on every step, read
+/// fresh from disk — so the second step sees what the first one wrote, without
+/// being told.
+#[test]
+fn every_artefact_the_slice_names_is_pinned_into_every_step() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("component.txt", "Save\n", &guard()).unwrap();
+    ws.write("component_test.txt", "Cancel\n", &guard())
+        .unwrap();
+
+    let provider = Replay::of(vec![
+        writes("component_test.txt", "Submit\n"),
+        writes("component.txt", "Submit\n"),
+    ]);
+    let run = doer(&provider, 10).work(&pair_slice(), &mut ws);
+    assert_eq!(run.outcome, Outcome::Reached);
+    assert_eq!(run.steps, 2);
+
+    let said = serde_json::to_string(&*provider.said.borrow()).expect("messages serialise");
+    assert_eq!(
+        said.matches("Current contents of component.txt").count(),
+        2,
+        "pinned on both steps: {said}"
+    );
+    assert_eq!(
+        said.matches("Current contents of component_test.txt")
+            .count(),
+        2,
+        "and so is the other one: {said}"
+    );
+    assert!(
+        said.contains("Cancel") && said.contains("Submit"),
+        "read fresh: step one saw the stale test, step two saw the written one"
+    );
+    assert!(
+        said.contains("files that change together"),
+        "and the contract stops calling it one file: {said}"
+    );
+}
+
+/// S4 acceptance 14, read against [ADR-0058](../../../docs/adr/0058-slice-boundaries-are-observed.md):
+/// naming two files does not widen what a role may write. The slice is not the
+/// permission — the file class is — so a write outside the owned class is
+/// refused and the refusal names the class.
+#[test]
+fn naming_two_artefacts_does_not_grant_a_third() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("component.txt", "Save\n", &guard()).unwrap();
+    ws.write("component_test.txt", "Save\n", &guard()).unwrap();
+
+    // `notes.md` is class `docs`, which the coder does not own.
+    let refused = ws.write("notes.md", "a note\n", &guard());
+    let message = refused.expect_err("docs is not the coder's").to_string();
+    assert!(
+        message.contains("class `docs`") && message.contains("source"),
+        "the refusal names the class and what the role does own: {message}"
+    );
+    assert!(
+        ws.read("notes.md").unwrap().is_none(),
+        "a refused write leaves nothing behind"
+    );
+}
+
+/// S4 acceptance 16, as the mechanism rather than as a site feature: two files
+/// change in one slice and the oracle that needs both goes green.
+#[test]
+fn a_file_and_its_test_change_in_one_slice() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+
+    let provider = Replay::of(vec![
+        writes("component.txt", "Submit\n"),
+        writes("component_test.txt", "Submit\n"),
+    ]);
+    let run = doer(&provider, 10).work(&pair_slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Reached);
+    assert_eq!(run.checks, 2, "the oracle ran after each write");
+    assert_eq!(ws.read("component.txt").unwrap().unwrap(), "Submit\n");
+    assert_eq!(ws.read("component_test.txt").unwrap().unwrap(), "Submit\n");
+}
+
+// Four markers across the two files, so a state can be partly right and two
+// states can be compared by how much of the suite passed.
+fn spread_body() -> String {
+    std::fs::read_to_string("component.txt").unwrap_or_default()
+}
+fn spread_test() -> String {
+    std::fs::read_to_string("component_test.txt").unwrap_or_default()
+}
+#[ignore]
+#[test]
+fn spread_a() {
+    assert!(spread_body().contains('A'));
+}
+#[ignore]
+#[test]
+fn spread_b() {
+    assert!(spread_body().contains('B'));
+}
+#[ignore]
+#[test]
+fn spread_c() {
+    assert!(spread_test().contains('C'));
+}
+#[ignore]
+#[test]
+fn spread_d() {
+    assert!(spread_test().contains('D'));
+}
+
+fn spread_slice() -> Slice {
+    let exe = std::env::current_exe()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    Slice {
+        task: "Put A and B in the component, C and D in its test.".into(),
+        artefacts: vec!["component.txt".into(), "component_test.txt".into()],
+        oracle: Oracle {
+            argv: vec![exe, "spread_".into(), "--ignored".into()],
+            timeout: Duration::from_secs(60),
+            expect_cases: Some(4),
+        },
+    }
+}
+
+/// S4 acceptance 15 at the doer rather than the workspace: the note a doer is
+/// given after a rollback has to name every file that went back, or it will
+/// re-apply the half it still believes in.
+#[test]
+fn a_rollback_tells_the_doer_about_both_files() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("component.txt", "A\n", &guard()).unwrap();
+    ws.write("component_test.txt", "C\n", &guard()).unwrap();
+
+    // Two of four pass, then a write that loses one of them. The last step
+    // makes no tool call, so the run ends with the rollback note in the trace.
+    let provider = Replay::of(vec![
+        writes("component_test.txt", "C\n"),
+        writes("component.txt", "nothing\n"),
+        says("I am done."),
+    ]);
+    let run = doer(&provider, 3).work(&spread_slice(), &mut ws);
+
+    let rolled = run
+        .trace
+        .iter()
+        .find_map(|step| {
+            let text = step.result.clone();
+            text.contains("ROLLED BACK").then_some(text)
+        })
+        .expect("the regression fired");
+    assert!(
+        rolled.contains("component.txt") && rolled.contains("component_test.txt"),
+        "the note names both: {rolled}"
+    );
+    assert_eq!(
+        ws.read("component.txt").unwrap().unwrap(),
+        "A\n",
+        "and the file really went back"
+    );
+}
+
+/// Why the allowance never grew across round eight's floor sweep, as a test
+/// rather than as a reading of the logs.
+///
+/// Patience counts *consecutive* cuts, and a slice that reaches its goal puts
+/// the count back. A task whose slices mostly succeed therefore never reaches
+/// patience, however often it is cut: the floor stops being a starting point
+/// and becomes a hard limit. ADR-0062's growth is built for a model that fails
+/// repeatedly, and a model that fails occasionally never collects it.
+#[test]
+fn a_success_between_two_cuts_means_patience_never_runs_out() {
+    let mut allowance = Allowance::new(steps());
+
+    for _ in 0..5 {
+        assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), None);
+        assert_eq!(allowance.saw(&Outcome::Reached), None);
+    }
+
+    assert_eq!(
+        allowance.now(),
+        12,
+        "five cuts, and the allowance is still the floor"
+    );
+    assert!(!allowance.raised());
+}
+
+// ------------------------------------------------------------- what it spent
+
+/// S5 acceptance 18. The split has to be a number, and for a provider that
+/// bills it has to be money: a CLI agent reports two input tokens on a call
+/// that cost eleven cents, so tokens cannot be converted into the price
+/// (defect 46).
+#[test]
+fn a_run_records_what_each_dispatch_spent() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("still not\n"), write("DONE\n")]);
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+
+    assert_eq!(run.spend.dispatches, 2);
+    assert_eq!(run.spend.prompt_tokens, 200, "100 a turn, as the stub says");
+    assert_eq!(run.spend.output_tokens, 40);
+    assert_eq!(
+        run.spend.cost_usd, None,
+        "a local runtime costs electricity, which is not a number it reports"
+    );
+}
+
+/// `None` and `Some(0.0)` are different answers: one is a provider that does
+/// not bill, the other is a bill of nothing.
+#[test]
+fn a_local_run_has_no_cost_rather_than_a_cost_of_zero() {
+    use corifeu_doer::Spend;
+
+    let local = Spend {
+        dispatches: 3,
+        prompt_tokens: 300,
+        output_tokens: 60,
+        cost_usd: None,
+    };
+    let billed = Spend {
+        dispatches: 1,
+        prompt_tokens: 19_342,
+        output_tokens: 42,
+        cost_usd: Some(0.1145),
+    };
+
+    assert_eq!(local.with(local).cost_usd, None);
+    let together = local.with(billed);
+    assert_eq!(together.cost_usd, Some(0.1145));
+    assert_eq!(together.dispatches, 4);
+}
+
+/// The share is by money where money was spent, because that is the claim the
+/// project makes. Where nothing billed, tokens are the only unit there is.
+#[test]
+fn the_expensive_share_is_measured_in_what_it_charged() {
+    use corifeu_doer::Spend;
+
+    let planner = Spend {
+        dispatches: 2,
+        prompt_tokens: 40_000,
+        output_tokens: 500,
+        cost_usd: Some(0.20),
+    };
+    let coder = Spend {
+        dispatches: 20,
+        prompt_tokens: 60_000,
+        output_tokens: 8_000,
+        cost_usd: None,
+    };
+    let total = planner.with(coder);
+
+    assert_eq!(
+        planner.share_of(total),
+        Some(1.0),
+        "the only money spent was the planner's, whatever the token counts say"
+    );
+
+    let all_local = coder.with(coder);
+    let half = coder.share_of(all_local).expect("tokens are the fallback");
+    assert!((half - 0.5).abs() < 1e-9, "{half}");
+}
+
+/// Defect 52, measured on a hybrid run: ten of twelve steps answered
+/// `no tool call; said: I ran: write_file src/excerpt.ts`. The transcript was
+/// putting one assistant message per past step reading `I ran: <action>`,
+/// which is a worked example of answering in prose sitting in the slot the
+/// model fills next. Nothing in the suite looked at the shape of the
+/// transcript, so the loop was free to teach that.
+#[test]
+fn a_past_step_is_never_shown_as_the_model_answering_in_prose() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    let provider = Replay::of(vec![write("still not\n"), write("DONE\n")]);
+    let run = doer(&provider, 10).work(&slice(), &mut ws);
+    assert_eq!(run.outcome, Outcome::Reached);
+
+    let said = provider.said.borrow();
+    assert!(
+        !said.iter().any(|m| matches!(m, Message::Assistant { .. })),
+        "the context is rebuilt from state every step (ADR-0047), so there is no \
+         assistant turn to reconstruct: {said:#?}"
+    );
+    // The result still has to arrive, or the fix would have cured the lesson
+    // by removing the information.
+    assert!(
+        said.iter().any(|m| match m {
+            Message::Tool { content } =>
+                content.contains("write_file") && content.contains("1 failed"),
+            _ => false,
+        }),
+        "the past step's action and its result both reach the next step: {said:#?}"
+    );
+}
+
+/// Defect 55. The no-tool-call branch skipped the detector entirely, so the
+/// most repeated failure there is — a model answering in prose — was the one
+/// ADR-0050 could not stop. A hybrid run spent all twelve of its steps, ten of
+/// them narrating, and reported `out of steps`: a different diagnosis from
+/// going in circles, and a different fix.
+#[test]
+fn a_model_that_only_talks_is_stopped_by_the_detector_and_not_by_the_clock() {
+    let (root, store) = scratch();
+    let mut ws = Workspace::open(&root, &store).unwrap();
+    ws.write("artefact.txt", "not yet\n", &guard()).unwrap();
+
+    // The script is empty, so every turn is the stuck-model reply.
+    let provider = Replay::of(vec![]);
+    let run = doer(&provider, 30).work(&slice(), &mut ws);
+
+    assert_eq!(run.outcome, Outcome::Looping);
+    assert!(
+        run.steps <= 7,
+        "six strikes, not the whole allowance of thirty: {}",
+        run.steps
     );
 }

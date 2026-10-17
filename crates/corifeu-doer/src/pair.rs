@@ -245,7 +245,7 @@ fn qa_slice(slice: &Slice, round: u32) -> Slice {
              reason — a test that does not compile is broken, not failing.\n\n{}{again}",
             slice.task
         ),
-        artefact: slice.artefact.clone(),
+        artefacts: slice.artefacts.clone(),
         oracle: Oracle {
             expect_cases: None,
             ..slice.oracle.clone()
@@ -262,7 +262,7 @@ fn coder_slice(slice: &Slice, cases: u32) -> Slice {
              them.\n\n{}",
             slice.task
         ),
-        artefact: slice.artefact.clone(),
+        artefacts: slice.artefacts.clone(),
         oracle: Oracle {
             expect_cases: Some(cases),
             ..slice.oracle.clone()
@@ -431,7 +431,7 @@ fn pointless_to_continue(run: &SliceRun) -> bool {
 fn from_plan(planned: &PlannedSlice, timeout: Duration) -> Slice {
     Slice {
         task: planned.task.clone(),
-        artefact: planned.artefact.clone(),
+        artefacts: planned.artefacts.clone(),
         oracle: Oracle {
             argv: planned.oracle.clone(),
             timeout,

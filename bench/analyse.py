@@ -214,6 +214,17 @@ def report(cell):
         fn(c)
 
 
+def steps_by_slice(c):
+    """The prompt fingerprint of each step, keyed by (iteration, slice)."""
+    out = collections.defaultdict(list)
+    for row in c["steps"]:
+        # The column arrived in round nine; a trace without it compares as empty.
+        if len(row) < 10:
+            return {}
+        out[(row[0], row[2])].append(row[8])
+    return out
+
+
 def replay(cells):
     """Whether the same seed produced the same round, cell against cell.
 
@@ -236,6 +247,24 @@ def replay(cells):
     for name, a in zip(names, runs):
         agree = (f"{sum(1 for k in keys if a[k] == b[k]):>{width}}" for b in runs)
         print(f"{name:>{width}}" + "".join(agree))
+
+    # Where the prompts parted, which is a different question from where the
+    # outcomes did: an outcome can survive a changed prompt, and a prompt that
+    # changed is the only thing that can change an outcome under one seed.
+    traces = [steps_by_slice(c) for c in seen]
+    first = {}
+    for key in keys:
+        rows = [t.get(key, []) for t in traces]
+        for step in range(max(len(r) for r in rows)):
+            seen_at = {r[step] if step < len(r) else None for r in rows}
+            if len(seen_at) > 1:
+                first[key] = step + 1
+                break
+    if any(t for t in traces):
+        parted = sorted(first.items(), key=lambda kv: (int(kv[0][0]), kv[0][1]))
+        print(f"\nslice runs whose prompts parted: {len(parted)}")
+        for (iteration, slice_name), step in parted:
+            print(f"  iteration {iteration} {slice_name}: first differing prompt at step {step}")
 
     divergent = [k for k in keys if len({r[k] for r in runs}) > 1]
     print(f"\nslice runs the cells do not all agree on: {len(divergent)}")

@@ -1,0 +1,18 @@
+round:   20261017-002956
+mode:    rank
+task:    f-expr
+host:    192.168.32.1
+models:  qwen3.5-9b
+commit:  2deb379
+suite:   cargo test --lib
+oracle:  22/0 cases ran/passed
+seed:    base=1 (per iteration; 'off' reproduces rounds 1-5)
+block:   1 iteration(s) per model before switching
+driver:  617.42
+runtime: version: 0.7.0-dev (build 11671, commit ba3c05f71)
+temp:    0
+server:  n_ctx=32768 temp=0.0 top_k=20 top_p=0.95 min_p=0.0 build=b11671-ba3c05f71
+spec:    none,draft-mtp
+repeats: default
+steps:   floor=8 ceiling=default
+         patience=default raise_by=default

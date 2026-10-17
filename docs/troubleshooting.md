@@ -57,6 +57,24 @@ Same principle, different address:
 An Ollama reachable over a non-loopback address is **unauthenticated by default**. Do not
 expose it to an untrusted network.
 
+## A local model appears to use its memory twice
+
+A model whose weights are 6 GB can show roughly 7 GB of VRAM **and** roughly 7 GB of private
+host RAM at the same time. Corifeu does not do anything about this and does not warn, because
+nothing in the measurements shows it costing anything: the round still runs at full speed and
+the delivery rate is unaffected.
+
+What it is not: the memory-mapped weights file. That was the first hypothesis and two separate
+measurements rule it out — private bytes sit *above* the working set, and loading with
+`-lm mmap` against `-lm auto` differs by 40 MB rather than by 7 GB. The remaining candidates
+are the loader keeping a host copy of the weights and CUDA pinned staging buffers, and neither
+is confirmed.
+
+**When to care.** One model at a time on a machine with plenty of RAM absorbs the extra copy
+and you will not notice. It matters if you load two models at once, or run something large
+beside the server, and then the symptom is the host swapping rather than the GPU filling.
+Defect 29 in [defects.csv](measurement/defects.csv) carries the measurements.
+
 ## Tool calls never arrive from a local model
 
 Check capability before blaming the prompt:

@@ -1,0 +1,44 @@
+iteration	model	slice	outcome	steps	prompt	output	checks	seconds	allowed
+1	qwen3.5-9b	slice1_tokens	GREEN	4	17951	8616	2	69	30
+1	qwen3.5-9b	slice2_eval	EXHAUSTED	30	126052	11306	7	104	30
+AGAIN	1	qwen3.5-9b	slice2_eval	RED
+TOTAL	1	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=34	prompt=144003	output=19922	checks=9	floor_left=false	minutes=2.9
+FINAL	1	qwen3.5-9b	22/20
+2	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4396	2	33	30
+2	qwen3.5-9b	slice2_eval	EXHAUSTED	30	133175	13541	8	123	30
+AGAIN	2	qwen3.5-9b	slice2_eval	RED
+TOTAL	2	qwen3.5-9b	closed=1/2	overtaken=0	free=0	steps=32	prompt=139501	output=17937	checks=10	floor_left=false	minutes=2.6
+FINAL	2	qwen3.5-9b	22/11
+3	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4352	2	32	30
+3	qwen3.5-9b	slice2_eval	GREEN	2	7311	4379	2	32	30
+TOTAL	3	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=4	prompt=13637	output=8731	checks=4	floor_left=false	minutes=1.1
+FINAL	3	qwen3.5-9b	22/22
+4	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4314	2	32	30
+4	qwen3.5-9b	slice2_eval	GREEN	2	7311	4379	2	32	30
+TOTAL	4	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=4	prompt=13637	output=8693	checks=4	floor_left=false	minutes=1.1
+FINAL	4	qwen3.5-9b	22/22
+5	qwen3.5-9b	slice1_tokens	GREEN	6	28539	6470	3	57	30
+5	qwen3.5-9b	slice2_eval	GREEN	2	7311	4379	2	32	30
+TOTAL	5	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=8	prompt=35850	output=10849	checks=5	floor_left=false	minutes=1.5
+FINAL	5	qwen3.5-9b	22/22
+6	qwen3.5-9b	slice1_tokens	GREEN	3	12114	5114	2	42	30
+6	qwen3.5-9b	slice2_eval	GREEN	2	7311	4371	2	32	30
+TOTAL	6	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=5	prompt=19425	output=9485	checks=4	floor_left=false	minutes=1.2
+FINAL	6	qwen3.5-9b	22/22
+7	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4322	2	32	30
+7	qwen3.5-9b	slice2_eval	GREEN	2	7311	4379	2	32	30
+TOTAL	7	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=4	prompt=13637	output=8701	checks=4	floor_left=false	minutes=1.1
+FINAL	7	qwen3.5-9b	22/22
+8	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4325	2	32	30
+8	qwen3.5-9b	slice2_eval	GREEN	3	13255	6643	3	50	30
+TOTAL	8	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=5	prompt=19581	output=10968	checks=5	floor_left=false	minutes=1.4
+FINAL	8	qwen3.5-9b	22/22
+9	qwen3.5-9b	slice1_tokens	GREEN	2	6326	4318	2	32	30
+9	qwen3.5-9b	slice2_eval	GREEN	6	27599	8942	4	70	30
+TOTAL	9	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=8	prompt=33925	output=13260	checks=6	floor_left=false	minutes=1.7
+FINAL	9	qwen3.5-9b	22/22
+10	qwen3.5-9b	slice1_tokens	GREEN	3	12118	6276	2	57	30
+10	qwen3.5-9b	slice2_eval	GREEN	6	30952	9046	4	73	30
+TOTAL	10	qwen3.5-9b	closed=2/2	overtaken=0	free=0	steps=9	prompt=43070	output=15322	checks=6	floor_left=false	minutes=2.2
+FINAL	10	qwen3.5-9b	22/22
+ROUND COMPLETE

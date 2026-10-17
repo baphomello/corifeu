@@ -27,6 +27,11 @@ pub struct Task {
     pub name: String,
     /// The one file every slice edits.
     pub artefact: String,
+    /// Every file a slice is about, when it is more than the one above. A task
+    /// that leaves it out is a single-artefact task, which is every task
+    /// before S4.
+    #[serde(default)]
+    pub artefacts: Vec<String>,
     /// The per-slice check, with `{module}` standing in for the slice's module.
     pub oracle: Vec<String>,
     /// Every case the task has, for the row measured after a round is scored.
@@ -104,7 +109,11 @@ impl Task {
         let slice = self.at(at);
         Slice {
             task,
-            artefact: self.artefact.clone(),
+            artefacts: if self.artefacts.is_empty() {
+                vec![self.artefact.clone()]
+            } else {
+                self.artefacts.clone()
+            },
             oracle: Oracle {
                 argv: self
                     .oracle
@@ -214,13 +223,21 @@ pub fn write_steps(work: &Path, iteration: &str, model: &str, module: &str, role
         return;
     };
     for step in &run.trace {
+        // The prompt that produced this step, so two rounds can be compared on
+        // what the model was shown rather than only on what it did. A step
+        // without one is a step the loop recorded without dispatching.
+        let prompt = run
+            .prompts
+            .get(step.number.saturating_sub(1) as usize)
+            .map_or_else(|| "-".to_string(), |h| format!("{h:016x}"));
         let _ = writeln!(
             file,
-            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}\t{}",
+            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}\t{}\t{}",
             step.number,
             step.action.tool,
             one_line(&step.action.argument),
             flags(&step.result),
+            prompt,
             one_line(&step.outcome),
         );
     }

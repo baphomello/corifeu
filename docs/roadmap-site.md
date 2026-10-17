@@ -33,13 +33,13 @@ reading the output.
 | S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
 | S2 · `corifeu run`, one file | the first real use | **5 ✅** |
 | S3 · Measured on TypeScript | whether the plan survives | **3 ✅** |
-| S4 · A slice that touches several files | a feature instead of a function | 4 |
-| S5 · Hybrid roles, cost measured | the project's actual claim | 3 |
-| S6 · The planner cuts a brief | writing in Portuguese instead of JSON | 2 |
+| S4 · A slice that touches several files | a feature instead of a function | **4 ✅** |
+| S5 · Hybrid roles, cost measured | the project's actual claim | **3 ✅** |
+| S6 · The planner cuts a brief | writing in Portuguese instead of JSON | **2 ✅** |
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 12 of 24** — S1, S2 and S3 complete.
+**Today: 21 of 24** — S1 to S6 complete. What is left is the site itself.
 
 ---
 
@@ -166,6 +166,32 @@ prompt pins the artefact, the guard classifies by it, and the checkpoint stores 
 **Deliverable.** A slice that carries a set of artefacts, through the prompt, the guard and the
 checkpoint.
 
+**13, 14 and 15 done**, 2026-10-17. The field was the easy half. The checkpoint was keyed by
+path, and a case count is a property of the *combination*: restoring a test to a state that
+scored nine, beside a component it never saw, is a state nothing measured. `Workspace::stage`
+names the slice's files, a write to any of them saves all of them, and a restore puts all of
+them back.
+
+Two things worth keeping. First, **staging is not permission** —
+[ADR-0058](adr/0058-slice-boundaries-are-observed.md) keeps slice boundaries observed rather
+than enforced, so the file class still decides what a role may write and naming two files
+grants no third. Second, the tests caught the prompt still telling a doer holding two files
+that it was *"changing one file"*, which was the runtime lying to the model about its own task.
+
+**16 done**, 2026-10-17, on the second brief — [s4-live](measurement/s4-live/README.md).
+Two artefacts in one slice, oracle green in three steps, 19 of 19 on its own suite and **10 of
+10 on a held-out suite it never saw**.
+
+The first run is the one worth reading. Same model, same seed, same limits, and a brief that
+did not say what unit the argument was in. It wrote both artefacts and did not go green: the
+oracle read 10 of 12 and the slice ran out of steps.
+
+The two failures were the model's **own tests**, which confused centavos with reais while the
+implementation got it right. The held-out suite it never saw passes 10 of 10 against the code
+exactly as written. So the code was correct, the oracle it wrote for itself was not, and
+nothing inside the run could tell the difference — which is what `corifeu doctor`'s
+self-authorship warning is worth, measured. Defects 52 and 53.
+
 **Acceptance.**
 13. A slice naming two files has both pinned into every step, read fresh from disk.
 14. A write to either is allowed and a write to a third file is denied.
@@ -188,12 +214,54 @@ leave the expensive model.
 
 **Deliverable.** Roles bound to different providers, and a round that records the split.
 
+**Half of 17 done**, 2026-10-17 — [s5-cli](measurement/s5-cli/README.md). `corifeu run`
+drives a `kind: cli` provider for the first time: version detected and reported, the slice
+green in two steps, and the spend table carrying **$0.1796** of real money.
+
+Three things that run settled without being asked. The allowlist refused the expensive model's
+`find` and named what was permitted, which is ADR-0037 holding against a much better model than
+it has ever faced. The metering fix is proved: the table reads 44,841 prompt tokens where
+`usage.input_tokens` said 2. And the cost per dispatch held at $0.0898, which keeps the design
+consequence — the expensive role is called a few times, never twenty.
+
+**Done**, 2026-10-17 — [s5-hybrid](measurement/s5-hybrid/README.md). `corifeu build` plans with
+one provider and codes with another in one process. Nine passes of the same three-slice feature,
+**seven delivered every slice**, and the split is a number: the expensive planner is **100% of
+the money and 25–85% of the tokens**, a range and not a figure, because the planner's own cost
+is roughly fixed and the doers' is what varies.
+
+Four defects, and the two that cost a slice were both Corifeu's. **Defect 52 was already written
+down and still unfixed**: the context built one assistant message per past step reading
+`I ran: <action>`, and the model copied it — ten of twelve steps in one pass answered in prose,
+one of them `I ran: say`. Beside it, defect 55: a turn that called no tool never reached the loop
+detector, so the most repeated failure there is was the one ADR-0050 could not stop. Neither was
+visible to a suite of 280 tests; both now have one that goes red without the fix.
+
+The command itself was wrong in two ways a reader of the ADRs would catch. It took
+`steps.floor` for every slice, leaving `ceiling`, `patience` and `raise_by` inert — the same gap
+S2 found, in the command written to close it. And it stopped at the first red slice, which is
+exactly what [ADR-0063](adr/0063-an-unfinished-slice-is-asked-again.md) measured and replaced.
+Fixing the first made **ADR-0062's growth fire for the first time in any round**: a slice out of
+steps at twelve, the allowance grown to eighteen, green in two more.
+
+One thing the round settled that was not the point. The local model's `postPath` passes 10 of 10
+and puts a post dated the first of a month in the previous month, because `new Date` parses UTC
+and `getMonth` reads local. The expensive model in the s5-cli probe wrote NFKD normalisation
+nobody asked for. **The expensive model answered past its oracle and the local one answered up
+to it** — which is the hybrid claim from both sides, and says the oracle has to be better than
+either.
+
 **Acceptance.**
 17. One task runs with a planner on an expensive provider and a coder on a local one, both
-    declared in `corifeu.yaml`.
-18. The run record carries **tokens per role and per provider**, so the split is a number.
+    declared in `corifeu.yaml`. ✅
+18. The run record carries **tokens per role and per provider**, so the split is a number. ✅
 19. A feature is delivered end to end this way in a scratch repository, with the expensive
-    model's share reported.
+    model's share reported. ✅
+
+**What is not met, and matters for S7.** The planner takes no seed and the CLI chose a different
+number of internal turns on identical input, so a hybrid round is not replayable across the
+planner the way [ADR-0066](adr/0066-a-round-is-replayable-or-it-is-an-anecdote.md) now holds for
+the local side. The plan's wording differed on every pass.
 
 **What would say the claim is weaker than hoped.** The expensive model's share staying high
 because local coders keep failing and the plan keeps being revised. That is a measurement, not a
@@ -209,12 +277,25 @@ a task that a doer then worked.
 
 **Deliverable.** A brief in plain language becoming a plan that doers work unedited.
 
-**Acceptance.**
-20. A brief in Portuguese produces a plan with one oracle per slice, and the oracles run.
-21. That plan is worked end to end with **no hand editing between planning and coding**.
+**Done**, 2026-10-17, by the same run as S5 — [s5-hybrid](measurement/s5-hybrid/README.md). The
+planner had never cut up a task a doer then worked; it has now done so nine times from a
+three-sentence brief in Portuguese, written as a product request rather than as a
+decomposition. Every plan came back with three slices, one oracle each, each oracle narrowing
+the permitted command to its own test file, and `Plan::check` had nothing to reject. No plan was
+edited: one process plans and codes.
 
-**What would say stop.** Plans that need editing every time. Then the planner's output becomes a
-draft a human approves, which is a smaller claim and still useful.
+Two things a reader should know before taking this as "the planner can decompose". The brief
+came with a `context` block naming the files, the signatures and the test runner — which is what
+`Brief.context` is for, and it means the planner was told the layout rather than asked to
+discover it. And the three test files were written by hand before the round, so the planner was
+not deciding what *done* means. S7's criterion 24 is where both of those stop being true.
+
+**Acceptance.**
+20. A brief in Portuguese produces a plan with one oracle per slice, and the oracles run. ✅
+21. That plan is worked end to end with **no hand editing between planning and coding**. ✅
+
+**What would have said stop.** Plans that need editing every time. None did, across nine
+passes.
 
 ---
 

@@ -128,6 +128,13 @@ pub fn run(
     let mut child = std::process::Command::new(&command.program)
         .args(&command.args)
         .current_dir(working_dir)
+        // A runner that spreads cases over threads reports them in the order
+        // they finish, and that text goes into the next step's prompt. Set here
+        // rather than in the oracle's argv: a doer is shown the command it is
+        // judged by, and one carrying `-- --test-threads=1` reads as something
+        // to run — measured, five times in one round.
+        .env("RUST_TEST_THREADS", "1")
+        .env("GOMAXPROCS", "1")
         // Without this a command that reads input waits for a terminal that is
         // not there, and the deadline becomes the only thing that ends it.
         .stdin(Stdio::null())
@@ -166,10 +173,137 @@ pub fn run(
         // `None` means killed rather than exited, which is also what a signal
         // produces. `timed_out` says which.
         exit_status: status.and_then(|s| s.code()),
-        output: stdout + &stderr,
+        output: settled(&(stdout + &stderr), &scratch(working_dir)),
         elapsed: started.elapsed(),
         timed_out,
     })
+}
+
+/// Everything that has to leave a check's output before it becomes the next
+/// step's prompt.
+///
+/// Three things vary between two runs of one unchanged crate, and round nine
+/// found them by dumping the prompts and diffing them rather than by reasoning
+/// about the code:
+///
+/// - how long it took, which [`steady`] replaces;
+/// - the OS thread a panicking test ran on, printed as
+///   `thread 'name' (186718) panicked`;
+/// - the absolute path of the workspace, which carries the round's own
+///   directory name and so differs by construction between two rounds.
+///
+/// The path is also noise for the model: it is being asked about a file it can
+/// see, in a directory it cannot leave.
+pub fn settled(output: &str, scratch: &[String]) -> String {
+    let mut out = threads(&steady(output));
+    // Longest first: a target directory inside the workspace would otherwise
+    // be half-replaced by the workspace's own prefix.
+    let mut paths: Vec<&String> = scratch.iter().filter(|p| !p.is_empty()).collect();
+    paths.sort_by_key(|p| std::cmp::Reverse(p.len()));
+    for path in paths {
+        out = out.replace(path.as_str(), ".");
+    }
+    out
+}
+
+/// The absolute paths a round's own layout puts into a tool's output.
+///
+/// The workspace is one. The other is `CARGO_TARGET_DIR`, which
+/// `bench/run.sh` points outside the workspace so two iterations cannot share
+/// a test binary — a good reason that also puts the round's directory name
+/// into `Running unittests src/lib.rs (<there>)`, and so into the next step's
+/// prompt. Round nine found this one last, after the dump showed it was the
+/// only difference left.
+fn scratch(working_dir: &Path) -> Vec<String> {
+    let mut paths = vec![working_dir.to_string_lossy().into_owned()];
+    for key in ["CARGO_TARGET_DIR", "GOCACHE", "GOPATH"] {
+        if let Some(value) = std::env::var_os(key) {
+            paths.push(value.to_string_lossy().into_owned());
+        }
+    }
+    paths
+}
+
+/// `thread 'x' (186718) panicked` → `thread 'x' (T) panicked`.
+///
+/// Only after `thread '...' `, because a parenthesised number anywhere else is
+/// as likely to be a count the model needs.
+fn threads(output: &str) -> String {
+    let mut out = String::with_capacity(output.len());
+    let mut rest = output;
+    while let Some(at) = rest.find("thread '") {
+        let (before, from) = rest.split_at(at);
+        out.push_str(before);
+        let Some(close) = from.find("' (") else {
+            out.push_str(from);
+            return out;
+        };
+        let after = &from[close + 3..];
+        let digits = after
+            .find(|c: char| !c.is_ascii_digit())
+            .unwrap_or(after.len());
+        if digits == 0 || !after[digits..].starts_with(')') {
+            out.push_str(&from[..close + 3]);
+            rest = after;
+            continue;
+        }
+        out.push_str(&from[..close + 3]);
+        out.push('T');
+        rest = &after[digits..];
+    }
+    out.push_str(rest);
+    out
+}
+
+/// The same output for the same code, so a seeded round can be replayed.
+///
+/// A check's output goes into the next step's prompt, and every test runner
+/// prints how long it took. Two runs of one unchanged crate differ by
+/// `Finished ... in 0.22s` against `in 0.13s`, which is enough to change a
+/// token under greedy decoding and every token after it. Round eight measured
+/// the consequence: two passes of one configuration at one seed agreed on 6
+/// slice runs out of 10, with speculative decoding off.
+///
+/// A duration is never something the model needs. The wall clock a round
+/// reports comes from `elapsed`, which is measured here and not parsed back
+/// out of the text.
+pub fn steady(output: &str) -> String {
+    let mut out = String::with_capacity(output.len());
+    let mut rest = output;
+    // `in <number>s`, `in <number>ms` and the bare `<number>ms` vitest prints,
+    // matched by hand rather than by a regex crate: this runs on every check of
+    // every step and the grammar is three shapes wide.
+    while let Some(at) = rest.find(|c: char| c.is_ascii_digit()) {
+        let (before, from) = rest.split_at(at);
+        let digits = from
+            .find(|c: char| !c.is_ascii_digit() && c != '.')
+            .unwrap_or(from.len());
+        let (number, after) = from.split_at(digits);
+        // A unit the number is glued to, and the unit has to end the word: it
+        // keeps `189ms` and `0.22s` and leaves a test named `takes_1step`
+        // alone.
+        let unit = ["ms", "s"].into_iter().find(|u| {
+            after.strip_prefix(u).is_some_and(|tail| {
+                tail.chars()
+                    .next()
+                    .is_none_or(|c| !c.is_alphanumeric() && c != '_')
+            })
+        });
+        match unit {
+            Some(unit) => {
+                out.push_str(before);
+                out.push_str("Xs");
+                rest = &after[unit.len()..];
+            }
+            _ => {
+                out.push_str(before);
+                out.push_str(number);
+                rest = after;
+            }
+        }
+    }
+    out.push_str(rest);
+    out
 }
 
 fn drain<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::JoinHandle<String> {
@@ -180,4 +314,171 @@ fn drain<R: Read + Send + 'static>(stream: Option<R>) -> std::thread::JoinHandle
         }
         String::from_utf8_lossy(&buffer).into_owned()
     })
+}
+
+#[cfg(test)]
+mod steady_tests {
+    use super::steady;
+
+    /// The line that made a seeded round unreplayable. Two runs of one
+    /// unchanged crate print different compile times, and the text goes into
+    /// the next step's prompt.
+    #[test]
+    fn two_cargo_runs_of_one_crate_read_the_same() {
+        let first = "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.22s";
+        let second = "    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s";
+        assert_eq!(steady(first), steady(second));
+    }
+
+    #[test]
+    fn a_test_summary_keeps_every_count_it_carries() {
+        let line = "test result: ok. 22 passed; 0 failed; 3 ignored; 0 measured; \
+                    0 filtered out; finished in 0.16s";
+        let steadied = steady(line);
+        assert!(steadied.contains("22 passed"), "{steadied}");
+        assert!(steadied.contains("3 ignored"), "{steadied}");
+        assert!(steadied.contains("0 filtered out"), "{steadied}");
+        assert!(
+            !steadied.contains("0.16"),
+            "the duration is gone: {steadied}"
+        );
+    }
+
+    /// vitest prints milliseconds, and prints them without `in` in front.
+    #[test]
+    fn vitest_durations_go_too() {
+        let a = "   Duration  189ms (transform 20ms, collect 20ms, tests 3ms)";
+        let b = "   Duration  205ms (transform 24ms, collect 18ms, tests 4ms)";
+        assert_eq!(steady(a), steady(b));
+    }
+
+    #[test]
+    fn a_vitest_summary_keeps_its_counts() {
+        let steadied = steady("Tests  1 failed | 2 passed | 1 skipped (5)");
+        assert_eq!(steadied, "Tests  1 failed | 2 passed | 1 skipped (5)");
+    }
+
+    /// A number that is not a duration is information. Case counts, byte
+    /// counts, line numbers and versions all have to survive.
+    #[test]
+    fn numbers_that_are_not_durations_survive() {
+        for line in [
+            "pytest: 26 passed",
+            "wrote 8001 bytes to src/pathclass.ts",
+            "error[E0308]: mismatched types at src/lib.rs:42:17",
+            "Compiling f-expr v0.0.0",
+            "0 passed; 26 failed",
+        ] {
+            assert_eq!(steady(line), line, "changed: {line}");
+        }
+    }
+
+    #[test]
+    fn output_with_no_numbers_at_all_is_untouched() {
+        let text = "thread 'main' panicked at src/lib.rs\nnot done yet\n";
+        assert_eq!(steady(text), text);
+    }
+}
+
+#[cfg(test)]
+mod env_tests {
+    use crate::{Allowlist, Command, run};
+    use std::time::Duration;
+
+    /// The ordering half of defect 49, and the reason it is set here rather
+    /// than in the oracle's argv: a doer is shown the command it is judged by,
+    /// and one ending in `-- --test-threads=1` reads as something to run. It
+    /// did, five times in one round.
+    #[test]
+    fn a_child_is_told_to_run_its_cases_on_one_thread() {
+        let argv = ["/usr/bin/env".to_string()];
+        let command = Command::from_argv(&argv).expect("env is a program");
+        let observed = run(
+            &command,
+            std::path::Path::new("/tmp"),
+            Duration::from_secs(10),
+            &Allowlist::new([argv.to_vec()]),
+        )
+        .expect("env runs");
+
+        assert!(
+            observed.output.contains("RUST_TEST_THREADS=1"),
+            "the child sees it: {}",
+            observed.output
+        );
+    }
+}
+
+#[cfg(test)]
+mod settled_tests {
+    use super::settled;
+    /// The two sources round nine found by diffing dumped prompts. Both were
+    /// invisible in the step trace, which records only the first line.
+    #[test]
+    fn two_runs_of_one_failing_suite_read_the_same() {
+        let line = |pid: &str, dir: &str| {
+            format!(
+                "thread 'slice1_tokens::parens' ({pid}) panicked at src/lib.rs:140:9\n   \
+                 Compiling exprs v0.0.0 ({dir}/work/m/2)\n    Finished `test` profile in 0.13s\n"
+            )
+        };
+        let first = settled(&line("186718", "/rounds/V"), &["/rounds/V".to_string()]);
+        let second = settled(&line("187944", "/rounds/W"), &["/rounds/W".to_string()]);
+        assert_eq!(first, second);
+        assert!(first.contains("(T)"), "{first}");
+        assert!(first.contains("(./work/m/2)"), "{first}");
+    }
+
+    /// A parenthesised number that is not a thread id is information.
+    #[test]
+    fn a_count_in_parentheses_survives() {
+        let line = "Tests  1 failed | 2 passed (3)";
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
+    }
+
+    #[test]
+    fn a_panic_line_without_a_thread_id_is_left_alone() {
+        let line = "thread 'main' panicked at src/lib.rs:7:1";
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
+    }
+
+    /// The assertion text is the whole value of a failing run to the model.
+    #[test]
+    fn what_the_test_actually_reported_is_untouched() {
+        let line = "assertion `left == right` failed\n  left: Some([\"20\", \"*\", \"\"])\n \
+                    right: Some([\"120\", \"*\", \"3\"])";
+        assert_eq!(settled(line, &["/nowhere".to_string()]), line);
+    }
+}
+
+#[cfg(test)]
+mod scratch_tests {
+    use super::settled;
+
+    /// The one difference left after the thread ids and the durations went.
+    /// `bench/run.sh` points CARGO_TARGET_DIR outside the workspace so two
+    /// iterations cannot share a test binary, which also puts the round's own
+    /// directory name in front of the model.
+    #[test]
+    fn a_target_directory_outside_the_workspace_is_elided_too() {
+        let line = |round: &str| {
+            format!("     Running unittests src/lib.rs ({round}/target/m/5/debug/deps/exprs-ba37)")
+        };
+        let paths = |round: &str| vec![format!("{round}/work/m/5"), format!("{round}/target")];
+        assert_eq!(
+            settled(&line("/r/Y"), &paths("/r/Y")),
+            settled(&line("/r/Z"), &paths("/r/Z"))
+        );
+    }
+
+    /// Longest first, or the workspace prefix eats the start of a target
+    /// directory nested inside it and leaves the rest.
+    #[test]
+    fn a_nested_path_is_replaced_whole() {
+        let out = settled(
+            "wrote /repo/target/debug/x and read /repo/src/a.rs",
+            &["/repo".to_string(), "/repo/target".to_string()],
+        );
+        assert_eq!(out, "wrote ./debug/x and read ./src/a.rs");
+    }
 }

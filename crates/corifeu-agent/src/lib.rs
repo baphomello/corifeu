@@ -151,19 +151,14 @@ impl Default for Window {
 }
 
 impl Window {
-    /// Build this step's context. `artefact` is read by the caller immediately
-    /// before this call — it is never carried over from the previous step,
-    /// which is the whole point.
-    pub fn build(
-        &self,
-        contract: &Contract,
-        artefact: Option<Artefact>,
-        trace: &[Step],
-    ) -> Context {
+    /// Build this step's context. `artefacts` are read by the caller
+    /// immediately before this call — they are never carried over from the
+    /// previous step, which is the whole point.
+    pub fn build(&self, contract: &Contract, artefacts: Vec<Artefact>, trace: &[Step]) -> Context {
         let split = trace.len().saturating_sub(self.recent);
         Context {
             contract: contract.clone(),
-            artefact,
+            artefacts,
             compacted: trace[..split].iter().map(Step::compacted).collect(),
             recent: trace[split..].to_vec(),
         }
@@ -174,7 +169,10 @@ impl Window {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Context {
     pub contract: Contract,
-    pub artefact: Option<Artefact>,
+    /// Every file the slice is about, pinned in full on every step. A slice
+    /// that names a component and its test has to show both, because a change
+    /// to one is only correct against the other (S4).
+    pub artefacts: Vec<Artefact>,
     /// One line per step that has fallen out of the window.
     pub compacted: Vec<String>,
     pub recent: Vec<Step>,

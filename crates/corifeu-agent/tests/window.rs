@@ -35,14 +35,14 @@ fn trace(steps: u32) -> Vec<Step> {
 #[test]
 fn the_artefact_survives_a_window_that_has_evicted_everything_else() {
     let long_run = trace(28);
-    let context = Window { recent: 3 }.build(&contract(), Some(artefact(9_570)), &long_run);
+    let context = Window { recent: 3 }.build(&contract(), vec![artefact(9_570)], &long_run);
 
     assert_eq!(context.recent.len(), 3);
     assert_eq!(context.compacted.len(), 25);
 
-    let pinned = context
-        .artefact
-        .expect("the file being edited is always present");
+    let [pinned] = &context.artefacts[..] else {
+        panic!("the file being edited is always present");
+    };
     assert_eq!(pinned.body.len(), 9_570, "and it is always whole");
 }
 
@@ -55,7 +55,7 @@ fn the_pinned_file_says_it_is_current_so_the_doer_does_not_check() {
 
 #[test]
 fn older_steps_are_replaced_by_one_line_rather_than_dropped() {
-    let context = Window { recent: 2 }.build(&contract(), None, &trace(5));
+    let context = Window { recent: 2 }.build(&contract(), Vec::new(), &trace(5));
 
     assert_eq!(context.compacted.len(), 3);
     assert_eq!(
@@ -72,15 +72,15 @@ fn older_steps_are_replaced_by_one_line_rather_than_dropped() {
 
 #[test]
 fn a_short_run_compacts_nothing() {
-    let context = Window::default().build(&contract(), None, &trace(2));
+    let context = Window::default().build(&contract(), Vec::new(), &trace(2));
     assert!(context.compacted.is_empty());
     assert_eq!(context.recent.len(), 2);
 }
 
 #[test]
 fn the_contract_does_not_move_with_the_window() {
-    let early = Window::default().build(&contract(), None, &trace(1));
-    let late = Window::default().build(&contract(), None, &trace(200));
+    let early = Window::default().build(&contract(), Vec::new(), &trace(1));
+    let late = Window::default().build(&contract(), Vec::new(), &trace(200));
     assert_eq!(early.contract, late.contract);
     assert_eq!(late.contract.acceptance, "cargo test --lib slice2_seg");
 }

@@ -32,6 +32,15 @@ pub enum Error {
 
     #[error("could not read the reply as JSON: {0}")]
     Json(#[from] serde_json::Error),
+
+    /// A provider that is a subprocess rather than an endpoint. Separate from
+    /// [`Error::Shape`] because a CLI that is missing, unauthenticated or
+    /// killed produced no reply to be the wrong shape.
+    #[error("{runtime} could not be run: {detail}")]
+    Process {
+        runtime: &'static str,
+        detail: String,
+    },
 }
 
 /// One message in the context the loop rebuilds each step (ADR-0047).
@@ -177,6 +186,75 @@ pub struct Turn {
     pub prompt_tokens: u32,
     pub output_tokens: u32,
     pub speed: Option<Speed>,
+    /// What this turn cost, where the provider bills and says so.
+    ///
+    /// `None` for a local runtime, which costs electricity and not money.
+    /// Carried next to the token counts rather than derived from them, because
+    /// a CLI agent reports two input tokens on a call that cost eleven cents
+    /// (defect 46) — the tokens cannot be turned into the price.
+    pub cost_usd: Option<f64>,
+}
+
+/// What a run cost, in the two units that are not interchangeable.
+///
+/// ADR-0031 shows the user a saving, and the saving is only honest if the
+/// expensive side is counted in what it actually charges. A CLI agent reports
+/// two input tokens on a call that costs eleven cents, because its own context
+/// arrives as cache reads (defect 46), so tokens and money are recorded side
+/// by side and neither is derived from the other.
+#[derive(Debug, Clone, Copy, Default, PartialEq)]
+pub struct Spend {
+    pub dispatches: u32,
+    pub prompt_tokens: u32,
+    pub output_tokens: u32,
+    /// Summed only over the turns that reported one. A run with no billed
+    /// turns has `None`, which is different from a run that cost nothing.
+    pub cost_usd: Option<f64>,
+}
+
+impl Spend {
+    pub fn saw(&mut self, turn: &Turn) {
+        self.dispatches += 1;
+        self.prompt_tokens += turn.prompt_tokens;
+        self.output_tokens += turn.output_tokens;
+        if let Some(cost) = turn.cost_usd {
+            self.cost_usd = Some(self.cost_usd.unwrap_or(0.0) + cost);
+        }
+    }
+
+    /// What this and `other` spent together, for adding up the roles that
+    /// worked one task.
+    pub fn with(self, other: Spend) -> Spend {
+        Spend {
+            dispatches: self.dispatches + other.dispatches,
+            prompt_tokens: self.prompt_tokens + other.prompt_tokens,
+            output_tokens: self.output_tokens + other.output_tokens,
+            cost_usd: match (self.cost_usd, other.cost_usd) {
+                (None, None) => None,
+                (a, b) => Some(a.unwrap_or(0.0) + b.unwrap_or(0.0)),
+            },
+        }
+    }
+
+    /// This run's share of a total, by money where money was spent and by
+    /// tokens where it was not.
+    pub fn share_of(&self, total: Spend) -> Option<f64> {
+        match (self.cost_usd, total.cost_usd) {
+            (Some(mine), Some(all)) if all > 0.0 => Some(mine / all),
+            _ => self.token_share_of(total),
+        }
+    }
+
+    /// This run's share of a total counted in tokens alone.
+    ///
+    /// Reported next to [`Spend::share_of`] rather than instead of it. In a
+    /// hybrid run the two disagree by design: the planner can be every cent
+    /// spent and a twentieth of the tokens, and either figure on its own
+    /// invites the wrong conclusion about where the work went.
+    pub fn token_share_of(&self, total: Spend) -> Option<f64> {
+        let all = total.prompt_tokens + total.output_tokens;
+        (all > 0).then(|| f64::from(self.prompt_tokens + self.output_tokens) / f64::from(all))
+    }
 }
 
 /// One turn, from whichever runtime.

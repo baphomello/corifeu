@@ -146,11 +146,13 @@ dependencies = [
  "clap",
  "corifeu-agent",
  "corifeu-check",
+ "corifeu-cliagent",
  "corifeu-config",
  "corifeu-doer",
  "corifeu-exec",
  "corifeu-llamacpp",
  "corifeu-ollama",
+ "corifeu-planner",
  "corifeu-provider",
  "corifeu-workspace",
  "serde_json",
@@ -179,6 +181,14 @@ dependencies = [
 [[package]]
 name = "corifeu-check"
 version = "0.0.0"
+
+[[package]]
+name = "corifeu-cliagent"
+version = "0.0.0"
+dependencies = [
+ "corifeu-provider",
+ "serde_json",
+]
 
 [[package]]
 name = "corifeu-config"

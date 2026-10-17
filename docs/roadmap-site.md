@@ -33,13 +33,13 @@ reading the output.
 | S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
 | S2 · `corifeu run`, one file | the first real use | **5 ✅** |
 | S3 · Measured on TypeScript | whether the plan survives | **3 ✅** |
-| S4 · A slice that touches several files | a feature instead of a function | 4 |
+| S4 · A slice that touches several files | a feature instead of a function | **3** of 4 |
 | S5 · Hybrid roles, cost measured | the project's actual claim | 3 |
 | S6 · The planner cuts a brief | writing in Portuguese instead of JSON | 2 |
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 12 of 24** — S1, S2 and S3 complete.
+**Today: 15 of 24** — S1, S2 and S3 complete, S4 at three of four.
 
 ---
 
@@ -165,6 +165,24 @@ prompt pins the artefact, the guard classifies by it, and the checkpoint stores 
 
 **Deliverable.** A slice that carries a set of artefacts, through the prompt, the guard and the
 checkpoint.
+
+**13, 14 and 15 done**, 2026-10-17. The field was the easy half. The checkpoint was keyed by
+path, and a case count is a property of the *combination*: restoring a test to a state that
+scored nine, beside a component it never saw, is a state nothing measured. `Workspace::stage`
+names the slice's files, a write to any of them saves all of them, and a restore puts all of
+them back.
+
+Two things worth keeping. First, **staging is not permission** —
+[ADR-0058](adr/0058-slice-boundaries-are-observed.md) keeps slice boundaries observed rather
+than enforced, so the file class still decides what a role may write and naming two files
+grants no third. Second, the tests caught the prompt still telling a doer holding two files
+that it was *"changing one file"*, which was the runtime lying to the model about its own task.
+
+**16 is not met yet.** The mechanism is proven by
+`a_file_and_its_test_change_in_one_slice` — two files, one slice, oracle green — but with text
+files in a unit test. The criterion says *a component and its test*, and this roadmap is about
+a real site, so it stays open until `corifeu run` closes it against a Node project with a
+held-out suite judging the result.
 
 **Acceptance.**
 13. A slice naming two files has both pinned into every step, read fresh from disk.

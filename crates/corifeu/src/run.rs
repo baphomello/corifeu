@@ -124,6 +124,23 @@ pub fn ensure_runtimes(config: &Config, roles: &[&str]) -> Result<Vec<Runtime>, 
             Found::Already => println!("runtime: {name} already answering at {base}"),
             Found::Started => println!("runtime: {name} started at {base}"),
         }
+        // A crash leaves a runtime nobody is tracking. The lock recorded its
+        // pid, so this names the number instead of leaving it to be found in
+        // a task manager, which is how two servers lived on one machine.
+        if let Some(orphan) = runtime.orphan() {
+            match orphan.answering {
+                true => println!(
+                    "runtime: an earlier corifeu left pid {} at {base} and never stopped it; \
+                     this run adopted it",
+                    orphan.pid
+                ),
+                false => eprintln!(
+                    "warning: an earlier corifeu left pid {} at {base}, it answers nothing, \
+                     and it is still holding whatever it loaded. Stop it.",
+                    orphan.pid
+                ),
+            }
+        }
         held.push(runtime);
     }
     Ok(held)
@@ -236,6 +253,17 @@ pub struct Ask<'a> {
     pub task: &'a str,
     pub artefacts: &'a [String],
     pub oracle: &'a str,
+    /// Extra arguments that narrow the declared oracle to this slice.
+    ///
+    /// A whole-project suite is the wrong judge of one component: it is red
+    /// for work that is not this slice's, and a doer told to make it green
+    /// has no move that would. Measured — a doer wrote a correct component on
+    /// its first step, read the suite's failures, said out loud that they
+    /// belonged to other components, and then spent the rest of the turn
+    /// running the check again. `corifeu build` gets this from the planner,
+    /// which names a narrowed command per slice; `corifeu run` had no way to
+    /// say it at all.
+    pub only: &'a [String],
     pub role: &'a str,
     pub expect_cases: Option<u32>,
     pub root: &'a Path,
@@ -322,7 +350,7 @@ pub fn run(config: &Config, ask: Ask<'_>) -> ExitCode {
         task: ask.task.to_string(),
         artefacts: ask.artefacts.to_vec(),
         oracle: Oracle {
-            argv: declared.command.clone(),
+            argv: [declared.command.clone(), ask.only.to_vec()].concat(),
             timeout: Duration::from_secs(u64::from(declared.timeout_s)),
             expect_cases: ask.expect_cases,
         },

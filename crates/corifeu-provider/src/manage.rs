@@ -18,7 +18,16 @@
 //! **The lock.** The probe loses a race: two `corifeu` processes can both find
 //! nothing and both start a server. The lock is a file named after the
 //! endpoint, created exclusively, carrying the pid of the Corifeu that holds
-//! it. A lock whose owner is gone is stale and gets taken.
+//! it **and the pid of the runtime it started**. A lock whose owner is gone is
+//! stale and gets taken.
+//!
+//! The second pid is what turns a crash into something Corifeu can talk about.
+//! A run that dies without stopping its runtime leaves a process nobody is
+//! tracking, and the next run can only guess whether the thing answering at
+//! that address is a colleague's server or its own leak. With the pid written
+//! down it does not guess: a stale lock whose runtime is still alive is
+//! Corifeu's own orphan, and it says so by pid instead of leaving it to the
+//! task manager.
 //!
 //! # Why stopping takes a command
 //!
@@ -71,6 +80,47 @@ pub enum Error {
     },
 }
 
+/// What the lock file says: who holds it, and what they started.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub struct Held {
+    /// The corifeu that took the lock.
+    pub owner: u32,
+    /// The process it spawned, where that process is its own child. Absent
+    /// where the runtime is reached through a launcher, which exits at once
+    /// and leaves a pid that means nothing.
+    pub runtime: Option<u32>,
+}
+
+impl Held {
+    /// `owner runtime`, or `owner -` when the runtime is nobody's child. Two
+    /// numbers and a space: the file is read by the next run and by a person
+    /// with `cat`, and both deserve to manage without a parser.
+    pub fn write(&self) -> String {
+        match self.runtime {
+            Some(pid) => format!("{} {pid}", self.owner),
+            None => format!("{} -", self.owner),
+        }
+    }
+
+    pub fn read(text: &str) -> Option<Self> {
+        let mut parts = text.split_whitespace();
+        let owner = parts.next()?.parse().ok()?;
+        let runtime = parts.next().and_then(|p| p.parse().ok());
+        Some(Self { owner, runtime })
+    }
+}
+
+/// A runtime a previous corifeu started and never stopped.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Orphan {
+    pub pid: u32,
+    pub base_url: String,
+    /// Whether the address still answers. One that does is doing its job and
+    /// the next run adopts it; one that does not is holding memory for
+    /// nothing, which is the whole reason the pid is recorded.
+    pub answering: bool,
+}
+
 /// How to bring one endpoint up.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Plan {
@@ -104,6 +154,7 @@ pub struct Runtime {
     found: Found,
     child: Option<Child>,
     lock: Option<PathBuf>,
+    orphan: Option<Orphan>,
 }
 
 impl Runtime {
@@ -115,11 +166,12 @@ impl Runtime {
                 found: Found::Already,
                 child: None,
                 lock: None,
+                orphan: None,
             });
         }
 
         let path = lock_path(&plan.base_url);
-        let lock = take(&path, &plan.base_url)?;
+        let (lock, orphan) = take(&path, &plan.base_url, false)?;
 
         // Between the probe and the lock, whoever held the lock may have
         // finished starting one. Ask again rather than start a second.
@@ -130,6 +182,7 @@ impl Runtime {
                 found: Found::Already,
                 child: None,
                 lock: None,
+                orphan,
             });
         }
 
@@ -158,10 +211,13 @@ impl Runtime {
             }
         };
 
+        record(&lock, Some(child.id()));
+
         let mut runtime = Self {
             found: Found::Started,
             child: Some(child),
             lock: Some(lock),
+            orphan,
             plan,
         };
 
@@ -186,6 +242,14 @@ impl Runtime {
 
     pub fn found(&self) -> Found {
         self.found
+    }
+
+    /// A runtime an earlier corifeu started and never stopped, found by the
+    /// pid its lock recorded. Worth saying out loud: one that answers is doing
+    /// its job and was adopted, and one that does not is holding memory for
+    /// nothing.
+    pub fn orphan(&self) -> Option<&Orphan> {
+        self.orphan.as_ref()
     }
 
     /// Stop it, if Corifeu started it and was asked to.
@@ -265,42 +329,66 @@ pub fn lock_path(base_url: &str) -> PathBuf {
     dir.join(format!("runtime-{:016x}.lock", hasher.finish()))
 }
 
-fn take(path: &Path, base_url: &str) -> Result<PathBuf, Error> {
+/// Take the lock, and say what the last holder left behind.
+fn take(path: &Path, base_url: &str, answering: bool) -> Result<(PathBuf, Option<Orphan>), Error> {
     if let Some(parent) = path.parent() {
         let _ = fs::create_dir_all(parent);
     }
-    let mine = std::process::id();
+    let mine = Held {
+        owner: std::process::id(),
+        runtime: None,
+    };
 
-    match fs::OpenOptions::new()
+    let anterior = match fs::OpenOptions::new()
         .write(true)
         .create_new(true)
         .open(path)
     {
-        Ok(_) => {
-            let _ = fs::write(path, mine.to_string());
-            Ok(path.to_path_buf())
-        }
+        Ok(_) => None,
         Err(e) if e.kind() == ErrorKind::AlreadyExists => {
-            let held = fs::read_to_string(path)
-                .ok()
-                .and_then(|s| s.trim().parse::<u32>().ok());
-            match held {
-                // A lock whose owner is gone is a crash, not an owner.
-                Some(pid) if alive(pid) => Err(Error::Held {
-                    pid,
+            let held = fs::read_to_string(path).ok().and_then(|s| Held::read(&s));
+            // A lock whose owner is still running is somebody else's work.
+            if let Some(held) = held
+                && alive(held.owner)
+            {
+                return Err(Error::Held {
+                    pid: held.owner,
                     base_url: base_url.to_string(),
-                }),
-                _ => {
-                    let _ = fs::write(path, mine.to_string());
-                    Ok(path.to_path_buf())
-                }
+                });
             }
+            held
         }
-        Err(source) => Err(Error::Lock {
-            path: path.to_path_buf(),
-            source,
-        }),
-    }
+        Err(source) => {
+            return Err(Error::Lock {
+                path: path.to_path_buf(),
+                source,
+            });
+        }
+    };
+
+    let _ = fs::write(path, mine.write());
+
+    // The owner is gone, so this lock is a crash. If the runtime it started is
+    // still alive, it is Corifeu's own leak and the caller gets to name it.
+    let orphan = anterior
+        .and_then(|held| held.runtime)
+        .filter(|pid| alive(*pid))
+        .map(|pid| Orphan {
+            pid,
+            base_url: base_url.to_string(),
+            answering,
+        });
+
+    Ok((path.to_path_buf(), orphan))
+}
+
+/// Write the runtime's pid beside the owner's, now that there is one.
+fn record(path: &Path, runtime: Option<u32>) {
+    let held = Held {
+        owner: std::process::id(),
+        runtime,
+    };
+    let _ = fs::write(path, held.write());
 }
 
 /// Whether a pid is a process that still exists.
@@ -378,13 +466,55 @@ mod tests {
     fn a_lock_whose_owner_is_gone_is_taken() {
         let path = std::env::temp_dir().join("corifeu-teste-lock-morto.lock");
         let _ = fs::remove_file(&path);
-        fs::write(&path, "4294967295").expect("escreve o lock");
-        take(&path, "http://x").expect("um dono morto não segura o lock");
+        fs::write(&path, "4294967295 -").expect("escreve o lock");
+        let (_, orphan) = take(&path, "http://x", false).expect("um dono morto não segura o lock");
+        assert_eq!(orphan, None, "esse dono não deixou runtime nenhum");
         assert_eq!(
-            fs::read_to_string(&path).unwrap().trim(),
-            std::process::id().to_string()
+            Held::read(&fs::read_to_string(&path).unwrap())
+                .unwrap()
+                .owner,
+            std::process::id()
         );
         let _ = fs::remove_file(&path);
+    }
+
+    /// A crash is the case the second pid exists for: the owner is gone and
+    /// the runtime it started is not, and without the number written down the
+    /// next run cannot tell its own leak from somebody else's server.
+    #[test]
+    fn um_runtime_que_sobreviveu_ao_dono_e_nomeado_pelo_pid() {
+        let path = std::env::temp_dir().join("corifeu-teste-lock-orfao.lock");
+        let _ = fs::remove_file(&path);
+        // O dono está morto; o runtime é este próprio processo, que está vivo.
+        let vivo = std::process::id();
+        fs::write(&path, format!("4294967295 {vivo}")).expect("escreve o lock");
+
+        let (_, orphan) = take(&path, "http://orfao", true).expect("a trava é tomada");
+        let orphan = orphan.expect("o runtime continua de pé");
+        assert_eq!(orphan.pid, vivo);
+        assert_eq!(orphan.base_url, "http://orfao");
+        assert!(orphan.answering, "este responde, então foi adotado");
+        let _ = fs::remove_file(&path);
+    }
+
+    #[test]
+    fn a_trava_se_le_e_se_escreve_com_e_sem_runtime() {
+        let com = Held {
+            owner: 10,
+            runtime: Some(20),
+        };
+        assert_eq!(com.write(), "10 20");
+        assert_eq!(Held::read("10 20"), Some(com));
+
+        let sem = Held {
+            owner: 10,
+            runtime: None,
+        };
+        assert_eq!(sem.write(), "10 -");
+        assert_eq!(Held::read("10 -"), Some(sem));
+        // Uma trava do formato antigo, com um número só, continua legível.
+        assert_eq!(Held::read("10"), Some(sem));
+        assert_eq!(Held::read("nada"), None);
     }
 
     #[test]

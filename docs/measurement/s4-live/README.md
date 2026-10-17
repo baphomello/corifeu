@@ -57,3 +57,27 @@ the run that says what the warning is worth. Defect 53.
 model read its own transcript format and started producing it as prose instead of calling
 anything. Round five measured 17% of steps answering without a tool call and never named a
 mechanism; this is one of them. Defect 52.
+
+## The second run, and criterion 16
+
+The brief gained one sentence — that the argument is a whole number of *centavos*, with an
+example — and the same model, the same seed and the same limits closed the slice:
+
+```
+ 1  write_file   wrote 1322 bytes to src/money.ts        the component
+ 2  write_file   wrote 1806 bytes to src/money.test.ts   its test
+ 3  write_file   wrote 2294 bytes to src/money.test.ts
+
+green after 3 step(s), 3 check(s), 7410 prompt tokens
+```
+
+**Two artefacts, one slice, oracle green.** Its own suite reads 19 of 19, and the held-out suite
+it never saw passes **10 of 10** against [`money-green.ts`](money-green.ts) — so the green is
+not a complacent oracle agreeing with itself.
+
+What changed was the brief, not the model. The first run implemented the function correctly and
+then wrote two tests that confused centavos with reais; the second was told the unit and got
+both right. A brief that states its units is what a brief does, and the first one did not.
+
+That is the useful shape of this pair: **the same task, failing and passing on one sentence of
+specification**, with a held-out suite to say which of the two produced correct code. Both did.

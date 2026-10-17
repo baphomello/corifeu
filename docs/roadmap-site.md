@@ -33,13 +33,13 @@ reading the output.
 | S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
 | S2 · `corifeu run`, one file | the first real use | **5 ✅** |
 | S3 · Measured on TypeScript | whether the plan survives | **3 ✅** |
-| S4 · A slice that touches several files | a feature instead of a function | **3** of 4 |
-| S5 · Hybrid roles, cost measured | the project's actual claim | 3 |
+| S4 · A slice that touches several files | a feature instead of a function | **4 ✅** |
+| S5 · Hybrid roles, cost measured | the project's actual claim | **1** of 3 |
 | S6 · The planner cuts a brief | writing in Portuguese instead of JSON | 2 |
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 15 of 24** — S1, S2 and S3 complete, S4 at three of four.
+**Today: 17 of 24** — S1 to S4 complete, S5 at one of three.
 
 ---
 
@@ -178,11 +178,13 @@ than enforced, so the file class still decides what a role may write and naming 
 grants no third. Second, the tests caught the prompt still telling a doer holding two files
 that it was *"changing one file"*, which was the runtime lying to the model about its own task.
 
-**16 is still not met, and the live run is worth reading anyway** —
-[s4-live](measurement/s4-live/README.md). `corifeu run` wrote both artefacts in one slice
-against a real Node project, which is the mechanism working through the product rather than
-through a unit test. It did not go green: the oracle read 10 of 12 and the slice ran out of
-steps.
+**16 done**, 2026-10-17, on the second brief — [s4-live](measurement/s4-live/README.md).
+Two artefacts in one slice, oracle green in three steps, 19 of 19 on its own suite and **10 of
+10 on a held-out suite it never saw**.
+
+The first run is the one worth reading. Same model, same seed, same limits, and a brief that
+did not say what unit the argument was in. It wrote both artefacts and did not go green: the
+oracle read 10 of 12 and the slice ran out of steps.
 
 The two failures were the model's **own tests**, which confused centavos with reais while the
 implementation got it right. The held-out suite it never saw passes 10 of 10 against the code

@@ -87,6 +87,52 @@ pub struct Provider {
     pub base_url: Option<String>,
     #[serde(default)]
     pub min_version: Option<String>,
+    /// How to start this runtime, when Corifeu should own it.
+    #[serde(default)]
+    pub manage: Option<Manage>,
+}
+
+/// A local runtime Corifeu starts, keeps to one instance, and stops again.
+///
+/// Without this, nothing owns the server. It is started by hand, and nothing
+/// prevents a second one: two llama.cpp servers holding the same model is
+/// 16 GB of host RAM on a machine with 32, and the first symptom is the whole
+/// desktop swapping. Documenting that in a troubleshooting page did not stop
+/// it happening twice, which is why it is a mechanism now and not a note.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct Manage {
+    /// The argument vector that starts the runtime. No shell (ADR-0037).
+    pub command: Vec<String>,
+    /// What stops it, where killing the child would not.
+    ///
+    /// Corifeu in WSL starting a server on the Windows host gets a launcher
+    /// that exits at once, and the server it spawned is nobody's child. Left
+    /// out, Corifeu kills the process it started, which is right whenever the
+    /// runtime really is its child.
+    #[serde(default)]
+    pub stop: Option<Vec<String>>,
+    /// Seconds of idleness after which the runtime should release its memory,
+    /// where it can. llama.cpp takes `--sleep-idle-seconds`; a runtime that
+    /// has no such flag ignores this.
+    #[serde(default = "default_sleep_idle")]
+    pub sleep_idle_s: u32,
+    /// Stop it when the run ends. Only ever applies to a process Corifeu
+    /// started: one that was already answering belongs to somebody else.
+    #[serde(default = "yes")]
+    pub stop_when_done: bool,
+    /// How long to wait for the runtime to answer before giving up. A 9B on a
+    /// cold page cache takes the better part of a minute.
+    #[serde(default = "default_ready_timeout")]
+    pub ready_timeout_s: u32,
+}
+
+fn default_sleep_idle() -> u32 {
+    300
+}
+
+fn default_ready_timeout() -> u32 {
+    180
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]

@@ -4,8 +4,8 @@
 //! are checked at load time with the offending role named — never discovered
 //! halfway through a run (ADR-0012).
 
-use crate::model::{Category, Config};
-use std::collections::BTreeSet;
+use crate::model::{Category, Config, ProviderKind};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +58,7 @@ pub fn check(config: &Config) -> Vec<Problem> {
     check_contracts(config, &mut problems);
     check_steps(config, &mut problems);
     check_repeats(config, &mut problems);
+    check_managed_runtimes(config, &mut problems);
     problems
 }
 
@@ -300,5 +301,51 @@ fn check_steps(config: &Config, out: &mut Vec<Problem>) {
             "limits.steps.raise_by is 0, so the allowance can never leave its floor of {}              however often a role runs out of steps; the ceiling of {} is unreachable",
             steps.floor, steps.ceiling
         )));
+    }
+}
+
+/// Everything that makes a managed runtime unusable, found before anything is
+/// started.
+///
+/// The one that matters is two providers naming the same `base_url`: Corifeu
+/// would start two servers for one endpoint, the second would fail to bind and
+/// the first would be blamed. On a machine where the model is 8 GB of host RAM,
+/// finding that at run time costs the desktop.
+fn check_managed_runtimes(config: &Config, out: &mut Vec<Problem>) {
+    let mut seen: BTreeMap<&str, &str> = BTreeMap::new();
+
+    for (name, provider) in &config.providers {
+        let Some(manage) = &provider.manage else {
+            continue;
+        };
+        if manage.command.iter().all(|a| a.trim().is_empty()) {
+            out.push(error(format!(
+                "provider `{name}` has `manage` and no `command`, so there is nothing to start"
+            )));
+        }
+        let Some(base) = provider.base_url.as_deref() else {
+            out.push(error(format!(
+                "provider `{name}` has `manage` and no `base_url`. Corifeu probes that address \
+                 to decide whether a runtime is already answering, and without it would start a \
+                 second one"
+            )));
+            continue;
+        };
+        if let Some(outro) = seen.insert(base, name) {
+            out.push(error(format!(
+                "providers `{outro}` and `{name}` both manage `{base}`. One endpoint has one \
+                 runtime; two would mean two copies of the weights in host memory and only one \
+                 of them bound to the port"
+            )));
+        }
+    }
+
+    for (name, provider) in &config.providers {
+        if provider.manage.is_some() && provider.kind == ProviderKind::Cli {
+            out.push(error(format!(
+                "provider `{name}` is a CLI agent, which is a subprocess per dispatch and has no \
+                 server to manage"
+            )));
+        }
     }
 }

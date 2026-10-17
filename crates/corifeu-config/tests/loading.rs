@@ -278,3 +278,70 @@ fn a_repeat_limit_with_detection_off_warns() {
         .expect("warned");
     assert!(warning.message.contains("no effect"), "{warning}");
 }
+
+// ---------------------------------------------- runtimes com dono (`manage`)
+
+const COM_MANAGE: &str = r#"
+version: 1
+providers:
+  local:
+    kind: llama-cpp
+    base_url: "http://127.0.0.1:9931"
+    manage:
+      command: ["llama-server", "-m", "modelo.gguf"]
+roles:
+  lead: { category: lead, provider: local, model: m, required: true }
+  coder: { category: doers, provider: local, model: m, writes: [source] }
+oracles:
+  test: { command: ["npm", "test"] }
+"#;
+
+#[test]
+fn um_runtime_com_dono_carrega_com_os_padroes() {
+    let loaded = load(vec![project(COM_MANAGE)]).expect("é válido");
+    let manage = loaded.config.providers["local"]
+        .manage
+        .as_ref()
+        .expect("declarado");
+    assert_eq!(manage.command[0], "llama-server");
+    // O esquecimento tem de custar zero: por padrão ele dorme e é desligado.
+    assert_eq!(manage.sleep_idle_s, 300);
+    assert!(manage.stop_when_done);
+    assert!(manage.stop.is_none(), "matar o filho é o padrão");
+}
+
+/// A regra que paga o aluguel: dois provedores no mesmo endereço fariam o
+/// Corifeu subir dois servidores para um endpoint. O segundo não conseguiria
+/// nem abrir a porta, e os dois ficariam com uma cópia dos pesos na RAM.
+#[test]
+fn dois_provedores_no_mesmo_endereco_sao_recusados() {
+    let texto = COM_MANAGE.replace(
+        "roles:",
+        "  outro:\n    kind: llama-cpp\n    base_url: \"http://127.0.0.1:9931\"\n    \
+         manage:\n      command: [\"llama-server\"]\nroles:",
+    );
+    let erro = load(vec![project(&texto)]).expect_err("um endpoint, um runtime");
+    let dito = erro.to_string();
+    assert!(dito.contains("127.0.0.1:9931"), "{dito}");
+    assert!(
+        dito.contains("host memory") || dito.contains("two"),
+        "{dito}"
+    );
+}
+
+#[test]
+fn manage_sem_base_url_e_recusado() {
+    let texto = COM_MANAGE.replace("    base_url: \"http://127.0.0.1:9931\"\n", "");
+    let erro = load(vec![project(&texto)]).expect_err("sem endereço não há sonda");
+    assert!(erro.to_string().contains("base_url"), "{erro}");
+}
+
+#[test]
+fn manage_num_cli_e_recusado() {
+    let texto = COM_MANAGE.replace("kind: llama-cpp", "kind: cli").replace(
+        "    base_url: \"http://127.0.0.1:9931\"",
+        "    command: claude\n    base_url: \"http://127.0.0.1:9931\"",
+    );
+    let erro = load(vec![project(&texto)]).expect_err("um CLI não tem servidor");
+    assert!(erro.to_string().contains("no server"), "{erro}");
+}

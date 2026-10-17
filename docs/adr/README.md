@@ -199,6 +199,7 @@ Two needed an ADR of their own.
 | [0066](0066-a-round-is-replayable-or-it-is-an-anecdote.md) | A measured round is replayable, or it is an anecdote | Accepted |
 | [0067](0067-a-check-that-cannot-be-counted-is-not-a-verdict.md) | A check that cannot be counted is not a verdict on the code | Accepted |
 | [0068](0068-a-past-step-is-not-a-conversation-turn.md) | A past step is not a conversation turn | Accepted |
+| [0069](0069-a-local-runtime-has-an-owner.md) | A local runtime has an owner, and it is Corifeu | Accepted |
 
 Amended by the same round: [0050](0050-loop-detection-warns-before-it-stops.md) (the repeat
 threshold is now a setting, and priced at 30% of a round's steps for a 3.7% rescue rate),

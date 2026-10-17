@@ -75,6 +75,17 @@ and you will not notice. It matters if you load two models at once, or run somet
 beside the server, and then the symptom is the host swapping rather than the GPU filling.
 Defect 29 in [defects.csv](measurement/defects.csv) carries the measurements.
 
+**`--no-host` is not the cure**, despite the name. Measured on a 9B entirely on the GPU: 8,388 MB
+of private host memory with it, 8,386 MB without.
+
+**Two servers is the case that hurts**, and it is the one Corifeu now prevents. Two llama.cpp
+servers for one model is sixteen gigabytes on a thirty-two gigabyte machine, and the first
+symptom is the desktop swapping while the GPU sits half empty. Give the provider a `manage`
+block ([ADR-0069](adr/0069-a-local-runtime-has-an-owner.md)) and Corifeu probes the address
+before starting anything, holds a lock so two runs cannot race, stops what it started, and
+passes `--sleep-idle-seconds` so an idle runtime releases its memory on its own. `corifeu doctor`
+warns about any provider that still has no owner.
+
 ## Tool calls never arrive from a local model
 
 Check capability before blaming the prompt:

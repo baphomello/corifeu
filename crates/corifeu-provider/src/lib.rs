@@ -15,6 +15,7 @@
 //! None of that is a difference the orchestrator should ever see.
 
 pub mod http;
+pub mod manage;
 
 use serde::Serialize;
 use serde_json::Value;

@@ -1,0 +1,15 @@
+round:   20261016-204404
+mode:    rank
+task:    g-glob-ts
+host:    192.168.32.1
+models:  qwen3.5-9b
+commit:  efc61ca
+suite:   npx vitest run
+oracle:  26/0 cases ran/passed
+seed:    base=1 (per iteration; 'off' reproduces rounds 1-5)
+block:   1 iteration(s) per model before switching
+driver:  617.42
+runtime: version: 0.7.0-dev (build 11671, commit ba3c05f71)
+repeats: default
+steps:   floor=default ceiling=default
+         patience=default raise_by=default

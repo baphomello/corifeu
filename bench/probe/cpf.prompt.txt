@@ -1,0 +1,10 @@
+Write a TypeScript function that validates a Brazilian CPF.
+
+export function isValidCPF(cpf: string): boolean
+
+It must return true only for a well-formed, valid CPF, and false otherwise.
+The input may be written with dots and a hyphen, or with nothing between the
+digits. A CPF has eleven digits: nine of body and two check digits.
+
+Answer with one fenced TypeScript code block and nothing else. Export the
+function. Do not write tests.

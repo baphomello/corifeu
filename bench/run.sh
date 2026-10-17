@@ -84,6 +84,23 @@ mapfile -t -d "" SUITE < <(field whole_suite) || exit 1
 mapfile -t -d "" VENV_PACKAGES < <(field venv) || exit 1
 (( ${#SUITE[@]} )) || { echo "$MANIFEST declares no whole_suite" >&2; exit 1; }
 
+# A task whose runner lives in the project rather than on the machine installs
+# it once, in the task directory, and every workspace symlinks to it. A
+# node_modules is tens of thousands of files and an iteration gets its own
+# workspace; copying it twenty times a cell would cost more than the round.
+mapfile -t -d "" SETUP < <(field setup) || exit 1
+MARKER=$(python3 -I -c '
+import json, sys
+print(json.load(open(sys.argv[1])).get("setup_marker", ""))
+' "$MANIFEST")
+if (( ${#SETUP[@]} )) && [ -n "$MARKER" ] && [ ! -e "$HERE/tasks/$TASK/$MARKER" ]; then
+  echo "setup:   ${SETUP[*]} (in tasks/$TASK)"
+  ( cd "$HERE/tasks/$TASK" && "${SETUP[@]}" ) >>"${LOG:-/dev/null}" 2>&1 || {
+    echo "setup failed for $TASK: ${SETUP[*]}" >&2
+    exit 1
+  }
+fi
+
 # A Python task needs an interpreter with its test runner on it, and the one a
 # round runs against has to be pinned: `corifeu-check` counts pytest's summary
 # line, and that line is a captured sample, not a guess.
@@ -119,26 +136,38 @@ for (( m = ${#MODELS[@]} - 1; m >= 0; m-- )); do
   echo "warm:    $MODEL"
 done
 
+# Built against the repository's own target directory, so it is cached between
+# rounds. The round's target directory is set after this, not before.
+( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
+BIN="$REPO/target/debug/$MODE"
+
 # Defect 23: the oracle could not run at all and it looked exactly like red
 # code. A scaffolded crate inside Corifeu's own cargo workspace fails every
 # command with "believes it's in a workspace when it's not", so eight slice
 # runs spent their whole allowance being told that correct code was wrong.
 #
-# This proves the oracle executes before the round starts. The suite's result
-# line is the proof: all-red is a valid result and so is no tests at all, but a
-# tool that never ran prints no result line whatsoever.
+# This proves the oracle executes before the round starts, by asking the
+# runtime's own counter rather than a regular expression that looks like it.
+# The first task in a fourth language caught the difference: vitest prints
+# `Tests  26 failed (26)` and the old pattern wanted the `in 0.07s` that cargo
+# and pytest end with, so an all-red suite — what a scaffolded task is supposed
+# to produce — read as an oracle that could not run. A preflight that disagrees
+# with the thing it protects is worse than none.
+#
+# All red is a valid count and so is no cases at all. A tool that never ran
+# produces no count, which is what this refuses on.
 probe() {
   local dir="$1"
   python3 -I "$HERE/tasks/scaffold.py" "$dir" --task "$TASK" --mode slices >/dev/null 2>&1 ||
     { echo "the scaffold failed for $TASK" >&2; return 1; }
-  local out
+  local out counted
   out=$(cd "$dir" && CARGO_TARGET_DIR="$dir/.probe-target" "${SUITE[@]}" 2>&1)
-  if ! grep -qE 'test result: |[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s|no tests ran' <<<"$out"; then
-    echo "the oracle for $TASK does not run where this round writes:" >&2
+  if ! counted=$(printf '%s' "$out" | "$REPO/target/debug/count"); then
+    echo "the oracle for $TASK produces no case count where this round writes:" >&2
     echo "$out" | head -8 >&2
     return 1
   fi
-  grep -hoE 'test result: [^\n]*|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' <<<"$out" | tail -1
+  echo "$counted cases ran/passed"
 }
 PROBE_DIR="$ROUND.probe"
 rm -rf "$PROBE_DIR"
@@ -153,10 +182,17 @@ DRIVER=$(nvidia-smi.exe --query-gpu=driver_version --format=csv,noheader 2>/dev/
   tr -d '\r' | head -1)
 DRIVER=${DRIVER:-$(nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null | head -1)}
 
-# Built against the repository's own target directory, so it is cached between
-# rounds. The round's target directory is set after this, not before.
-( cd "$REPO" && cargo build -q -p corifeu-bench ) || exit 1
-BIN="$REPO/target/debug/$MODE"
+# Defect 38, and the same lesson as the driver one directly above. The runtime
+# decides what a model does with a prompt, it updates itself — `llama update`
+# has no help page and simply runs — and until now no round said which build
+# produced its numbers.
+RUNTIME=$(llama.exe --version 2>/dev/null | tr -d '\r' | head -1)
+RUNTIME=${RUNTIME:-$(llama --version 2>/dev/null | head -1)}
+
+# Defect 44, the third of exactly this kind after the driver and the runtime
+# build: something that moves the result and that no round wrote down. The
+# decoding configuration lives on the server, so the harness asks it.
+SERVER_LINES=$(python3 "$HERE/server.py" "$HOST:9931" 2>/dev/null)
 
 mkdir -p "$ROUND"
 RESULTS="$ROUND/results.tsv"
@@ -176,6 +212,11 @@ LOG="$ROUND/log"
   echo "seed:    base=${BENCH_SEED:-1} (per iteration; 'off' reproduces rounds 1-5)"
   echo "block:   $BLOCK iteration(s) per model before switching"
   echo "driver:  ${DRIVER:-unknown}"
+  echo "runtime: ${RUNTIME:-unknown}"
+  echo "temp:    ${BENCH_TEMP:-unset, so whatever the server was started with}"
+  printf '%s\n' "${SERVER_LINES:-server\tunreachable}" | while IFS=$'\t' read -r key value; do
+    printf '%-8s %s\n' "$key:" "$value"
+  done
   echo "repeats: ${BENCH_REPEATS:-default}"
   echo "steps:   floor=${BENCH_STEPS_FLOOR:-default} ceiling=${BENCH_STEPS_CEILING:-default}"
   echo "         patience=${BENCH_STEPS_PATIENCE:-default} raise_by=${BENCH_STEPS_RAISE_BY:-default}"
@@ -228,9 +269,13 @@ for (( start = 1; start <= N; start += BLOCK )); do
     # Measured here, not in the driver, so that a round killed at the cap still
     # says what the crate ended up as. This is how the fourth run kept its
     # FINAL rows when an iteration hit the one-hour limit.
+    # Counted by the runtime's own parser, like the preflight, so the row means
+    # the same thing in every language: cases that ran, and of those how many
+    # passed. A per-language result line said `test result: ok. 26 passed` in
+    # one task and `26 passed` in another, and a third printed neither.
     ( cd "$W" && "${SUITE[@]}" ) > "$W/final.txt" 2>&1
-    FINAL=$(grep -hoE 'test result: [a-zA-Z]+\. [0-9]+ passed; [0-9]+ failed|[0-9]+ (passed|failed)[0-9a-z, ]* in [0-9.]+s' "$W/final.txt" | tail -1)
-    printf 'FINAL\t%s\t%s\t%s\n' "$i" "$M" "${FINAL:-did not build}" >> "$RESULTS"
+    FINAL=$("$REPO/target/debug/count" < "$W/final.txt") || FINAL="no count"
+    printf 'FINAL\t%s\t%s\t%s\n' "$i" "$M" "$FINAL" >> "$RESULTS"
 
     [ -f "$W/steps.tsv" ] && cat "$W/steps.tsv" >> "$STEPS"
 

@@ -73,31 +73,18 @@ impl Provider for LlamaCpp {
         tools: &[Value],
         budget: &Budget,
     ) -> Result<Turn, Error> {
-        let mut request = json!({
-            "model": model,
-            "messages": messages,
-            "stream": false,
-            "max_tokens": budget.num_predict,
-        });
-        if !tools.is_empty() {
-            request["tools"] = json!(tools);
-        }
-        // Defect 26: a round that cannot be replayed cannot be checked.
-        if let Some(seed) = budget.seed {
-            request["seed"] = json!(seed);
-        }
-        // The server decides whether to emit thought tags; asking for none is
-        // how a transcription role keeps its whole budget for the file.
-        if !budget.think {
-            request["reasoning_format"] = json!("none");
-        }
+        // Defect 36: this built its own copy of the request for a while, beside
+        // the `body` the tests assert against. Two constructions of the same
+        // thing drift, and this pair already had: the temperature reached the
+        // copy that ships and not the one under test.
+        let request = body(model, messages, tools, budget);
 
-        let body = http::post_json(
+        let reply = http::post_json(
             &format!("{}/v1/chat/completions", self.base),
             &request.to_string(),
             self.timeout,
         )?;
-        parse(&body, budget.num_predict)
+        parse(&reply, budget.num_predict)
     }
 }
 
@@ -116,14 +103,28 @@ pub fn body(model: &str, messages: &[Message], tools: &[Value], budget: &Budget)
     if !tools.is_empty() {
         request["tools"] = json!(tools);
     }
-    // The server decides whether to emit thought tags; asking for none is how a
-    // transcription role keeps its whole budget for the file.
+    // Defect 39. This used to send `reasoning_format: "none"`, and the flag's
+    // own help says what that does: "leaves thoughts unparsed in
+    // message.content". The intent was "do not think". The effect was "think,
+    // and write the thinking into your answer" — spending the output budget and
+    // putting prose where a tool call belongs.
+    //
+    // Two things are asked for instead. The template is told not to think,
+    // which is what actually stops it and costs two tokens where the thinking
+    // cost 175. And the format is `deepseek`, so that a model whose template
+    // ignores the first still puts its thoughts in `reasoning_content` where
+    // they are separate from the answer rather than inside it.
     if !budget.think {
-        request["reasoning_format"] = json!("none");
+        request["chat_template_kwargs"] = json!({ "enable_thinking": false });
+        request["reasoning_format"] = json!("deepseek");
     }
     // Defect 26: a round that cannot be replayed cannot be checked.
     if let Some(seed) = budget.seed {
         request["seed"] = json!(seed);
+    }
+    // Its sibling: a number that moves the result and that nobody wrote down.
+    if let Some(temperature) = budget.temperature {
+        request["temperature"] = json!(temperature);
     }
     request
 }
@@ -225,6 +226,7 @@ mod tests {
             num_ctx: Some(8192),
             think: false,
             seed: None,
+            temperature: None,
         }
     }
 
@@ -232,6 +234,28 @@ mod tests {
     fn no_seed_sends_no_seed() {
         // The runtime picks one, which is what every round before defect 26 did.
         assert!(body("m", &[], &[], &budget()).get("seed").is_none());
+    }
+
+    #[test]
+    fn a_temperature_reaches_the_wire() {
+        let budget = Budget {
+            temperature: Some(0.2),
+            ..budget()
+        };
+        // Compared with a tolerance: an f32 widened to the f64 serde_json
+        // stores is 0.20000000298, and asserting equality would be asserting
+        // something about IEEE 754 rather than about the request.
+        let sent = body("m", &[], &[], &budget)["temperature"]
+            .as_f64()
+            .expect("a number");
+        assert!((sent - 0.2).abs() < 1e-6, "{sent}");
+    }
+
+    /// Unset means llama.cpp's own 0.80, which is what every round before this
+    /// ran at. Sending nothing is how a product run keeps that behaviour.
+    #[test]
+    fn no_temperature_sends_no_temperature() {
+        assert!(body("m", &[], &[], &budget()).get("temperature").is_none());
     }
 
     #[test]
@@ -252,16 +276,22 @@ mod tests {
     }
 
     #[test]
-    fn a_transcription_role_asks_for_no_reasoning() {
-        assert_eq!(body("m", &[], &[], &budget())["reasoning_format"], "none");
+    fn a_transcription_role_asks_the_template_not_to_think() {
+        let request = body("m", &[], &[], &budget());
+        assert_eq!(request["chat_template_kwargs"]["enable_thinking"], false);
+        // And if the template ignores that, the thoughts still go somewhere
+        // other than the answer.
+        assert_eq!(request["reasoning_format"], "deepseek");
+    }
+
+    #[test]
+    fn a_judging_role_is_left_alone() {
         let judging = Budget {
             think: true,
             ..budget()
         };
-        assert!(
-            body("m", &[], &[], &judging)
-                .get("reasoning_format")
-                .is_none()
-        );
+        let request = body("m", &[], &[], &judging);
+        assert!(request.get("chat_template_kwargs").is_none());
+        assert!(request.get("reasoning_format").is_none());
     }
 }

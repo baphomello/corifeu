@@ -28,6 +28,17 @@ pub struct Config {
     pub oracles: BTreeMap<String, Oracle>,
     #[serde(default)]
     pub limits: Limits,
+    /// Text a role may not remove from the files it owns ([ADR-0059]).
+    ///
+    /// A coder asked to make a test pass can always make it pass by deleting
+    /// it. Counting the marker before and after a write is what stops that, and
+    /// the marker is a property of the project's language rather than of the
+    /// runtime: `#[test]` in Rust, `def test_` in Python, `test(` in a vitest
+    /// suite.
+    ///
+    /// [ADR-0059]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0059-a-test-is-unvalidated-until-green.md
+    #[serde(default)]
+    pub protected: Option<Protected>,
     #[serde(default)]
     pub autonomy: Autonomy,
     #[serde(default)]
@@ -200,6 +211,17 @@ pub struct ContractMessages {
     pub last: Option<u32>,
 }
 
+/// What a role may not delete, and where that is counted.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Protected {
+    pub marker: String,
+    /// Classes the marker is counted in. Counted everywhere, it would refuse a
+    /// legitimate edit to a file that merely mentions it.
+    #[serde(default)]
+    pub in_classes: Vec<String>,
+}
+
 /// Ordered glob rules. First match wins, which is what lets a sibling test file
 /// classify as a test rather than as source (ADR-0035).
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -305,6 +327,24 @@ pub struct Limits {
     /// [ADR-0050]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0050-loop-detection-warns-before-it-stops.md
     #[serde(default = "default_repeats")]
     pub repeats: u32,
+    /// The sampler's seed, or None to let the runtime pick one
+    /// ([ADR-0066]).
+    ///
+    /// Absent is the right default for a product run: an unseeded run is how
+    /// the thing actually behaves. A measurement sets it, because a round that
+    /// cannot be replayed cannot be checked.
+    ///
+    /// [ADR-0066]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0066-a-round-is-replayable-or-it-is-an-anecdote.md
+    #[serde(default)]
+    pub seed: Option<u64>,
+    /// How far the sampler may wander, or None to let the runtime decide.
+    ///
+    /// llama.cpp defaults to 0.80, which is reasonable for prose and high for
+    /// code: prose survives a word chosen second-best and code does not
+    /// compile. Declared here so that a project whose deliverable is code can
+    /// say so once rather than per run.
+    #[serde(default)]
+    pub temperature: Option<f32>,
 }
 
 impl Default for Limits {
@@ -317,6 +357,8 @@ impl Default for Limits {
             role_timeout_s: default_role_timeout(),
             loop_detection: true,
             repeats: default_repeats(),
+            seed: None,
+            temperature: None,
         }
     }
 }

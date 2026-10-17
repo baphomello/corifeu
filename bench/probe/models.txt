@@ -1,0 +1,28 @@
+# One model per line, as the router names it. Lines starting with # are ignored.
+#
+# After `llama cli -hf <repo>:<QUANT>` the router offers the model under the
+# alias `<repo>:<QUANT>`; a file dropped in the models directory is offered
+# under its file name without the extension. `sweep.sh` checks every name here
+# against what the router actually offers before it runs anything, because a
+# misspelled alias otherwise looks exactly like a model that cannot answer.
+#
+# The quant tags below are a guess at each repo's naming and are the most
+# likely thing to need correcting. Run `sweep.sh list` once the downloads are
+# done and paste what it prints.
+
+# Chosen 2026-10-16: the best quality that fits, and it only fits with the KV
+# cache at q8_0.
+#
+#   weights                     6.14 GB = 6287 MiB
+#   available (8192 - desktop)           ~7209 MiB
+#   overhead, KV f16 at 8k, measured     ~1000 MiB  -> 80 MiB short
+#   overhead, KV q8_0 at 8k, estimated    ~700 MiB  -> ~220 MiB spare
+#
+# Two things are not in that arithmetic and both can take the margin: the q8
+# figure is an estimate from one f16 measurement, and the MTP drafting head and
+# its draft cache are unaccounted for. 16k context with q8 puts the KV back to
+# roughly where f16 at 8k was, so it is a thing to measure rather than assume.
+#
+# Multimodal: the repository carries an mmproj of about 920 MB. --no-mmproj is
+# in every config here, which is why that GB is not in the sums above.
+unsloth/Qwen3.5-9B-MTP-GGUF:UD-Q4_K_XL

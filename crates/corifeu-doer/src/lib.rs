@@ -496,17 +496,37 @@ impl Doer<'_> {
                     state.last_result = "`path` and `content` are both required.".to_string();
                     return false;
                 };
+                // Defect 34. ADR-0050 §4 clears the repeat history when an
+                // artefact changes, because the same command against changed
+                // code is a different action. Writing the same bytes back is
+                // not changed code, and counting it as one disabled loop
+                // detection exactly where it was needed: a model rewriting an
+                // identical file forever reset the detector on every step and
+                // was never warned.
+                let unchanged = workspace
+                    .read(&path)
+                    .ok()
+                    .flatten()
+                    .is_some_and(|before| before == content);
                 match workspace.write(&path, &content, &self.guard) {
                     Ok(()) => {
-                        state.detector.artefact_changed();
-                        state.last_result = format!("wrote {} bytes to {path}\n", content.len());
+                        if !unchanged {
+                            state.detector.artefact_changed();
+                        }
+                        state.last_result = match unchanged {
+                            // Said out loud, because a model that cannot tell
+                            // its write landed will write it again.
+                            true => format!(
+                                "wrote {} bytes to {path}, which is byte for byte what was \
+                                 already there. Nothing changed.\n",
+                                content.len()
+                            ),
+                            false => format!("wrote {} bytes to {path}\n", content.len()),
+                        };
                         // The runtime checks; the model does not have to think of it.
+                        let wrote = state.last_result.clone();
                         let green = self.judge(slice, workspace, state);
-                        state.last_result = format!(
-                            "wrote {} bytes to {path}\n\n{}",
-                            content.len(),
-                            state.last_result
-                        );
+                        state.last_result = format!("{wrote}\n{}", state.last_result);
                         green
                     }
                     Err(refused) => {
@@ -644,7 +664,10 @@ impl Doer<'_> {
              - `write_file` replaces the whole file. Send all of it, never a patch.\n\
              - The file you are changing is included below in full on every step, read fresh \
              from disk. You never need to read it.\n\
-             - The command above is run for you after every write. You do not have to run it.",
+             - The command above is run for you after every write. You do not have to run it.\n\
+             - Be exhaustive about what the task asks for. Inputs that are malformed in ways a \
+             naive implementation would accept must still be handled, and the cases a naive \
+             implementation would get wrong are the ones the check is looking for.",
             context.contract.task, context.contract.acceptance
         ))];
 

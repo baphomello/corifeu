@@ -69,7 +69,7 @@ impl Message {
 
 /// ADR-0048. Every field exists because leaving it unset was measured going
 /// wrong.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Budget {
     /// Reasoning plus output. There is no unlimited setting: a local model
     /// without one generates until the context is full.
@@ -94,6 +94,20 @@ pub struct Budget {
     /// differently across devices can still diverge; this removes the sampler
     /// as a source of it, which is the one a measurement controls.
     pub seed: Option<u64>,
+    /// How much the sampler is allowed to wander, or None to let the runtime
+    /// decide.
+    ///
+    /// The same class of problem as the seed and found the same way, by someone
+    /// asking why it was not set. Six rounds and every probe ran at llama.cpp's
+    /// default of 0.80, which is a reasonable number for prose and a high one
+    /// for code: prose survives a word chosen second-best and code does not
+    /// compile. The probe watched one model score five of ten and then ten of
+    /// ten under identical flags, and that was read as the model's variance
+    /// when it may have been the sampler's.
+    ///
+    /// None is the library default because an unset temperature is how the
+    /// product behaves. A measurement sets it, and records it.
+    pub temperature: Option<f32>,
 }
 
 impl Budget {
@@ -104,6 +118,7 @@ impl Budget {
             num_ctx: Some(8192),
             think: false,
             seed: None,
+            temperature: None,
         }
     }
 
@@ -114,6 +129,7 @@ impl Budget {
             num_ctx: Some(8192),
             think: true,
             seed: None,
+            temperature: None,
         }
     }
 }

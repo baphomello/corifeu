@@ -51,6 +51,7 @@ pub fn count(output: &str) -> Cases {
     cargo(output)
         .or_else(|| go_verbose(output))
         .or_else(|| pytest(output))
+        .or_else(|| vitest(output))
         .map_or(Cases::Unknown, |(ran, passed)| Cases::Counted {
             ran,
             passed,
@@ -147,6 +148,62 @@ fn pytest_summary(line: &str) -> Option<(u32, u32)> {
             }
             "failed" | "xfailed" => ran += n,
             "skipped" | "deselected" | "warning" | "warnings" => {}
+            _ => return None,
+        }
+    }
+    Some((ran, passed))
+}
+
+/// `vitest` prints one summary line with the outcomes separated by pipes.
+///
+/// ```text
+///       Tests  1 failed | 2 passed | 1 skipped | 1 todo (5)
+/// ```
+///
+/// `skipped` covers two things that did not execute: a `test.skip`, and a test
+/// filtered out by `-t`, which is how a per-slice oracle selects its own cases.
+/// `todo` is a declaration with no body. None of them ran, so none of them is
+/// counted, exactly as `cargo`'s ignored and `pytest`'s deselected are left out.
+///
+/// A file that fails to import is the dangerous case and does not show up in
+/// that line at all: its cases are missing from every number, while the files
+/// that did load report normally. `vitest` announces it separately as
+/// `Failed Suites`, and that is what this declines on. Counting the rest would
+/// let [ADR-0057]'s guard pass on a suite that had quietly lost a whole file,
+/// which is the same answer `cargo` gives a crate that does not compile and
+/// `pytest` gives a collection error.
+///
+/// [ADR-0057]: https://github.com/baphomello/corifeu/blob/main/docs/adr/0057-oracle-integrity-by-test-inventory.md
+fn vitest(output: &str) -> Option<(u32, u32)> {
+    if output.contains("Failed Suites") {
+        return None;
+    }
+    output.lines().rev().find_map(vitest_summary)
+}
+
+fn vitest_summary(line: &str) -> Option<(u32, u32)> {
+    let counts = line.trim().strip_prefix("Tests")?.trim();
+    // Test files that exist and declare nothing. A real run reports `(n)`.
+    if counts == "no tests" {
+        return Some((0, 0));
+    }
+    // The trailing `(5)` is the total, which is the sum of the parts and tells
+    // us nothing the parts do not.
+    let counts = counts.split(" (").next()?;
+
+    let (mut ran, mut passed) = (0, 0);
+    for part in counts.split(" | ") {
+        let (number, word) = part.split_once(' ')?;
+        let n: u32 = number.parse().ok()?;
+        match word {
+            "passed" => {
+                ran += n;
+                passed += n;
+            }
+            "failed" => ran += n,
+            "skipped" | "todo" => {}
+            // An unrecognised word declines the line rather than being ignored:
+            // a count that silently drops an outcome is the wrong count.
             _ => return None,
         }
     }
@@ -336,6 +393,76 @@ ERROR pyt/test_broken.py
     #[test]
     fn pytest_declines_when_a_module_failed_to_load() {
         assert_eq!(count(PYTEST_PARTIAL_COLLECTION), Cases::Unknown);
+    }
+
+    // Captured from vitest 3.2.4 on node 24.15.0.
+    const VITEST_MIXED: &str = "\
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed | 1 skipped | 1 todo (5)
+   Start at  14:21:36
+";
+    const VITEST_GREEN: &str = "\
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+";
+    /// `vitest run -t slice1_` — how a per-slice oracle selects its own cases.
+    /// The one it filtered out is reported as skipped.
+    const VITEST_FILTERED: &str = "\
+ Test Files  1 passed (1)
+      Tests  2 passed | 1 skipped (3)
+";
+    /// A filter that matches nothing. Every case is skipped and none ran.
+    const VITEST_FILTERED_TO_NOTHING: &str = "\
+ Test Files  1 skipped (1)
+      Tests  3 skipped (3)
+";
+    /// The dangerous one. `src/broken.test.ts` failed to import, so its case is
+    /// absent from the Tests line while `src/two.test.ts` reports normally.
+    const VITEST_FAILED_SUITE: &str = "\
+\u{23af}\u{23af} Failed Suites 1 \u{23af}\u{23af}
+Error: Failed to load url ./does-not-exist
+\u{23af}\u{23af} Failed Tests 1 \u{23af}\u{23af}
+ FAIL  src/two.test.ts > slice2_gamma
+ Test Files  2 failed (2)
+      Tests  1 failed | 2 passed (3)
+";
+    /// Nothing but a broken file.
+    const VITEST_ONLY_A_FAILED_SUITE: &str = "\
+\u{23af}\u{23af} Failed Suites 1 \u{23af}\u{23af}
+ Test Files  1 failed (1)
+      Tests  no tests
+";
+    const VITEST_NO_TEST_FILES: &str = "No test files found, exiting with code 1\n";
+
+    #[test]
+    fn vitest_counts_what_executed_and_leaves_out_what_did_not() {
+        // 1 failed + 2 passed ran; skipped and todo did not.
+        assert_eq!(count(VITEST_MIXED), Cases::Counted { ran: 3, passed: 2 });
+        assert_eq!(count(VITEST_GREEN), Cases::Counted { ran: 2, passed: 2 });
+    }
+
+    /// A slice's oracle filters by name, and what it filtered out is not a case
+    /// this slice lost. ADR-0057 compares against the slice's own count.
+    #[test]
+    fn vitest_counts_only_the_selected_slice() {
+        assert_eq!(count(VITEST_FILTERED), Cases::Counted { ran: 2, passed: 2 });
+        assert_eq!(
+            count(VITEST_FILTERED_TO_NOTHING),
+            Cases::Counted { ran: 0, passed: 0 }
+        );
+    }
+
+    /// The one that matters. Three cases are reported and a fourth never ran,
+    /// so the honest answer is that the count is unknown — not three.
+    #[test]
+    fn vitest_declines_when_a_file_failed_to_load() {
+        assert_eq!(count(VITEST_FAILED_SUITE), Cases::Unknown);
+        assert_eq!(count(VITEST_ONLY_A_FAILED_SUITE), Cases::Unknown);
+    }
+
+    #[test]
+    fn vitest_with_no_test_files_has_no_count() {
+        assert_eq!(count(VITEST_NO_TEST_FILES), Cases::Unknown);
     }
 
     #[test]

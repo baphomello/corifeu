@@ -279,6 +279,14 @@ pub struct Run {
     /// red test, which is work for the coder, and one that passed the moment it
     /// was written, which says the work was already done.
     pub verdict: Option<Verdict>,
+    /// A fingerprint of what the model was shown, one per step.
+    ///
+    /// ADR-0066 wants a round replayable, and a round that keeps its trace but
+    /// not the text behind it cannot say *where* two rounds parted. Two hours
+    /// of round eight went on inferring that from the code because this column
+    /// did not exist. The hash is for comparing two runs of one binary, which
+    /// is the question it answers; it is not stable across Rust versions.
+    pub prompts: Vec<u64>,
 }
 
 impl Run {
@@ -328,22 +336,26 @@ impl Doer<'_> {
             let context = self
                 .window
                 .build(&contract, self.pinned(slice, workspace), &state.trace);
-            let turn = match self.provider.chat(
-                &self.model,
-                &self.render(&context),
-                &tools::schemas(),
-                &self.budget,
-            ) {
-                Ok(turn) => turn,
-                Err(error) => {
-                    return state.finish(
-                        number - 1,
-                        Outcome::ProviderFailed {
-                            why: error.to_string(),
-                        },
-                    );
-                }
-            };
+            let rendered = self.render(&context);
+            state.prompts.push(fingerprint(&rendered));
+            if let Some(dir) = dump_dir() {
+                dump(&dir, slice, number, &rendered);
+            }
+            let turn =
+                match self
+                    .provider
+                    .chat(&self.model, &rendered, &tools::schemas(), &self.budget)
+                {
+                    Ok(turn) => turn,
+                    Err(error) => {
+                        return state.finish(
+                            number - 1,
+                            Outcome::ProviderFailed {
+                                why: error.to_string(),
+                            },
+                        );
+                    }
+                };
             state.prompt_tokens += turn.prompt_tokens;
             state.output_tokens += turn.output_tokens;
 
@@ -777,11 +789,13 @@ struct State {
     prompt_tokens: u32,
     output_tokens: u32,
     checks: u32,
+    prompts: Vec<u64>,
 }
 
 impl State {
     fn for_limits(limits: &Limits) -> Self {
         Self {
+            prompts: Vec::new(),
             detector: Detector::with_strikes(limits.repeats),
             ..Self::default()
         }
@@ -796,6 +810,7 @@ impl State {
             output_tokens: self.output_tokens,
             checks: self.checks,
             cases: self.last_cases,
+            prompts: self.prompts,
             verdict: self.last_verdict,
         }
     }
@@ -803,3 +818,54 @@ impl State {
 
 /// Re-exported so a caller can build a slice without naming five crates.
 pub use corifeu_provider::ToolCall;
+
+/// A fingerprint of the messages a step sent.
+///
+/// `DefaultHasher` rather than a cryptographic digest and rather than a new
+/// dependency: the question is whether two runs of one binary sent the same
+/// bytes, and for that an equality check is the whole requirement.
+fn fingerprint(messages: &[Message]) -> u64 {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+    let mut hasher = DefaultHasher::new();
+    for message in messages {
+        serde_json::to_string(message)
+            .unwrap_or_default()
+            .hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+/// Where to write the prompts themselves, when something asked for them.
+///
+/// A fingerprint says which step two rounds parted on. It does not say what
+/// changed, and that is the question after it, so the text is available behind
+/// an environment variable rather than kept for every round.
+fn dump_dir() -> Option<std::path::PathBuf> {
+    std::env::var_os("CORIFEU_DUMP_PROMPTS").map(std::path::PathBuf::from)
+}
+
+fn dump(dir: &std::path::Path, slice: &Slice, step: u32, messages: &[Message]) {
+    let scope: String = slice
+        .oracle
+        .describe()
+        .chars()
+        .map(|c| if c.is_alphanumeric() { c } else { '-' })
+        .collect();
+    let scope: String = scope
+        .chars()
+        .rev()
+        .take(40)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect();
+    if std::fs::create_dir_all(dir).is_err() {
+        return;
+    }
+    let body = messages
+        .iter()
+        .map(|m| serde_json::to_string_pretty(m).unwrap_or_default())
+        .collect::<Vec<_>>()
+        .join("\n");
+    let _ = std::fs::write(dir.join(format!("{scope}-{step:03}.json")), body);
+}

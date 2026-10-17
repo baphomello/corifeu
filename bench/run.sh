@@ -231,7 +231,7 @@ fi
 # One row per step, every iteration appended. The drivers write it beside each
 # workspace; this is the whole round in one file, which is what any analysis
 # actually wants.
-printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\tflags\toutcome\n' > "$STEPS"
+printf 'iteration\tmodel\tmodule\trole\tstep\ttool\targument\tflags\tprompt\toutcome\n' > "$STEPS"
 
 # Defect 28. Under `--models-max 1` the router holds one model, so every switch
 # is a full reload: 6 GB off disk and onto the card, several cores for the best

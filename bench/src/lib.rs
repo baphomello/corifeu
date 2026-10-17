@@ -223,13 +223,21 @@ pub fn write_steps(work: &Path, iteration: &str, model: &str, module: &str, role
         return;
     };
     for step in &run.trace {
+        // The prompt that produced this step, so two rounds can be compared on
+        // what the model was shown rather than only on what it did. A step
+        // without one is a step the loop recorded without dispatching.
+        let prompt = run
+            .prompts
+            .get(step.number.saturating_sub(1) as usize)
+            .map_or_else(|| "-".to_string(), |h| format!("{h:016x}"));
         let _ = writeln!(
             file,
-            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}\t{}",
+            "{iteration}\t{model}\t{module}\t{role}\t{}\t{}\t{}\t{}\t{}\t{}",
             step.number,
             step.action.tool,
             one_line(&step.action.argument),
             flags(&step.result),
+            prompt,
             one_line(&step.outcome),
         );
     }

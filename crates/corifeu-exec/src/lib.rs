@@ -380,7 +380,12 @@ mod steady_tests {
     }
 }
 
-#[cfg(test)]
+// Unix only: the probe is `/usr/bin/env`, which prints the child's whole
+// environment in one line per variable and exists nowhere on Windows. The
+// behaviour under test is not platform-specific — `Command::envs` is set in one
+// place for every target — but a portable probe would be `cmd /c set` against
+// `env`, which is two tests asserting one thing.
+#[cfg(all(test, unix))]
 mod env_tests {
     use crate::{Allowlist, Command, run};
     use std::time::Duration;

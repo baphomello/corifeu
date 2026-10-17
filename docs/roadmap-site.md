@@ -214,6 +214,17 @@ leave the expensive model.
 
 **Deliverable.** Roles bound to different providers, and a round that records the split.
 
+**Half of 17 done**, 2026-10-17 — [s5-cli](measurement/s5-cli/README.md). `corifeu run`
+drives a `kind: cli` provider for the first time: version detected and reported, the slice
+green in two steps, and the spend table carrying **$0.1796** of real money. What is missing is
+the other half, two providers in one run.
+
+Three things that run settled without being asked. The allowlist refused the expensive model's
+`find` and named what was permitted, which is ADR-0037 holding against a much better model than
+it has ever faced. The metering fix is proved: the table reads 44,841 prompt tokens where
+`usage.input_tokens` said 2. And the cost per dispatch held at $0.0898, which keeps the design
+consequence — the expensive role is called a few times, never twenty.
+
 **Acceptance.**
 17. One task runs with a planner on an expensive provider and a coder on a local one, both
     declared in `corifeu.yaml`.

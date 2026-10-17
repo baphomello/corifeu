@@ -13,7 +13,7 @@
 //! defaults ever disagree.
 
 use corifeu_agent::Window;
-use corifeu_cliagent::{Agent, CliAgent, antigravity, claude_code, codex};
+use corifeu_cliagent::{ADAPTERS, CliAgent, programs};
 use corifeu_config::model::{Config, ProviderKind};
 use corifeu_doer::{Doer, Goal, Limits, Oracle, Outcome, Slice, Steps};
 use corifeu_exec::Allowlist;
@@ -77,9 +77,6 @@ impl FromConfig {
 
 /// Build the provider a role names. Returned boxed because which one it is
 /// depends on a string in a file.
-/// Every CLI adapter there is. One list, so adding one is one edit.
-const AGENTS: [Agent; 3] = [claude_code(), codex(), antigravity()];
-
 fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String> {
     let declared = config
         .roles
@@ -99,17 +96,17 @@ fn provider_for(config: &Config, role: &str) -> Result<Box<dyn Provider>, String
             format!(
                 "provider `{}` is a CLI and declares no `command`. Name the executable: {}",
                 declared.provider,
-                AGENTS.map(|a| a.program).join(", ")
+                programs()
             )
         })?;
-        let agent = AGENTS
+        let agent = ADAPTERS
             .into_iter()
             .find(|a| a.program == command)
             .ok_or_else(|| {
                 format!(
                     "provider `{}` names command `{command}`, which has no adapter. Known: {}",
                     declared.provider,
-                    AGENTS.map(|a| a.program).join(", ")
+                    programs()
                 )
             })?;
         // ADR-0007 keeps three CLIs in scope so the abstraction cannot become

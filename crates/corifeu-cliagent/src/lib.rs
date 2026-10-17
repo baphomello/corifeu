@@ -130,6 +130,15 @@ pub const fn antigravity() -> Agent {
     }
 }
 
+/// Every adapter there is. One list, so adding one is one edit, and both
+/// `corifeu run` and `corifeu doctor` answer from the same place.
+pub const ADAPTERS: [Agent; 3] = [claude_code(), codex(), antigravity()];
+
+/// The programs the adapters drive, for an error that has to name them.
+pub fn programs() -> String {
+    ADAPTERS.map(|a| a.program).join(", ")
+}
+
 /// The reply shape every dispatch is constrained to: one proposed call.
 pub fn schema() -> Value {
     json!({

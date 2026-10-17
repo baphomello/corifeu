@@ -32,14 +32,14 @@ reading the output.
 |---|---|---:|
 | S1 · Corifeu can read a Node repo | everything after it | **4 ✅** |
 | S2 · `corifeu run`, one file | the first real use | **5 ✅** |
-| S3 · Measured on TypeScript | whether the plan survives | 3 |
+| S3 · Measured on TypeScript | whether the plan survives | **3 ✅** |
 | S4 · A slice that touches several files | a feature instead of a function | 4 |
 | S5 · Hybrid roles, cost measured | the project's actual claim | 3 |
 | S6 · The planner cuts a brief | writing in Portuguese instead of JSON | 2 |
 | S7 · The site | the goal | 3 |
 | | | **24** |
 
-**Today: 9 of 24** — S1 and S2 complete.
+**Today: 12 of 24** — S1, S2 and S3 complete.
 
 ---
 
@@ -125,17 +125,35 @@ survives that is unknown, and guessing is what this project does not do.
 sweep on one driver so [Q5](measurement/round5-cells4-6.md#q5--lowering-the-floor-to-eight-cost-nothing-measurable)
 finally closes.
 
+**Done**, 2026-10-16 — [round7.md](measurement/round7.md). Eight passes of ten iterations, and
+**80 of 80 delivered the whole task**. Asked for a four-line function, the model wrote all four
+in one `write_file` and the other three slices arrived at an oracle already green. 99 steps in
+the whole round, **100% of them productive against Rust's 36%**.
+
+Two parts of the deliverable above were not met, and the reasons are different.
+
+- **One model, not two.** The model set was cleared and rebuilt around a single model, so
+  `n=10 per model` is n=10 on one. The Rust comparison is still the same `rank` mode on the
+  same decomposition.
+- **The floor sweep could not run, and Q5 stays open.** A sweep measures a step allowance, and
+  this task never reaches one: the allowance was 12 and every iteration used 1, with
+  `floor_left=false` throughout. Q5 needs a task hard enough to spend an allowance, which is a
+  different task rather than a longer round. The same limit means this cell says nothing about
+  repeats, rollback or the ceiling on TypeScript.
+
 **Acceptance.**
 10. A delivery rate for `g-ts` at n=10 per model, recorded like every other cell.
 11. [Q14](measurement/round6.md) answered: two runs at one seed agree per slice, or the record
     says Corifeu cannot replay a round on this stack.
 12. The share of steps that produce work, reported for TypeScript next to Rust's 36%.
 
-**What would say stop — and it is a real risk.** A delivery rate near zero. Then local models
-cannot do scoped work in a Node repository, the hybrid split has to move (the expensive model
-takes the code, the local models take tests and review), and S4 to S7 are re-planned around
-that. **This is the stage that decides whether the rest of the plan is the right plan**, which
-is why it comes before the expensive work rather than after it.
+**What would have said stop.** A delivery rate near zero. It came back at 100%, so the hybrid
+split stays as planned and S4 to S7 are unchanged.
+
+**What the result does not say.** `--mode slices` keeps every test in the artefact the model is
+shown, so `26/26` means it satisfied cases it could read; there is no held-out suite in this
+mode. Round five's Rust cell had the same visibility and still delivered 17 of 20 in 289 steps,
+so the comparison holds, but nothing here measures generalisation.
 
 ---
 

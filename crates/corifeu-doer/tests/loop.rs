@@ -1061,3 +1061,28 @@ fn a_rollback_tells_the_doer_about_both_files() {
         "and the file really went back"
     );
 }
+
+/// Why the allowance never grew across round eight's floor sweep, as a test
+/// rather than as a reading of the logs.
+///
+/// Patience counts *consecutive* cuts, and a slice that reaches its goal puts
+/// the count back. A task whose slices mostly succeed therefore never reaches
+/// patience, however often it is cut: the floor stops being a starting point
+/// and becomes a hard limit. ADR-0062's growth is built for a model that fails
+/// repeatedly, and a model that fails occasionally never collects it.
+#[test]
+fn a_success_between_two_cuts_means_patience_never_runs_out() {
+    let mut allowance = Allowance::new(steps());
+
+    for _ in 0..5 {
+        assert_eq!(allowance.saw(&Outcome::Exhausted { last: None }), None);
+        assert_eq!(allowance.saw(&Outcome::Reached), None);
+    }
+
+    assert_eq!(
+        allowance.now(),
+        12,
+        "five cuts, and the allowance is still the floor"
+    );
+    assert!(!allowance.raised());
+}
